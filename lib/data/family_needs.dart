@@ -11,7 +11,7 @@ class FamilyNeed {
   final FamilyNeedKind kind;
 }
 
-enum FamilyNeedKind { tasks, shopping, bills, care, meals, calendar }
+enum FamilyNeedKind { tasks, shopping, bills, care, school, meals, calendar }
 
 class FamilyNeedsSummary {
   const FamilyNeedsSummary(this.needs);
@@ -26,6 +26,7 @@ FamilyNeedsSummary buildFamilyNeeds({
   required int openShopping,
   required int unpaidBillsDueSoon,
   required int careDue,
+  required int schoolDue,
   required bool dinnerPlannedToday,
   required int eventsToday,
 }) {
@@ -65,6 +66,16 @@ FamilyNeedsSummary buildFamilyNeeds({
         title: '$careDue care item${careDue == 1 ? '' : 's'} due',
         detail: 'Pet, home, or car upkeep',
         kind: FamilyNeedKind.care,
+      ),
+    );
+  }
+  if (schoolDue > 0) {
+    needs.add(
+      FamilyNeed(
+        title:
+            '$schoolDue school / pickup${schoolDue == 1 ? '' : 's'} due',
+        detail: 'Activities and school runs',
+        kind: FamilyNeedKind.school,
       ),
     );
   }

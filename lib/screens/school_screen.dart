@@ -8,27 +8,27 @@ import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
 
-class CareScreen extends ConsumerStatefulWidget {
-  const CareScreen({super.key});
+class SchoolScreen extends ConsumerStatefulWidget {
+  const SchoolScreen({super.key});
 
   @override
-  ConsumerState<CareScreen> createState() => _CareScreenState();
+  ConsumerState<SchoolScreen> createState() => _SchoolScreenState();
 }
 
-class _CareScreenState extends ConsumerState<CareScreen> {
-  static const _categories = ['All', 'Home', 'Pet', 'Car'];
+class _SchoolScreenState extends ConsumerState<SchoolScreen> {
+  static const _kinds = ['All', 'School', 'Sports', 'Pickup', 'Club'];
   String _filter = 'All';
 
   @override
   Widget build(BuildContext context) {
-    final itemsAsync = ref.watch(careItemsProvider);
+    final itemsAsync = ref.watch(schoolActivitiesProvider);
     final now = DateTime.now();
     final endToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Care'),
+        title: const Text('School & activities'),
         actions: [
           IconButton(
             onPressed: () => _showAdd(context),
@@ -39,24 +39,22 @@ class _CareScreenState extends ConsumerState<CareScreen> {
       body: itemsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) =>
-            const Center(child: Text('Could not load care items.')),
+            const Center(child: Text('Could not load activities.')),
         data: (all) {
           final items = _filter == 'All'
               ? all
-              : all.where((i) => i.category == _filter).toList();
-          final due = items
-              .where((i) => !i.nextDueAt.isAfter(endToday))
-              .toList();
-          final upcoming = items
-              .where((i) => i.nextDueAt.isAfter(endToday))
-              .toList();
+              : all.where((i) => i.kind == _filter).toList();
+          final due =
+              items.where((i) => !i.nextAt.isAfter(endToday)).toList();
+          final upcoming =
+              items.where((i) => i.nextAt.isAfter(endToday)).toList();
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
             children: [
               const NestCard(
                 child: Text(
-                  'Recurring pet, home, and car upkeep — mark done to roll the next due date.',
+                  'School runs, sports, clubs, and pickups — mark done to roll the next date, or add a same-day pickup task.',
                   style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
@@ -65,11 +63,11 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    for (final cat in _categories) ...[
+                    for (final kind in _kinds) ...[
                       SoftPill(
-                        label: cat,
-                        selected: _filter == cat,
-                        onTap: () => setState(() => _filter = cat),
+                        label: kind,
+                        selected: _filter == kind,
+                        onTap: () => setState(() => _filter = kind),
                       ),
                       const SizedBox(width: 6),
                     ],
@@ -82,38 +80,25 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                   onTap: () => _showAdd(context),
                   child: Text(
                     all.isEmpty
-                        ? 'No care schedules yet. Tap to add one.'
+                        ? 'No school schedules yet. Tap to add one.'
                         : 'Nothing in $_filter. Try another filter or add one.',
                     style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 )
               else ...[
                 if (due.isNotEmpty) ...[
-                  const SectionLabel('Due now'),
+                  const SectionLabel('Due today'),
                   NestCard(
                     padding: EdgeInsets.zero,
                     child: Column(
                       children: [
                         for (var i = 0; i < due.length; i++) ...[
-                          _CareRow(
+                          _SchoolRow(
                             item: due[i],
                             highlight: true,
-                            onDone: () async {
-                              await ref
-                                  .read(careRepositoryProvider)
-                                  .markDone(due[i]);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
-                            },
-                            onDelete: () async {
-                              await ref
-                                  .read(careRepositoryProvider)
-                                  .delete(due[i].id);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
-                            },
+                            onDone: () => _markDone(due[i]),
+                            onPickup: () => _pickup(due[i]),
+                            onDelete: () => _delete(due[i].id),
                           ),
                           if (i != due.length - 1)
                             const Divider(height: 1, indent: 16),
@@ -130,25 +115,12 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                     child: Column(
                       children: [
                         for (var i = 0; i < upcoming.length; i++) ...[
-                          _CareRow(
+                          _SchoolRow(
                             item: upcoming[i],
                             highlight: false,
-                            onDone: () async {
-                              await ref
-                                  .read(careRepositoryProvider)
-                                  .markDone(upcoming[i]);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
-                            },
-                            onDelete: () async {
-                              await ref
-                                  .read(careRepositoryProvider)
-                                  .delete(upcoming[i].id);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
-                            },
+                            onDone: () => _markDone(upcoming[i]),
+                            onPickup: () => _pickup(upcoming[i]),
+                            onDelete: () => _delete(upcoming[i].id),
                           ),
                           if (i != upcoming.length - 1)
                             const Divider(height: 1, indent: 16),
@@ -165,9 +137,34 @@ class _CareScreenState extends ConsumerState<CareScreen> {
     );
   }
 
+  Future<void> _markDone(SchoolActivity item) async {
+    await ref.read(schoolRepositoryProvider).markDone(item);
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+  }
+
+  Future<void> _pickup(SchoolActivity item) async {
+    await ref.read(schoolRepositoryProvider).createPickupTask(item);
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pickup task added for today')),
+    );
+  }
+
+  Future<void> _delete(String id) async {
+    await ref.read(schoolRepositoryProvider).delete(id);
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+  }
+
   Future<void> _showAdd(BuildContext context) async {
     final result = await showModalBottomSheet<
-        ({String title, String category, int cadence})>(
+        ({String title, String kind, int cadence, String location})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -175,10 +172,10 @@ class _CareScreenState extends ConsumerState<CareScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        var category = 'Home';
+        var kind = 'School';
         var cadence = 7;
         return OwnedControllers(
-          count: 1,
+          count: 2,
           builder: (context, c) {
             return StatefulBuilder(
               builder: (context, setModal) {
@@ -188,7 +185,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                     sheetHandle(),
                     const SizedBox(height: 6),
                     const Text(
-                      'New care item',
+                      'New activity',
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
@@ -198,26 +195,38 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                       autofocus: true,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
-                        hintText: 'e.g. Change HVAC filter',
+                        hintText: 'e.g. Soccer practice',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c[1],
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText: 'Location (optional)',
                       ),
                     ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       children: [
-                        for (final cat in const ['Home', 'Pet', 'Car'])
+                        for (final k in const [
+                          'School',
+                          'Sports',
+                          'Pickup',
+                          'Club',
+                        ])
                           ChoiceChip(
-                            label: Text(cat),
-                            selected: category == cat,
+                            label: Text(k),
+                            selected: kind == k,
                             selectedColor: AppColors.primary,
                             labelStyle: TextStyle(
-                              color: category == cat
+                              color: kind == k
                                   ? Colors.white
                                   : AppColors.ink,
                               fontWeight: FontWeight.w600,
                             ),
-                            onSelected: (_) =>
-                                setModal(() => category = cat),
+                            onSelected: (_) => setModal(() => kind = k),
                           ),
                       ],
                     ),
@@ -229,8 +238,8 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                     Slider(
                       value: cadence.toDouble(),
                       min: 1,
-                      max: 90,
-                      divisions: 89,
+                      max: 30,
+                      divisions: 29,
                       label: '$cadence days',
                       onChanged: (v) =>
                           setModal(() => cadence = v.round()),
@@ -246,8 +255,9 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                           context,
                           (
                             title: name,
-                            category: category,
+                            kind: kind,
                             cadence: cadence,
+                            location: c[1].text.trim(),
                           ),
                         );
                       },
@@ -263,10 +273,11 @@ class _CareScreenState extends ConsumerState<CareScreen> {
     );
 
     if (result != null) {
-      await ref.read(careRepositoryProvider).add(
+      await ref.read(schoolRepositoryProvider).add(
             title: result.title,
-            category: result.category,
+            kind: result.kind,
             cadenceDays: result.cadence,
+            location: result.location,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
@@ -275,33 +286,45 @@ class _CareScreenState extends ConsumerState<CareScreen> {
   }
 }
 
-class _CareRow extends StatelessWidget {
-  const _CareRow({
+class _SchoolRow extends StatelessWidget {
+  const _SchoolRow({
     required this.item,
     required this.highlight,
     required this.onDone,
+    required this.onPickup,
     required this.onDelete,
   });
 
-  final CareItem item;
+  final SchoolActivity item;
   final bool highlight;
   final VoidCallback onDone;
+  final VoidCallback onPickup;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final loc = item.location.trim();
     return ListTile(
       title: Text(
         item.title,
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        '${item.category} · due ${DateFormat.MMMd().format(item.nextDueAt)}'
+        '${item.kind}'
+        '${loc.isEmpty ? '' : ' · $loc'}'
+        ' · next ${DateFormat.MMMd().format(item.nextAt)}'
         '${item.lastDoneAt == null ? '' : ' · last ${DateFormat.MMMd().format(item.lastDoneAt!)}'}',
       ),
+      isThreeLine: loc.isNotEmpty,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          IconButton(
+            tooltip: 'Add pickup task',
+            onPressed: onPickup,
+            icon: const Icon(Icons.directions_car_outlined,
+                color: AppColors.inkMuted),
+          ),
           TextButton(
             onPressed: onDone,
             child: Text(

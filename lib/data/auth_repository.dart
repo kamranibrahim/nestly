@@ -286,6 +286,8 @@ class SyncService {
       await _pullMeals(nestId);
       await _pushCare(nestId);
       await _pullCare(nestId);
+      await _pushSchool(nestId);
+      await _pullSchool(nestId);
       await pullMembers(nestId);
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
     } catch (e, st) {
@@ -975,6 +977,82 @@ class SyncService {
               ),
               nextDueAt: (data['nextDueAt'] as Timestamp?)?.toDate() ??
                   DateTime.now(),
+              notes: Value(data['notes'] as String? ?? ''),
+              dirty: const Value(false),
+              createdAt: Value(
+                (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushSchool(String nestId) async {
+    final dirty = await (_db.select(_db.schoolActivities)
+          ..where((t) => t.dirty.equals(true)))
+        .get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('school')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'title': item.title,
+          'kind': item.kind,
+          'cadenceDays': item.cadenceDays,
+          'lastDoneAt': item.lastDoneAt == null
+              ? null
+              : Timestamp.fromDate(item.lastDoneAt!),
+          'nextAt': Timestamp.fromDate(item.nextAt),
+          'location': item.location,
+          'memberId': item.memberId,
+          'notes': item.notes,
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
+          'createdAt': Timestamp.fromDate(item.createdAt),
+        });
+      }
+      await (_db.update(_db.schoolActivities)
+            ..where((t) => t.id.equals(item.id)))
+          .write(const SchoolActivitiesCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullSchool(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('school')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(_db.schoolActivities)
+            ..where((t) => t.id.equals(doc.id)))
+          .getSingleOrNull();
+      if (local != null &&
+          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+        continue;
+      }
+      await _db.into(_db.schoolActivities).insertOnConflictUpdate(
+            SchoolActivitiesCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              title: data['title'] as String? ?? '',
+              kind: Value(data['kind'] as String? ?? 'School'),
+              cadenceDays: Value(data['cadenceDays'] as int? ?? 7),
+              lastDoneAt: Value(
+                (data['lastDoneAt'] as Timestamp?)?.toDate(),
+              ),
+              nextAt: (data['nextAt'] as Timestamp?)?.toDate() ??
+                  DateTime.now(),
+              location: Value(data['location'] as String? ?? ''),
+              memberId: Value(data['memberId'] as String? ?? ''),
               notes: Value(data['notes'] as String? ?? ''),
               dirty: const Value(false),
               createdAt: Value(

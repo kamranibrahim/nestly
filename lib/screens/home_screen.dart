@@ -13,6 +13,7 @@ import 'care_screen.dart';
 import 'emergency_screen.dart';
 import 'expenses_screen.dart';
 import 'meals_screen.dart';
+import 'school_screen.dart';
 import 'shopping_screen.dart';
 import 'vault_screen.dart';
 
@@ -35,6 +36,7 @@ class HomeScreen extends ConsumerWidget {
     final openShopping = ref.watch(openShoppingCountProvider).valueOrNull ?? 0;
     final vaultCount = ref.watch(vaultCountProvider).valueOrNull ?? 0;
     final careDue = ref.watch(careDueCountProvider).valueOrNull ?? 0;
+    final schoolDue = ref.watch(schoolDueCountProvider).valueOrNull ?? 0;
     final meals = ref.watch(mealsProvider).valueOrNull ?? const [];
     final bills = ref.watch(billsProvider).valueOrNull ?? const [];
     final tasks = ref.watch(tasksProvider).valueOrNull ?? const [];
@@ -61,6 +63,7 @@ class HomeScreen extends ConsumerWidget {
       openShopping: openShopping,
       unpaidBillsDueSoon: billsDueSoon,
       careDue: careDue,
+      schoolDue: schoolDue,
       dinnerPlannedToday: dinnerToday,
       eventsToday: todayEvents.length,
     );
@@ -355,6 +358,16 @@ class HomeScreen extends ConsumerWidget {
                           color: AppColors.mint,
                           onTap: () => nestPush(context, const CareScreen()),
                         ),
+                        FeatureTile(
+                          title: 'School',
+                          subtitle: schoolDue == 0
+                              ? 'Activities'
+                              : '$schoolDue due',
+                          icon: Icons.school_rounded,
+                          color: AppColors.accent,
+                          onTap: () =>
+                              nestPush(context, const SchoolScreen()),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -417,6 +430,8 @@ class HomeScreen extends ConsumerWidget {
         }
       case FamilyNeedKind.care:
         nestPush(context, const CareScreen());
+      case FamilyNeedKind.school:
+        nestPush(context, const SchoolScreen());
       case FamilyNeedKind.meals:
         nestPush(context, const MealsScreen());
     }

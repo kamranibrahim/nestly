@@ -134,6 +134,10 @@ final careRepositoryProvider = Provider<CareRepository>((ref) {
   return CareRepository(ref.watch(databaseProvider));
 });
 
+final schoolRepositoryProvider = Provider<SchoolRepository>((ref) {
+  return SchoolRepository(ref.watch(databaseProvider));
+});
+
 final mealsProvider = StreamProvider<List<MealPlan>>((ref) {
   return ref.watch(mealRepositoryProvider).watchAll();
 });
@@ -144,4 +148,13 @@ final careItemsProvider = StreamProvider<List<CareItem>>((ref) {
 
 final careDueCountProvider = StreamProvider<int>((ref) {
   return ref.watch(careRepositoryProvider).watchDueCount();
+});
+
+final schoolActivitiesProvider =
+    StreamProvider<List<SchoolActivity>>((ref) {
+  return ref.watch(schoolRepositoryProvider).watchAll();
+});
+
+final schoolDueCountProvider = StreamProvider<int>((ref) {
+  return ref.watch(schoolRepositoryProvider).watchDueCount();
 });

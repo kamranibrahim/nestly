@@ -211,6 +211,28 @@ class CareItems extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// School / sports / pickup cadence for kids.
+class SchoolActivities extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get title => text()();
+  /// School | Sports | Pickup | Club
+  TextColumn get kind => text().withDefault(const Constant('School'))();
+  IntColumn get cadenceDays => integer().withDefault(const Constant(7))();
+  DateTimeColumn get lastDoneAt => dateTime().nullable()();
+  DateTimeColumn get nextAt => dateTime()();
+  TextColumn get location => text().withDefault(const Constant(''))();
+  TextColumn get memberId => text().withDefault(const Constant(''))();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     NestMembers,
@@ -226,13 +248,14 @@ class CareItems extends Table {
     TimelineEvents,
     MealPlans,
     CareItems,
+    SchoolActivities,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -268,6 +291,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 5) {
             await _createTableIfMissing(m, mealPlans);
             await _createTableIfMissing(m, careItems);
+          }
+          if (from < 6) {
+            await _createTableIfMissing(m, schoolActivities);
           }
         },
       );
@@ -350,6 +376,7 @@ class AppDatabase extends _$AppDatabase {
       b.deleteAll(timelineEvents);
       b.deleteAll(mealPlans);
       b.deleteAll(careItems);
+      b.deleteAll(schoolActivities);
       b.deleteAll(nestMembers);
     });
   }

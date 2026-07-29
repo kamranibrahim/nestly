@@ -682,3 +682,105 @@ class CareRepository {
     );
   }
 }
+
+class SchoolRepository {
+  SchoolRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+
+  Stream<List<SchoolActivity>> watchAll() {
+    return (_db.select(_db.schoolActivities)
+          ..where((s) => s.deleted.equals(false))
+          ..orderBy([(s) => OrderingTerm(expression: s.nextAt)]))
+        .watch();
+  }
+
+  Stream<int> watchDueCount() {
+    final now = DateTime.now();
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final countExp = _db.schoolActivities.id.count();
+    final query = _db.selectOnly(_db.schoolActivities)
+      ..addColumns([countExp])
+      ..where(
+        _db.schoolActivities.deleted.equals(false) &
+            _db.schoolActivities.nextAt.isSmallerOrEqualValue(endOfToday),
+      );
+    return query.watchSingle().map((row) => row.read(countExp) ?? 0);
+  }
+
+  Future<void> add({
+    required String title,
+    String kind = 'School',
+    int cadenceDays = 7,
+    String location = '',
+    String memberId = '',
+    String notes = '',
+    DateTime? nextAt,
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final next = nextAt ??
+        DateTime(now.year, now.month, now.day)
+            .add(Duration(days: cadenceDays));
+    await _db.into(_db.schoolActivities).insert(
+          SchoolActivitiesCompanion.insert(
+            id: _uuid.v4(),
+            nestId: Value(nestId),
+            title: title.trim(),
+            kind: Value(kind),
+            cadenceDays: Value(cadenceDays),
+            nextAt: next,
+            location: Value(location.trim()),
+            memberId: Value(memberId),
+            notes: Value(notes.trim()),
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  Future<void> markDone(SchoolActivity item) async {
+    final now = DateTime.now();
+    final next = DateTime(now.year, now.month, now.day)
+        .add(Duration(days: item.cadenceDays));
+    await (_db.update(_db.schoolActivities)..where((s) => s.id.equals(item.id)))
+        .write(
+      SchoolActivitiesCompanion(
+        lastDoneAt: Value(now),
+        nextAt: Value(next),
+        dirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+    await TimelineRepository(_db).add(
+      message: 'Done: ${item.title}',
+      memberName: 'You',
+    );
+  }
+
+  /// Creates a same-day task for a pickup / activity.
+  Future<void> createPickupTask(SchoolActivity item) async {
+    final loc = item.location.trim();
+    final title = loc.isEmpty
+        ? 'Pickup: ${item.title}'
+        : 'Pickup: ${item.title} @ $loc';
+    await TaskRepository(_db).addTask(title: title, dueLabel: 'Today');
+    await TimelineRepository(_db).add(
+      message: 'Added pickup task for ${item.title}',
+      memberName: 'You',
+    );
+  }
+
+  Future<void> delete(String id) {
+    return (_db.update(_db.schoolActivities)..where((s) => s.id.equals(id)))
+        .write(
+      SchoolActivitiesCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+}

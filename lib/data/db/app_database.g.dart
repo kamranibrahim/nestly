@@ -7579,6 +7579,796 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
   }
 }
 
+class $SchoolActivitiesTable extends SchoolActivities
+    with TableInfo<$SchoolActivitiesTable, SchoolActivity> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SchoolActivitiesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('School'),
+  );
+  static const VerificationMeta _cadenceDaysMeta = const VerificationMeta(
+    'cadenceDays',
+  );
+  @override
+  late final GeneratedColumn<int> cadenceDays = GeneratedColumn<int>(
+    'cadence_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(7),
+  );
+  static const VerificationMeta _lastDoneAtMeta = const VerificationMeta(
+    'lastDoneAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastDoneAt = GeneratedColumn<DateTime>(
+    'last_done_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nextAtMeta = const VerificationMeta('nextAt');
+  @override
+  late final GeneratedColumn<DateTime> nextAt = GeneratedColumn<DateTime>(
+    'next_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<String> memberId = GeneratedColumn<String>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    title,
+    kind,
+    cadenceDays,
+    lastDoneAt,
+    nextAt,
+    location,
+    memberId,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'school_activities';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SchoolActivity> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
+    if (data.containsKey('cadence_days')) {
+      context.handle(
+        _cadenceDaysMeta,
+        cadenceDays.isAcceptableOrUnknown(
+          data['cadence_days']!,
+          _cadenceDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_done_at')) {
+      context.handle(
+        _lastDoneAtMeta,
+        lastDoneAt.isAcceptableOrUnknown(
+          data['last_done_at']!,
+          _lastDoneAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('next_at')) {
+      context.handle(
+        _nextAtMeta,
+        nextAt.isAcceptableOrUnknown(data['next_at']!, _nextAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nextAtMeta);
+    }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SchoolActivity map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SchoolActivity(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      cadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cadence_days'],
+      )!,
+      lastDoneAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_done_at'],
+      ),
+      nextAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_at'],
+      )!,
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}member_id'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SchoolActivitiesTable createAlias(String alias) {
+    return $SchoolActivitiesTable(attachedDatabase, alias);
+  }
+}
+
+class SchoolActivity extends DataClass implements Insertable<SchoolActivity> {
+  final String id;
+  final String? nestId;
+  final String title;
+
+  /// School | Sports | Pickup | Club
+  final String kind;
+  final int cadenceDays;
+  final DateTime? lastDoneAt;
+  final DateTime nextAt;
+  final String location;
+  final String memberId;
+  final String notes;
+  final bool dirty;
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const SchoolActivity({
+    required this.id,
+    this.nestId,
+    required this.title,
+    required this.kind,
+    required this.cadenceDays,
+    this.lastDoneAt,
+    required this.nextAt,
+    required this.location,
+    required this.memberId,
+    required this.notes,
+    required this.dirty,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
+    map['title'] = Variable<String>(title);
+    map['kind'] = Variable<String>(kind);
+    map['cadence_days'] = Variable<int>(cadenceDays);
+    if (!nullToAbsent || lastDoneAt != null) {
+      map['last_done_at'] = Variable<DateTime>(lastDoneAt);
+    }
+    map['next_at'] = Variable<DateTime>(nextAt);
+    map['location'] = Variable<String>(location);
+    map['member_id'] = Variable<String>(memberId);
+    map['notes'] = Variable<String>(notes);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  SchoolActivitiesCompanion toCompanion(bool nullToAbsent) {
+    return SchoolActivitiesCompanion(
+      id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
+      title: Value(title),
+      kind: Value(kind),
+      cadenceDays: Value(cadenceDays),
+      lastDoneAt: lastDoneAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastDoneAt),
+      nextAt: Value(nextAt),
+      location: Value(location),
+      memberId: Value(memberId),
+      notes: Value(notes),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory SchoolActivity.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SchoolActivity(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
+      title: serializer.fromJson<String>(json['title']),
+      kind: serializer.fromJson<String>(json['kind']),
+      cadenceDays: serializer.fromJson<int>(json['cadenceDays']),
+      lastDoneAt: serializer.fromJson<DateTime?>(json['lastDoneAt']),
+      nextAt: serializer.fromJson<DateTime>(json['nextAt']),
+      location: serializer.fromJson<String>(json['location']),
+      memberId: serializer.fromJson<String>(json['memberId']),
+      notes: serializer.fromJson<String>(json['notes']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
+      'title': serializer.toJson<String>(title),
+      'kind': serializer.toJson<String>(kind),
+      'cadenceDays': serializer.toJson<int>(cadenceDays),
+      'lastDoneAt': serializer.toJson<DateTime?>(lastDoneAt),
+      'nextAt': serializer.toJson<DateTime>(nextAt),
+      'location': serializer.toJson<String>(location),
+      'memberId': serializer.toJson<String>(memberId),
+      'notes': serializer.toJson<String>(notes),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  SchoolActivity copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    String? title,
+    String? kind,
+    int? cadenceDays,
+    Value<DateTime?> lastDoneAt = const Value.absent(),
+    DateTime? nextAt,
+    String? location,
+    String? memberId,
+    String? notes,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => SchoolActivity(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    title: title ?? this.title,
+    kind: kind ?? this.kind,
+    cadenceDays: cadenceDays ?? this.cadenceDays,
+    lastDoneAt: lastDoneAt.present ? lastDoneAt.value : this.lastDoneAt,
+    nextAt: nextAt ?? this.nextAt,
+    location: location ?? this.location,
+    memberId: memberId ?? this.memberId,
+    notes: notes ?? this.notes,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  SchoolActivity copyWithCompanion(SchoolActivitiesCompanion data) {
+    return SchoolActivity(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      title: data.title.present ? data.title.value : this.title,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      cadenceDays: data.cadenceDays.present
+          ? data.cadenceDays.value
+          : this.cadenceDays,
+      lastDoneAt: data.lastDoneAt.present
+          ? data.lastDoneAt.value
+          : this.lastDoneAt,
+      nextAt: data.nextAt.present ? data.nextAt.value : this.nextAt,
+      location: data.location.present ? data.location.value : this.location,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SchoolActivity(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('kind: $kind, ')
+          ..write('cadenceDays: $cadenceDays, ')
+          ..write('lastDoneAt: $lastDoneAt, ')
+          ..write('nextAt: $nextAt, ')
+          ..write('location: $location, ')
+          ..write('memberId: $memberId, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    title,
+    kind,
+    cadenceDays,
+    lastDoneAt,
+    nextAt,
+    location,
+    memberId,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SchoolActivity &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.title == this.title &&
+          other.kind == this.kind &&
+          other.cadenceDays == this.cadenceDays &&
+          other.lastDoneAt == this.lastDoneAt &&
+          other.nextAt == this.nextAt &&
+          other.location == this.location &&
+          other.memberId == this.memberId &&
+          other.notes == this.notes &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SchoolActivitiesCompanion extends UpdateCompanion<SchoolActivity> {
+  final Value<String> id;
+  final Value<String?> nestId;
+  final Value<String> title;
+  final Value<String> kind;
+  final Value<int> cadenceDays;
+  final Value<DateTime?> lastDoneAt;
+  final Value<DateTime> nextAt;
+  final Value<String> location;
+  final Value<String> memberId;
+  final Value<String> notes;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const SchoolActivitiesCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
+    this.lastDoneAt = const Value.absent(),
+    this.nextAt = const Value.absent(),
+    this.location = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SchoolActivitiesCompanion.insert({
+    required String id,
+    this.nestId = const Value.absent(),
+    required String title,
+    this.kind = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
+    this.lastDoneAt = const Value.absent(),
+    required DateTime nextAt,
+    this.location = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       nextAt = Value(nextAt);
+  static Insertable<SchoolActivity> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<String>? title,
+    Expression<String>? kind,
+    Expression<int>? cadenceDays,
+    Expression<DateTime>? lastDoneAt,
+    Expression<DateTime>? nextAt,
+    Expression<String>? location,
+    Expression<String>? memberId,
+    Expression<String>? notes,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (title != null) 'title': title,
+      if (kind != null) 'kind': kind,
+      if (cadenceDays != null) 'cadence_days': cadenceDays,
+      if (lastDoneAt != null) 'last_done_at': lastDoneAt,
+      if (nextAt != null) 'next_at': nextAt,
+      if (location != null) 'location': location,
+      if (memberId != null) 'member_id': memberId,
+      if (notes != null) 'notes': notes,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SchoolActivitiesCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? nestId,
+    Value<String>? title,
+    Value<String>? kind,
+    Value<int>? cadenceDays,
+    Value<DateTime?>? lastDoneAt,
+    Value<DateTime>? nextAt,
+    Value<String>? location,
+    Value<String>? memberId,
+    Value<String>? notes,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return SchoolActivitiesCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      title: title ?? this.title,
+      kind: kind ?? this.kind,
+      cadenceDays: cadenceDays ?? this.cadenceDays,
+      lastDoneAt: lastDoneAt ?? this.lastDoneAt,
+      nextAt: nextAt ?? this.nextAt,
+      location: location ?? this.location,
+      memberId: memberId ?? this.memberId,
+      notes: notes ?? this.notes,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (cadenceDays.present) {
+      map['cadence_days'] = Variable<int>(cadenceDays.value);
+    }
+    if (lastDoneAt.present) {
+      map['last_done_at'] = Variable<DateTime>(lastDoneAt.value);
+    }
+    if (nextAt.present) {
+      map['next_at'] = Variable<DateTime>(nextAt.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<String>(memberId.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SchoolActivitiesCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('kind: $kind, ')
+          ..write('cadenceDays: $cadenceDays, ')
+          ..write('lastDoneAt: $lastDoneAt, ')
+          ..write('nextAt: $nextAt, ')
+          ..write('location: $location, ')
+          ..write('memberId: $memberId, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7597,6 +8387,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TimelineEventsTable timelineEvents = $TimelineEventsTable(this);
   late final $MealPlansTable mealPlans = $MealPlansTable(this);
   late final $CareItemsTable careItems = $CareItemsTable(this);
+  late final $SchoolActivitiesTable schoolActivities = $SchoolActivitiesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7615,6 +8408,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     timelineEvents,
     mealPlans,
     careItems,
+    schoolActivities,
   ];
 }
 
@@ -11595,6 +12389,387 @@ typedef $$CareItemsTableProcessedTableManager =
       CareItem,
       PrefetchHooks Function()
     >;
+typedef $$SchoolActivitiesTableCreateCompanionBuilder =
+    SchoolActivitiesCompanion Function({
+      required String id,
+      Value<String?> nestId,
+      required String title,
+      Value<String> kind,
+      Value<int> cadenceDays,
+      Value<DateTime?> lastDoneAt,
+      required DateTime nextAt,
+      Value<String> location,
+      Value<String> memberId,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$SchoolActivitiesTableUpdateCompanionBuilder =
+    SchoolActivitiesCompanion Function({
+      Value<String> id,
+      Value<String?> nestId,
+      Value<String> title,
+      Value<String> kind,
+      Value<int> cadenceDays,
+      Value<DateTime?> lastDoneAt,
+      Value<DateTime> nextAt,
+      Value<String> location,
+      Value<String> memberId,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$SchoolActivitiesTableFilterComposer
+    extends Composer<_$AppDatabase, $SchoolActivitiesTable> {
+  $$SchoolActivitiesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastDoneAt => $composableBuilder(
+    column: $table.lastDoneAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextAt => $composableBuilder(
+    column: $table.nextAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SchoolActivitiesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SchoolActivitiesTable> {
+  $$SchoolActivitiesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastDoneAt => $composableBuilder(
+    column: $table.lastDoneAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextAt => $composableBuilder(
+    column: $table.nextAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SchoolActivitiesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SchoolActivitiesTable> {
+  $$SchoolActivitiesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastDoneAt => $composableBuilder(
+    column: $table.lastDoneAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get nextAt =>
+      $composableBuilder(column: $table.nextAt, builder: (column) => column);
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumn<String> get memberId =>
+      $composableBuilder(column: $table.memberId, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$SchoolActivitiesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SchoolActivitiesTable,
+          SchoolActivity,
+          $$SchoolActivitiesTableFilterComposer,
+          $$SchoolActivitiesTableOrderingComposer,
+          $$SchoolActivitiesTableAnnotationComposer,
+          $$SchoolActivitiesTableCreateCompanionBuilder,
+          $$SchoolActivitiesTableUpdateCompanionBuilder,
+          (
+            SchoolActivity,
+            BaseReferences<
+              _$AppDatabase,
+              $SchoolActivitiesTable,
+              SchoolActivity
+            >,
+          ),
+          SchoolActivity,
+          PrefetchHooks Function()
+        > {
+  $$SchoolActivitiesTableTableManager(
+    _$AppDatabase db,
+    $SchoolActivitiesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SchoolActivitiesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SchoolActivitiesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SchoolActivitiesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
+                Value<DateTime?> lastDoneAt = const Value.absent(),
+                Value<DateTime> nextAt = const Value.absent(),
+                Value<String> location = const Value.absent(),
+                Value<String> memberId = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SchoolActivitiesCompanion(
+                id: id,
+                nestId: nestId,
+                title: title,
+                kind: kind,
+                cadenceDays: cadenceDays,
+                lastDoneAt: lastDoneAt,
+                nextAt: nextAt,
+                location: location,
+                memberId: memberId,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> nestId = const Value.absent(),
+                required String title,
+                Value<String> kind = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
+                Value<DateTime?> lastDoneAt = const Value.absent(),
+                required DateTime nextAt,
+                Value<String> location = const Value.absent(),
+                Value<String> memberId = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SchoolActivitiesCompanion.insert(
+                id: id,
+                nestId: nestId,
+                title: title,
+                kind: kind,
+                cadenceDays: cadenceDays,
+                lastDoneAt: lastDoneAt,
+                nextAt: nextAt,
+                location: location,
+                memberId: memberId,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SchoolActivitiesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SchoolActivitiesTable,
+      SchoolActivity,
+      $$SchoolActivitiesTableFilterComposer,
+      $$SchoolActivitiesTableOrderingComposer,
+      $$SchoolActivitiesTableAnnotationComposer,
+      $$SchoolActivitiesTableCreateCompanionBuilder,
+      $$SchoolActivitiesTableUpdateCompanionBuilder,
+      (
+        SchoolActivity,
+        BaseReferences<_$AppDatabase, $SchoolActivitiesTable, SchoolActivity>,
+      ),
+      SchoolActivity,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -11625,4 +12800,6 @@ class $AppDatabaseManager {
       $$MealPlansTableTableManager(_db, _db.mealPlans);
   $$CareItemsTableTableManager get careItems =>
       $$CareItemsTableTableManager(_db, _db.careItems);
+  $$SchoolActivitiesTableTableManager get schoolActivities =>
+      $$SchoolActivitiesTableTableManager(_db, _db.schoolActivities);
 }

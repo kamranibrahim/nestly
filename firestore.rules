@@ -72,6 +72,10 @@ service cloud.firestore {
       match /care/{careId} {
         allow read, write: if nestMember(nestId);
       }
+
+      match /school/{activityId} {
+        allow read, write: if nestMember(nestId);
+      }
     }
   }
 }

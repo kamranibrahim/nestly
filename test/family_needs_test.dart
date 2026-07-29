@@ -8,6 +8,7 @@ void main() {
       openShopping: 0,
       unpaidBillsDueSoon: 1,
       careDue: 0,
+      schoolDue: 0,
       dinnerPlannedToday: false,
       eventsToday: 1,
     );
@@ -29,6 +30,7 @@ void main() {
       openShopping: 0,
       unpaidBillsDueSoon: 0,
       careDue: 0,
+      schoolDue: 0,
       dinnerPlannedToday: true,
       eventsToday: 0,
     );
