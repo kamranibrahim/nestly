@@ -14,7 +14,6 @@ import 'emergency_screen.dart';
 import 'expenses_screen.dart';
 import 'meals_screen.dart';
 import 'school_screen.dart';
-import 'shopping_screen.dart';
 import 'vault_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -142,7 +141,7 @@ class HomeScreen extends ConsumerWidget {
                         const SizedBox(width: 8),
                         SoftPill(
                           label: 'Shopping ($openShopping)',
-                          onTap: () => nestPush(context, const ShoppingScreen()),
+                          onTap: () => onOpenTab(3),
                         ),
                       ],
                     ),
@@ -309,7 +308,7 @@ class HomeScreen extends ConsumerWidget {
                           subtitle: '$openShopping items',
                           icon: Icons.shopping_bag_rounded,
                           color: AppColors.tileOrange,
-                          onTap: () => nestPush(context, const ShoppingScreen()),
+                          onTap: () => onOpenTab(3),
                         ),
                         FeatureTile(
                           title: 'Tasks',
@@ -416,7 +415,7 @@ class HomeScreen extends ConsumerWidget {
       case FamilyNeedKind.tasks:
         onOpenTab(2);
       case FamilyNeedKind.shopping:
-        nestPush(context, const ShoppingScreen());
+        onOpenTab(3);
       case FamilyNeedKind.bills:
       case FamilyNeedKind.calendar:
         if (kind == FamilyNeedKind.calendar) {
