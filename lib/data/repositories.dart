@@ -371,6 +371,41 @@ class EventRepository {
           ),
         );
   }
+
+  Future<void> updateEvent({
+    required String id,
+    required String title,
+    required DateTime startsAt,
+    String memberId = '',
+    String category = 'Family',
+    String? location,
+    bool allDay = false,
+    DateTime? endsAt,
+  }) {
+    return (_db.update(_db.calendarEvents)..where((e) => e.id.equals(id))).write(
+      CalendarEventsCompanion(
+        title: Value(title.trim()),
+        memberId: Value(memberId),
+        category: Value(category),
+        location: Value(location),
+        startsAt: Value(startsAt),
+        endsAt: Value(endsAt),
+        allDay: Value(allDay),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> deleteEvent(String id) {
+    return (_db.update(_db.calendarEvents)..where((e) => e.id.equals(id))).write(
+      CalendarEventsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
 }
 
 class MemberRepository {

@@ -9,6 +9,7 @@ void main() {
   late TaskRepository tasks;
   late ShoppingRepository shopping;
   late MealRepository meals;
+  late EventRepository events;
 
   setUp(() async {
     database = AppDatabase(NativeDatabase.memory());
@@ -16,6 +17,7 @@ void main() {
     tasks = TaskRepository(database);
     shopping = ShoppingRepository(database);
     meals = MealRepository(database);
+    events = EventRepository(database);
   });
 
   tearDown(() async {
@@ -150,5 +152,43 @@ void main() {
     final soon = await vault.watchExpiringSoon().first;
     expect(soon.any((d) => d.id == doc.id), isTrue);
     expect(soon.firstWhere((d) => d.id == doc.id).notes, 'Renew online');
+  });
+
+  test('calendar events can be updated and deleted', () async {
+    final startsAt = DateTime(2026, 7, 29, 9);
+    final endsAt = DateTime(2026, 7, 29, 10);
+
+    await events.addEvent(
+      title: 'Dentist',
+      startsAt: startsAt,
+      endsAt: endsAt,
+      memberId: 'mom',
+      location: 'Main Street Clinic',
+    );
+
+    final added = (await events.watchAll().first)
+        .firstWhere((e) => e.title == 'Dentist');
+
+    await events.updateEvent(
+      id: added.id,
+      title: 'Dentist check-in',
+      startsAt: startsAt.add(const Duration(hours: 1)),
+      endsAt: endsAt.add(const Duration(hours: 1)),
+      memberId: 'dad',
+      location: 'Clinic front desk',
+      allDay: false,
+      category: added.category,
+    );
+
+    final updated = (await events.watchAll().first)
+        .firstWhere((e) => e.id == added.id);
+    expect(updated.title, 'Dentist check-in');
+    expect(updated.memberId, 'dad');
+    expect(updated.location, 'Clinic front desk');
+    expect(updated.startsAt.hour, 10);
+
+    await events.deleteEvent(added.id);
+    final remaining = await events.watchAll().first;
+    expect(remaining.any((e) => e.id == added.id), isFalse);
   });
 }

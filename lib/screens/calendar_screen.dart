@@ -100,11 +100,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               child: Row(
                 children: [
                   CircleIconButton(
-                    icon: Icons.grid_view_rounded,
+                    icon: Icons.today_rounded,
                     background: AppColors.surfaceMuted,
                     foreground: AppColors.ink,
                     size: 38,
-                    onTap: () {},
+                    onTap: () {
+                      final now = DateTime.now();
+                      setState(() {
+                        _selected = DateTime(now.year, now.month, now.day);
+                      });
+                    },
                   ),
                   const Spacer(),
                   CircleIconButton(
@@ -129,7 +134,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Task Schedule',
+                    'Family calendar',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.8,
@@ -248,11 +253,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               delay: AppMotion.stagger * i,
                               replayKey: dayEvents[i].id,
                               child: _PastelEventCard(
-                              event: dayEvents[i],
-                              member: _memberFor(members, dayEvents[i].memberId),
-                              color: AppColors.softCardColors[
-                                  i % AppColors.softCardColors.length],
-                            ),
+                                event: dayEvents[i],
+                                member: _memberFor(members, dayEvents[i].memberId),
+                                color: AppColors.softCardColors[
+                                    i % AppColors.softCardColors.length],
+                                onTap: () => _showEditEvent(context, dayEvents[i]),
+                                onEdit: () => _showEditEvent(context, dayEvents[i]),
+                              ),
                             ),
                           ),
                       if (allEvents
@@ -273,6 +280,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               event: event,
                               member: _memberFor(members, event.memberId),
                               color: AppColors.surfaceMuted,
+                              onTap: () => _showEditEvent(context, event),
+                              onEdit: () => _showEditEvent(context, event),
                               showDate: true,
                               bordered: true,
                             ),
@@ -299,6 +308,48 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   bool _isToday(DateTime d) {
     final n = DateTime.now();
     return d.year == n.year && d.month == n.month && d.day == n.day;
+  }
+
+  DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  String _dateLabel(DateTime d) => DateFormat('EEE, MMM d').format(d);
+
+  String _timeLabel(DateTime d) => DateFormat.jm().format(d);
+
+  DateTime _mergeDateAndTime(DateTime date, TimeOfDay time) {
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+  }
+
+  Future<DateTime?> _pickDateFor(BuildContext context, DateTime initial) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked == null) return null;
+    return DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      initial.hour,
+      initial.minute,
+    );
+  }
+
+  Future<DateTime?> _pickTimeFor(BuildContext context, DateTime initial) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (picked == null) return null;
+    return _mergeDateAndTime(initial, picked);
   }
 
   Set<int> _eventDays(List<CalendarEvent> events) {
@@ -375,10 +426,32 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Future<void> _showAddEvent(BuildContext context) async {
-    final members = ref.read(membersProvider).valueOrNull ?? const [];
-    var selectedMemberId = _pickDefaultMemberId(members);
+    await _showEventSheet(context);
+  }
 
-    final title = await showModalBottomSheet<String>(
+  Future<void> _showEditEvent(
+    BuildContext context,
+    CalendarEvent event,
+  ) async {
+    await _showEventSheet(context, existing: event);
+  }
+
+  Future<void> _showEventSheet(
+    BuildContext context, {
+    CalendarEvent? existing,
+  }) async {
+    final members = ref.read(membersProvider).valueOrNull ?? const [];
+    var selectedMemberId = existing?.memberId ?? _pickDefaultMemberId(members);
+    var selectedDate = existing?.startsAt ??
+        _selected.add(const Duration(hours: 9));
+    var allDay = existing?.allDay ?? false;
+    var startAt = existing?.startsAt ??
+        _selected.add(const Duration(hours: 9));
+    var endAt = existing?.endsAt ??
+        _selected.add(const Duration(hours: 10));
+    var deleteEvent = false;
+
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -387,9 +460,50 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       ),
       builder: (context) {
         return OwnedControllers(
-          count: 1,
+          count: 2,
           builder: (context, c) {
-            void submit() => Navigator.pop(context, c[0].text.trim());
+            if (c[0].text.isEmpty && existing != null) {
+              c[0].text = existing.title;
+            }
+            if (c[1].text.isEmpty && (existing?.location?.isNotEmpty ?? false)) {
+              c[1].text = existing!.location!;
+            }
+
+            Future<void> submit() async {
+              final title = c[0].text.trim();
+              final location = c[1].text.trim();
+              if (title.isEmpty) return;
+              Navigator.pop(context);
+
+              if (deleteEvent && existing != null) {
+                await ref.read(eventRepositoryProvider).deleteEvent(existing.id);
+              } else if (existing == null) {
+                await ref.read(eventRepositoryProvider).addEvent(
+                      title: title,
+                      startsAt: allDay ? _dateOnly(selectedDate) : startAt,
+                      endsAt: allDay ? null : endAt,
+                      allDay: allDay,
+                      memberId: selectedMemberId,
+                      location: location.isEmpty ? null : location,
+                    );
+              } else {
+                await ref.read(eventRepositoryProvider).updateEvent(
+                      id: existing.id,
+                      title: title,
+                      startsAt: allDay ? _dateOnly(selectedDate) : startAt,
+                      endsAt: allDay ? null : endAt,
+                      allDay: allDay,
+                      memberId: selectedMemberId,
+                      location: location.isEmpty ? null : location,
+                      category: existing.category,
+                    );
+              }
+
+              try {
+                await ref.read(syncServiceProvider).syncAll();
+              } catch (_) {}
+            }
+
             return StatefulBuilder(
               builder: (context, setModal) {
                 return sheetBody(
@@ -397,8 +511,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   children: [
                     sheetHandle(),
                     const SizedBox(height: 6),
-                    const Text(
-                      'New event',
+                    Text(
+                      existing == null ? 'New event' : 'Edit event',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -411,6 +525,89 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       decoration:
                           const InputDecoration(hintText: 'Event title'),
                       onSubmitted: (_) => submit(),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c[1],
+                      decoration: const InputDecoration(
+                        hintText: 'Location (optional)',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'All day',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        Switch(
+                          value: allDay,
+                          onChanged: (value) => setModal(() => allDay = value),
+                        ),
+                      ],
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        SoftPill(
+                          label: _dateLabel(selectedDate),
+                          selected: true,
+                          onTap: () async {
+                            final picked = await _pickDateFor(
+                              context,
+                              selectedDate,
+                            );
+                            if (picked == null) return;
+                            setModal(() {
+                              selectedDate = picked;
+                              startAt = DateTime(
+                                picked.year,
+                                picked.month,
+                                picked.day,
+                                startAt.hour,
+                                startAt.minute,
+                              );
+                              endAt = DateTime(
+                                picked.year,
+                                picked.month,
+                                picked.day,
+                                endAt.hour,
+                                endAt.minute,
+                              );
+                            });
+                          },
+                        ),
+                        if (!allDay) ...[
+                          SoftPill(
+                            label: 'Starts ${_timeLabel(startAt)}',
+                            onTap: () async {
+                              final picked = await _pickTimeFor(context, startAt);
+                              if (picked == null) return;
+                              setModal(() {
+                                startAt = picked;
+                                if (!endAt.isAfter(startAt)) {
+                                  endAt = startAt.add(const Duration(hours: 1));
+                                }
+                              });
+                            },
+                          ),
+                          SoftPill(
+                            label: 'Ends ${_timeLabel(endAt)}',
+                            onTap: () async {
+                              final picked = await _pickTimeFor(context, endAt);
+                              if (picked == null) return;
+                              setModal(() {
+                                endAt = picked.isAfter(startAt)
+                                    ? picked
+                                    : startAt.add(const Duration(hours: 1));
+                              });
+                            },
+                          ),
+                        ],
+                      ],
                     ),
                     if (members.isNotEmpty) ...[
                       const SizedBox(height: 12),
@@ -437,8 +634,40 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     const SizedBox(height: 14),
                     FilledButton(
                       onPressed: submit,
-                      child: const Text('Add event'),
+                      child: Text(existing == null ? 'Add event' : 'Save changes'),
                     ),
+                    if (existing != null) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Delete event?'),
+                              content: const Text(
+                                'This removes it from the shared calendar.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm != true) return;
+                          deleteEvent = true;
+                          await submit();
+                        },
+                        child: const Text('Delete event'),
+                      ),
+                    ],
                   ],
                 );
               },
@@ -447,16 +676,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         );
       },
     );
-    if (title != null && title.isNotEmpty) {
-      await ref.read(eventRepositoryProvider).addEvent(
-            title: title,
-            startsAt: _selected.add(const Duration(hours: 9)),
-            memberId: selectedMemberId,
-          );
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
-    }
   }
 }
 
@@ -487,6 +706,8 @@ class _PastelEventCard extends StatelessWidget {
     required this.event,
     required this.member,
     required this.color,
+    required this.onTap,
+    required this.onEdit,
     this.showDate = false,
     this.bordered = false,
   });
@@ -494,6 +715,8 @@ class _PastelEventCard extends StatelessWidget {
   final CalendarEvent event;
   final NestMember? member;
   final Color color;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
   final bool showDate;
   final bool bordered;
 
@@ -507,6 +730,7 @@ class _PastelEventCard extends StatelessWidget {
             : '${DateFormat.jm().format(event.startsAt)} - ${DateFormat.jm().format(end)}';
 
     return NestCard(
+      onTap: onTap,
       color: color,
       bordered: bordered,
       padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
@@ -531,7 +755,7 @@ class _PastelEventCard extends StatelessWidget {
                 background: Colors.white,
                 foreground: AppColors.ink,
                 size: 32,
-                onTap: () {},
+                onTap: onEdit,
               ),
             ],
           ),
@@ -548,6 +772,20 @@ class _PastelEventCard extends StatelessWidget {
                   fontSize: 13,
                 ),
               ),
+              if ((event.location ?? '').trim().isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    event.location!.trim(),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.inkSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
               const Spacer(),
               if (member != null)
                 Container(
