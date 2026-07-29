@@ -250,7 +250,23 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  /// Seeds sample household data the first time the DB is empty.
+  /// Wipes local household rows so demo/seed data never leaks into a real nest.
+  Future<void> clearHouseholdData() async {
+    await batch((b) {
+      b.deleteAll(shoppingItems);
+      b.deleteAll(shoppingLists);
+      b.deleteAll(tasks);
+      b.deleteAll(calendarEvents);
+      b.deleteAll(expenses);
+      b.deleteAll(bills);
+      b.deleteAll(emergencyEntries);
+      b.deleteAll(vaultDocuments);
+      b.deleteAll(timelineEvents);
+      b.deleteAll(nestMembers);
+    });
+  }
+
+  /// Demo seed for widget/unit tests only — never call from production main().
   Future<void> ensureSeeded() async {
     final taskCount = await (select(tasks)..limit(1)).get();
     final listCount = await (select(shoppingLists)..limit(1)).get();

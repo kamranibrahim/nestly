@@ -109,6 +109,10 @@ final emergencyProvider = StreamProvider<List<EmergencyEntry>>((ref) {
   return ref.watch(emergencyRepositoryProvider).watchAll();
 });
 
+enum PendingAdd { none, event, task, shopping }
+
+final pendingAddProvider = StateProvider<PendingAdd>((ref) => PendingAdd.none);
+
 final timelineProvider = StreamProvider<List<TimelineEvent>>((ref) {
   return ref.watch(timelineRepositoryProvider).watchRecent();
 });

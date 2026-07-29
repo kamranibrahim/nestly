@@ -8,7 +8,6 @@ import 'package:nestly/screens/app_shell.dart';
 void main() {
   testWidgets('Nestly home shows family hub and feature tiles', (tester) async {
     final database = AppDatabase(NativeDatabase.memory());
-    await database.ensureSeeded();
 
     await tester.pumpWidget(
       ProviderScope(
@@ -18,10 +17,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('The Ibrahims'), findsWidgets);
+    expect(find.text('Your nest'), findsWidgets);
     expect(find.text('Lists'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Tasks'), findsWidgets);
+    expect(find.text('Nothing planned today'), findsOneWidget);
 
     await database.close();
     await tester.pumpWidget(const SizedBox.shrink());

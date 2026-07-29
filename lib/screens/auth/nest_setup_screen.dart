@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/auth_errors.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_colors.dart';
 
@@ -78,7 +79,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
       await ref.read(notificationServiceProvider).init();
       ref.invalidate(nestInfoProvider);
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = friendlyAuthError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

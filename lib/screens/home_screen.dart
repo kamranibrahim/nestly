@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
-import '../data/mock_data.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -20,8 +19,20 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final dateLabel = DateFormat('EEE d MMM').format(now);
-    final next = MockData.todayEvents.first;
+    final events = ref.watch(eventsProvider).valueOrNull ?? const [];
+    final todayEvents = events.where((e) {
+      final d = DateTime(e.startsAt.year, e.startsAt.month, e.startsAt.day);
+      return d == today;
+    }).toList()
+      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    final next = todayEvents.isEmpty
+        ? null
+        : todayEvents.firstWhere(
+            (e) => !e.startsAt.isBefore(now),
+            orElse: () => todayEvents.first,
+          );
     final openTasks = ref.watch(openTaskCountProvider).valueOrNull ?? 0;
     final openShopping = ref.watch(openShoppingCountProvider).valueOrNull ?? 0;
     final vaultCount = ref.watch(vaultCountProvider).valueOrNull ?? 0;
@@ -79,7 +90,9 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${next.time} · ${next.title}',
+                                  next == null
+                                      ? 'Nothing planned today'
+                                      : '${next.allDay ? 'All day' : DateFormat.jm().format(next.startsAt)} · ${next.title}',
                                   style: const TextStyle(
                                     color: AppColors.inkSecondary,
                                     fontWeight: FontWeight.w500,
@@ -87,7 +100,9 @@ class HomeScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${MockData.todayEvents.length} events today',
+                                  todayEvents.isEmpty
+                                      ? 'Tap to add an event'
+                                      : '${todayEvents.length} event${todayEvents.length == 1 ? '' : 's'} today',
                                   style: const TextStyle(
                                     color: AppColors.inkMuted,
                                     fontSize: 12,
@@ -115,7 +130,9 @@ class HomeScreen extends ConsumerWidget {
                       children: [
                         FeatureTile(
                           title: 'Calendar',
-                          subtitle: '${MockData.todayEvents.length} today',
+                          subtitle: todayEvents.isEmpty
+                              ? 'Open'
+                              : '${todayEvents.length} today',
                           icon: Icons.calendar_month_rounded,
                           color: AppColors.tileBlue,
                           onTap: () => onOpenTab(1),
@@ -179,13 +196,13 @@ class HomeScreen extends ConsumerWidget {
                           onTap: () => onOpenTab(4),
                         ),
                         FeatureTile(
-                          title: 'Contacts',
-                          subtitle: 'Family directory',
-                          icon: Icons.contacts_rounded,
+                          title: 'Shopping',
+                          subtitle: '$openShopping left',
+                          icon: Icons.storefront_rounded,
                           color: AppColors.tileTeal,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const EmergencyScreen(),
+                              builder: (_) => const ShoppingScreen(),
                             ),
                           ),
                         ),
@@ -234,8 +251,8 @@ class _FamilyHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nestName =
-        ref.watch(nestInfoProvider).valueOrNull?.name ?? MockData.familyName;
-    final members = ref.watch(membersProvider).valueOrNull;
+        ref.watch(nestInfoProvider).valueOrNull?.name ?? 'Your nest';
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
 
     return Row(
       children: [
@@ -262,24 +279,12 @@ class _FamilyHeader extends ConsumerWidget {
             ],
           ),
         ),
-        SizedBox(
-          width: 28.0 *
-                  ((members?.length ?? MockData.members.length) - 1).clamp(0, 8) +
-              36,
-          height: 36,
-          child: Stack(
-            children: [
-              if (members == null || members.isEmpty)
-                for (var i = 0; i < MockData.members.length; i++)
-                  Positioned(
-                    left: i * 26.0,
-                    child: MemberAvatar(
-                      initials: MockData.members[i].initials,
-                      color: MockData.members[i].color,
-                      size: 36,
-                    ),
-                  )
-              else
+        if (members.isNotEmpty)
+          SizedBox(
+            width: 28.0 * (members.length - 1).clamp(0, 8) + 36,
+            height: 36,
+            child: Stack(
+              children: [
                 for (var i = 0; i < members.length; i++)
                   Positioned(
                     left: i * 26.0,
@@ -289,17 +294,29 @@ class _FamilyHeader extends ConsumerWidget {
                       size: 36,
                     ),
                   ),
-            ],
+              ],
+            ),
           ),
-        ),
         const SizedBox(width: 8),
         IconButton(
+          tooltip: 'Sync',
           onPressed: () async {
             try {
               await ref.read(syncServiceProvider).syncAll();
-            } catch (_) {}
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Synced with nest')),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Sync failed: $e')),
+                );
+              }
+            }
           },
-          icon: const Icon(Icons.notifications_none_rounded),
+          icon: const Icon(Icons.cloud_sync_outlined),
           color: AppColors.primary,
         ),
       ],

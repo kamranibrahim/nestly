@@ -27,4 +27,5 @@ Use this when submitting Nestly to Google Play closed testing / Apple TestFlight
 ## Known manual steps
 
 - Apple / Google social sign-in not enabled yet
-- Nestly Plus paywall arrives in Y1 Q4
+- Nestly Plus paywall deferred (free soft launch)
+- Enable Firebase Storage in console before vault cloud upload

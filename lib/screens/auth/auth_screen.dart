@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/auth_errors.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_colors.dart';
 
@@ -18,6 +19,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _signUp = true;
   bool _busy = false;
   String? _error;
+  String? _info;
 
   @override
   void dispose() {
@@ -31,6 +33,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() {
       _busy = true;
       _error = null;
+      _info = null;
     });
     try {
       final auth = ref.read(authRepositoryProvider);
@@ -44,7 +47,28 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         await auth.signIn(email: _email.text, password: _password.text);
       }
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = friendlyAuthError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _email.text.trim();
+    if (email.isEmpty) {
+      setState(() => _error = 'Enter your email above, then tap Forgot password.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+      _info = null;
+    });
+    try {
+      await ref.read(authRepositoryProvider).sendPasswordReset(email);
+      setState(() => _info = 'Password reset email sent. Check your inbox.');
+    } catch (e) {
+      setState(() => _error = friendlyAuthError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -99,11 +123,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Password'),
             ),
+            if (!_signUp) ...[
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _busy ? null : _forgotPassword,
+                  child: const Text('Forgot password?'),
+                ),
+              ),
+            ],
             if (_error != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text(
                 _error!,
                 style: const TextStyle(color: AppColors.danger, fontSize: 13),
+              ),
+            ],
+            if (_info != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _info!,
+                style: const TextStyle(color: AppColors.primary, fontSize: 13),
               ),
             ],
             const SizedBox(height: 24),
@@ -131,6 +171,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   : () => setState(() {
                         _signUp = !_signUp;
                         _error = null;
+                        _info = null;
                       }),
               child: Text(
                 _signUp

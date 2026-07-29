@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
-import '../data/mock_data.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -16,10 +15,12 @@ class ShoppingScreen extends ConsumerStatefulWidget {
 
 class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   final _addController = TextEditingController();
+  final _addFocus = FocusNode();
 
   @override
   void dispose() {
     _addController.dispose();
+    _addFocus.dispose();
     super.dispose();
   }
 
@@ -36,22 +37,26 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   @override
   Widget build(BuildContext context) {
     final itemsAsync = ref.watch(shoppingItemsProvider);
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+
+    ref.listen(pendingAddProvider, (prev, next) {
+      if (next == PendingAdd.shopping) {
+        ref.read(pendingAddProvider.notifier).state = PendingAdd.none;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _addFocus.requestFocus();
+        });
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Family Groceries'),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert_rounded),
-          ),
-        ],
+        title: const Text('Groceries'),
       ),
       body: itemsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
-            Center(child: Text('Could not load list: $error')),
+            const Center(child: Text('Could not load list. Try again later.')),
         data: (items) {
           final categories = <String>[];
           for (final item in items) {
@@ -71,16 +76,25 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                 ),
                 child: Row(
                   children: [
-                    ...MockData.members.take(3).map(
-                          (m) => Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: MemberAvatar(
-                              initials: m.initials,
-                              color: m.color,
-                              size: 32,
+                    if (members.isEmpty)
+                      const Text(
+                        'Shared list',
+                        style: TextStyle(
+                          color: AppColors.inkMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )
+                    else
+                      ...members.take(4).map(
+                            (m) => Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: MemberAvatar(
+                                initials: m.initials,
+                                color: Color(m.colorValue),
+                                size: 32,
+                              ),
                             ),
                           ),
-                        ),
                     const Spacer(),
                     Text(
                       '$left left',
@@ -94,9 +108,11 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
               ),
               const SizedBox(height: 12),
               NestCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 child: TextField(
                   controller: _addController,
+                  focusNode: _addFocus,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _addItem(),
                   decoration: InputDecoration(
@@ -209,14 +225,14 @@ class _ShopRow extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              item.qty,
-              style: const TextStyle(
-                color: AppColors.inkMuted,
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
+            if (item.qty != '1')
+              Text(
+                item.qty,
+                style: const TextStyle(
+                  color: AppColors.inkMuted,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
           ],
         ),
       ),

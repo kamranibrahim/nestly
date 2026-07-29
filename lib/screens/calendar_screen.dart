@@ -29,6 +29,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final eventsAsync = ref.watch(eventsProvider);
     final membersAsync = ref.watch(membersProvider);
 
+    ref.listen(pendingAddProvider, (prev, next) {
+      if (next == PendingAdd.event) {
+        ref.read(pendingAddProvider.notifier).state = PendingAdd.none;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showAddEvent(context);
+        });
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -259,9 +268,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final title = controller.text.trim();
     controller.dispose();
     if (created == true && title.isNotEmpty) {
+      final members = ref.read(membersProvider).valueOrNull ?? const [];
       await ref.read(eventRepositoryProvider).addEvent(
             title: title,
             startsAt: _selected.add(const Duration(hours: 9)),
+            memberId: members.isNotEmpty ? members.first.id : '',
           );
       try {
         await ref.read(syncServiceProvider).syncAll();

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import 'calendar_screen.dart';
 import 'home_screen.dart';
@@ -7,14 +9,14 @@ import 'more_screen.dart';
 import 'shopping_screen.dart';
 import 'tasks_screen.dart';
 
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
 
   void _go(int index) => setState(() => _index = index);
@@ -30,7 +32,10 @@ class _AppShellState extends State<AppShell> {
     ];
 
     return Scaffold(
-      body: pages[_index],
+      body: IndexedStack(
+        index: _index,
+        children: pages,
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddSheet(context),
         child: const Icon(Icons.add_rounded, size: 30),
@@ -121,6 +126,8 @@ class _AppShellState extends State<AppShell> {
                   onTap: () {
                     Navigator.pop(context);
                     _go(1);
+                    ref.read(pendingAddProvider.notifier).state =
+                        PendingAdd.event;
                   },
                 ),
                 _AddOption(
@@ -130,6 +137,8 @@ class _AppShellState extends State<AppShell> {
                   onTap: () {
                     Navigator.pop(context);
                     _go(2);
+                    ref.read(pendingAddProvider.notifier).state =
+                        PendingAdd.task;
                   },
                 ),
                 _AddOption(
@@ -139,6 +148,8 @@ class _AppShellState extends State<AppShell> {
                   onTap: () {
                     Navigator.pop(context);
                     _go(3);
+                    ref.read(pendingAddProvider.notifier).state =
+                        PendingAdd.shopping;
                   },
                 ),
               ],

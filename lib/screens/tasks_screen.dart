@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
-import '../data/mock_data.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -13,6 +12,16 @@ class TasksScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasksAsync = ref.watch(tasksProvider);
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+
+    ref.listen(pendingAddProvider, (prev, next) {
+      if (next == PendingAdd.task) {
+        ref.read(pendingAddProvider.notifier).state = PendingAdd.none;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) showAddTaskSheet(context, ref);
+        });
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -20,14 +29,15 @@ class TasksScreen extends ConsumerWidget {
         title: const Text('Tasks'),
         actions: [
           IconButton(
-            onPressed: () => _showAddTaskSheet(context, ref),
+            onPressed: () => showAddTaskSheet(context, ref),
             icon: const Icon(Icons.add_rounded),
           ),
         ],
       ),
       body: tasksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Could not load tasks: $error')),
+        error: (error, _) =>
+            const Center(child: Text('Could not load tasks. Pull to retry.')),
         data: (tasks) {
           final open = tasks.where((t) => !t.done).toList();
           final done = tasks.where((t) => t.done).toList();
@@ -42,16 +52,25 @@ class TasksScreen extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    ...MockData.members.map(
-                      (m) => Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: MemberAvatar(
-                          initials: m.initials,
-                          color: m.color,
-                          size: 32,
+                    if (members.isEmpty)
+                      const Text(
+                        'Your nest',
+                        style: TextStyle(
+                          color: AppColors.inkMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )
+                    else
+                      ...members.map(
+                        (m) => Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: MemberAvatar(
+                            initials: m.initials,
+                            color: Color(m.colorValue),
+                            size: 32,
+                          ),
                         ),
                       ),
-                    ),
                     const Spacer(),
                     Text(
                       '${open.length} open',
@@ -80,6 +99,7 @@ class TasksScreen extends ConsumerWidget {
                         for (var i = 0; i < open.length; i++) ...[
                           _TaskRow(
                             task: open[i],
+                            members: members,
                             onToggle: () async {
                               await ref
                                   .read(taskRepositoryProvider)
@@ -105,6 +125,7 @@ class TasksScreen extends ConsumerWidget {
                         for (var i = 0; i < done.length; i++) ...[
                           _TaskRow(
                             task: done[i],
+                            members: members,
                             onToggle: () async {
                               await ref
                                   .read(taskRepositoryProvider)
@@ -129,9 +150,13 @@ class TasksScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showAddTaskSheet(BuildContext context, WidgetRef ref) async {
+  static Future<void> showAddTaskSheet(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final controller = TextEditingController();
-    String assigneeId = 'dad';
+    final members = ref.read(membersProvider).valueOrNull ?? const [];
+    String assigneeId = members.isNotEmpty ? members.first.id : '';
 
     final created = await showModalBottomSheet<bool>(
       context: context,
@@ -179,27 +204,29 @@ class TasksScreen extends ConsumerWidget {
                     ),
                     onSubmitted: (_) => Navigator.pop(context, true),
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      for (final member in MockData.members)
-                        ChoiceChip(
-                          label: Text(member.name),
-                          selected: assigneeId == member.id,
-                          selectedColor: AppColors.primary,
-                          labelStyle: TextStyle(
-                            color: assigneeId == member.id
-                                ? Colors.white
-                                : AppColors.ink,
-                            fontWeight: FontWeight.w600,
+                  if (members.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final member in members)
+                          ChoiceChip(
+                            label: Text(member.name),
+                            selected: assigneeId == member.id,
+                            selectedColor: AppColors.primary,
+                            labelStyle: TextStyle(
+                              color: assigneeId == member.id
+                                  ? Colors.white
+                                  : AppColors.ink,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            onSelected: (_) {
+                              setModalState(() => assigneeId = member.id);
+                            },
                           ),
-                          onSelected: (_) {
-                            setModalState(() => assigneeId = member.id);
-                          },
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   FilledButton(
                     onPressed: () => Navigator.pop(context, true),
@@ -228,14 +255,29 @@ class TasksScreen extends ConsumerWidget {
 }
 
 class _TaskRow extends StatelessWidget {
-  const _TaskRow({required this.task, required this.onToggle});
+  const _TaskRow({
+    required this.task,
+    required this.members,
+    required this.onToggle,
+  });
 
   final Task task;
+  final List<NestMember> members;
   final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
-    final member = MockData.memberById(task.assigneeId);
+    NestMember? member;
+    for (final m in members) {
+      if (m.id == task.assigneeId) {
+        member = m;
+        break;
+      }
+    }
+    final name = member?.name ?? 'Unassigned';
+    final initials = member?.initials ?? '?';
+    final color = Color(member?.colorValue ?? 0xFF4A78DD);
+
     return InkWell(
       onTap: onToggle,
       child: Padding(
@@ -264,7 +306,7 @@ class _TaskRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${member.name} · ${task.dueLabel}',
+                    '$name · ${task.dueLabel}',
                     style: const TextStyle(
                       color: AppColors.inkMuted,
                       fontSize: 12.5,
@@ -275,8 +317,8 @@ class _TaskRow extends StatelessWidget {
               ),
             ),
             MemberAvatar(
-              initials: member.initials,
-              color: member.color,
+              initials: initials,
+              color: color,
               size: 28,
             ),
           ],

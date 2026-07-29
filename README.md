@@ -51,3 +51,11 @@ flutter run
 - [x] In-app privacy summary
 - [x] Closed-testing checklist (`STORE_CHECKLIST.md`)
 - [ ] Play / App Store closed testing submission (manual)
+
+### Q4 (free soft launch — no paywall)
+- [x] No demo seed in production; wipe local data on nest bind
+- [x] Home / Tasks / Lists driven by live nest data
+- [x] Forgot password + friendlier auth errors
+- [x] Center FAB opens real add flows; About screen
+- [ ] Store public listing / TestFlight external (manual)
+- [ ] Nestly Plus paywall (deferred)

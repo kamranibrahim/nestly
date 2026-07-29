@@ -20,7 +20,6 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final database = AppDatabase();
-  await database.ensureSeeded();
 
   runApp(
     ProviderScope(

@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
+import 'repositories.dart';
 
 class NestInfo {
   const NestInfo({
@@ -61,6 +62,10 @@ class AuthRepository {
       email: email.trim(),
       password: password,
     );
+  }
+
+  Future<void> sendPasswordReset(String email) {
+    return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
   Future<void> signOut() => _auth.signOut();
@@ -201,23 +206,32 @@ class SyncService {
   final FirebaseFirestore _firestore;
 
   Future<void> bindNest(String nestId) async {
+    final previous = await _db.getMeta('nestId');
+    final cleaned = await _db.getMeta('householdClean') == '1';
+    if (previous != nestId || !cleaned) {
+      await _db.clearHouseholdData();
+      await _db.setMeta('householdClean', '1');
+    }
     await _db.setMeta('nestId', nestId);
-    await (_db.update(_db.tasks)).write(TasksCompanion(nestId: Value(nestId)));
-    await (_db.update(_db.shoppingLists))
-        .write(ShoppingListsCompanion(nestId: Value(nestId)));
-    await (_db.update(_db.shoppingItems))
-        .write(ShoppingItemsCompanion(nestId: Value(nestId)));
-    await (_db.update(_db.calendarEvents))
-        .write(CalendarEventsCompanion(nestId: Value(nestId)));
-    await (_db.update(_db.expenses))
-        .write(ExpensesCompanion(nestId: Value(nestId)));
-    await (_db.update(_db.bills)).write(BillsCompanion(nestId: Value(nestId)));
-    await (_db.update(_db.emergencyEntries))
-        .write(EmergencyEntriesCompanion(nestId: Value(nestId)));
-    await (_db.update(_db.vaultDocuments))
-        .write(VaultDocumentsCompanion(nestId: Value(nestId)));
-    await (_db.update(_db.timelineEvents))
-        .write(TimelineEventsCompanion(nestId: Value(nestId)));
+    await _ensureDefaultShoppingList(nestId);
+  }
+
+  Future<void> _ensureDefaultShoppingList(String nestId) async {
+    final existing = await (_db.select(_db.shoppingLists)
+          ..where((l) => l.id.equals(ShoppingRepository.defaultListId)))
+        .getSingleOrNull();
+    if (existing != null) return;
+    final now = DateTime.now();
+    await _db.into(_db.shoppingLists).insert(
+          ShoppingListsCompanion.insert(
+            id: ShoppingRepository.defaultListId,
+            nestId: Value(nestId),
+            name: 'Groceries',
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
   }
 
   Future<void> pullMembers(String nestId) async {

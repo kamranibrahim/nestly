@@ -46,7 +46,7 @@ class TaskRepository {
 
   Future<void> addTask({
     required String title,
-    String assigneeId = 'dad',
+    String assigneeId = '',
     String dueLabel = 'Today',
     String? nestId,
   }) async {
@@ -202,7 +202,7 @@ class EventRepository {
   Future<void> addEvent({
     required String title,
     required DateTime startsAt,
-    String memberId = 'dad',
+    String memberId = '',
     String category = 'Family',
     String? location,
     bool allDay = false,

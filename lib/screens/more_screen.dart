@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../data/mock_data.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import 'about_screen.dart';
 import 'emergency_screen.dart';
 import 'expenses_screen.dart';
 import 'privacy_screen.dart';
@@ -58,14 +58,10 @@ class MoreScreen extends ConsumerWidget {
             child: Row(
               children: [
                 if (members.isEmpty)
-                  ...MockData.members.map(
-                    (m) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: MemberAvatar(
-                        initials: m.initials,
-                        color: m.color,
-                        size: 40,
-                      ),
+                  const Expanded(
+                    child: Text(
+                      'Invite family with your code below',
+                      style: TextStyle(color: AppColors.inkMuted),
                     ),
                   )
                 else
@@ -79,18 +75,18 @@ class MoreScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                const Spacer(),
+                if (members.isNotEmpty) const Spacer(),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      nest?.name ?? MockData.familyName,
+                      nest?.name ?? 'Your nest',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     Text(
                       members.isEmpty
-                          ? '${MockData.members.length} members'
-                          : '${members.length} members',
+                          ? 'No members yet'
+                          : '${members.length} member${members.length == 1 ? '' : 's'}',
                       style: const TextStyle(
                         color: AppColors.inkMuted,
                         fontSize: 12.5,
@@ -265,6 +261,25 @@ class MoreScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     'Privacy',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          NestCard(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AboutScreen()),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: AppColors.primary),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'About Nestly',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
