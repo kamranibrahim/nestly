@@ -113,88 +113,88 @@ class _AppShellState extends ConsumerState<AppShell> {
     showModalBottomSheet<void>(
       context: shellContext,
       backgroundColor: AppColors.surface,
-      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-            child: Stagger(
-              step: const Duration(milliseconds: 35),
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.divider,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+        final bottomInset = MediaQuery.viewPaddingOf(sheetContext).bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(12, 8, 12, 12 + bottomInset),
+          child: Stagger(
+            step: const Duration(milliseconds: 35),
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-                const SizedBox(height: 12),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Add to Nestly',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
-                    ),
+              ),
+              const SizedBox(height: 12),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Add to Nestly',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                const SizedBox(height: 6),
-                _AddOption(
-                  icon: Icons.event_rounded,
-                  color: AppColors.accent,
-                  label: 'Event',
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _go(1);
-                    ref.read(pendingAddProvider.notifier).state =
-                        PendingAdd.event;
-                  },
-                ),
-                _AddOption(
-                  icon: Icons.check_circle_outline_rounded,
-                  color: AppColors.mint,
-                  label: 'Task',
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _go(2);
-                    ref.read(pendingAddProvider.notifier).state =
-                        PendingAdd.task;
-                  },
-                ),
-                _AddOption(
-                  icon: Icons.shopping_bag_outlined,
-                  color: AppColors.tileOrange,
-                  label: 'Shopping item',
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _go(3);
-                    ref.read(pendingAddProvider.notifier).state =
-                        PendingAdd.shopping;
-                  },
-                ),
-                _AddOption(
-                  icon: Icons.document_scanner_rounded,
-                  color: AppColors.tilePink,
-                  label: 'Scan receipt / invite',
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    // Sheet context is disposed after pop — use the shell.
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted) return;
-                      startDocumentScanFlow(shellContext, ref);
-                    });
-                  },
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 6),
+              _AddOption(
+                icon: Icons.event_rounded,
+                color: AppColors.accent,
+                label: 'Event',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _go(1);
+                  ref.read(pendingAddProvider.notifier).state =
+                      PendingAdd.event;
+                },
+              ),
+              _AddOption(
+                icon: Icons.check_circle_outline_rounded,
+                color: AppColors.mint,
+                label: 'Task',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _go(2);
+                  ref.read(pendingAddProvider.notifier).state =
+                      PendingAdd.task;
+                },
+              ),
+              _AddOption(
+                icon: Icons.shopping_bag_outlined,
+                color: AppColors.tileOrange,
+                label: 'Shopping item',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _go(3);
+                  ref.read(pendingAddProvider.notifier).state =
+                      PendingAdd.shopping;
+                },
+              ),
+              _AddOption(
+                icon: Icons.document_scanner_rounded,
+                color: AppColors.tilePink,
+                label: 'Scan receipt / invite',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  // Sheet context is disposed after pop — use the shell.
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    startDocumentScanFlow(shellContext, ref);
+                  });
+                },
+              ),
+            ],
           ),
         );
       },
