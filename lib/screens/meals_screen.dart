@@ -249,10 +249,12 @@ class MealsScreen extends ConsumerWidget {
                           ChoiceChip(
                             label: Text(type),
                             selected: mealType == type,
+                            showCheckmark: false,
                             selectedColor: AppColors.primary,
+                            checkmarkColor: AppColors.onDark,
                             labelStyle: TextStyle(
                               color: mealType == type
-                                  ? Colors.white
+                                  ? AppColors.onDark
                                   : AppColors.ink,
                               fontWeight: FontWeight.w600,
                             ),

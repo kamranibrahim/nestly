@@ -322,6 +322,26 @@ class ShoppingRepository {
     return addItem(name: habit.name, category: habit.category);
   }
 
+  Future<void> updateItem({
+    required String id,
+    required String name,
+    required String category,
+    required String qty,
+  }) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return (_db.update(_db.shoppingItems)..where((i) => i.id.equals(id)))
+        .write(
+      ShoppingItemsCompanion(
+        name: Value(trimmed),
+        category: Value(category.trim().isEmpty ? 'General' : category.trim()),
+        qty: Value(qty.trim().isEmpty ? '1' : qty.trim()),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<void> deleteItem(String id) {
     return (_db.update(_db.shoppingItems)..where((i) => i.id.equals(id)))
         .write(

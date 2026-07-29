@@ -284,10 +284,13 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                           ChoiceChip(
                             label: Text(k),
                             selected: kind == k,
+                            showCheckmark: false,
                             selectedColor: AppColors.primary,
+                            checkmarkColor: AppColors.onDark,
                             labelStyle: TextStyle(
-                              color:
-                                  kind == k ? Colors.white : AppColors.ink,
+                              color: kind == k
+                                  ? AppColors.onDark
+                                  : AppColors.ink,
                               fontWeight: FontWeight.w600,
                             ),
                             onSelected: (_) => setModal(() => kind = k),

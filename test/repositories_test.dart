@@ -100,6 +100,25 @@ void main() {
     expect(names, contains('Yogurt'));
   });
 
+  test('shopping items can be updated for qty and category', () async {
+    await shopping.addItem(name: 'Oats', category: 'Pantry', qty: '1');
+    final added =
+        (await shopping.watchItems().first).firstWhere((i) => i.name == 'Oats');
+
+    await shopping.updateItem(
+      id: added.id,
+      name: 'Rolled oats',
+      category: 'Bakery',
+      qty: '2 kg',
+    );
+
+    final updated = (await shopping.watchItems().first)
+        .firstWhere((i) => i.id == added.id);
+    expect(updated.name, 'Rolled oats');
+    expect(updated.category, 'Bakery');
+    expect(updated.qty, '2 kg');
+  });
+
   test('checking off items builds grocery habits and suggestions', () async {
     const name = 'Kefir';
     await shopping.addItem(name: name, category: 'Dairy');

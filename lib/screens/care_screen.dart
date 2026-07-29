@@ -345,10 +345,12 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                           ChoiceChip(
                             label: Text(cat),
                             selected: category == cat,
+                            showCheckmark: false,
                             selectedColor: AppColors.primary,
+                            checkmarkColor: AppColors.onDark,
                             labelStyle: TextStyle(
                               color: category == cat
-                                  ? Colors.white
+                                  ? AppColors.onDark
                                   : AppColors.ink,
                               fontWeight: FontWeight.w600,
                             ),

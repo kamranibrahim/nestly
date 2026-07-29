@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
-import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/shimmer.dart';
+
+const _shopCategories = [
+  'Produce',
+  'Dairy',
+  'Meat',
+  'Bakery',
+  'Pantry',
+  'Frozen',
+  'Household',
+  'General',
+];
+
+const _qtyPresets = ['1', '2', '3', '6', '12', '1 kg', '2 L'];
 
 class ShoppingScreen extends ConsumerStatefulWidget {
   const ShoppingScreen({super.key});
@@ -68,8 +81,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
             ),
             Expanded(
               child: itemsAsync.when(
-                loading: () =>
-                    const NestLoadingSkeleton(itemCount: 4),
+                loading: () => const NestLoadingSkeleton(itemCount: 4),
                 error: (error, _) => const Center(
                   child: Text('Could not load list. Try again later.'),
                 ),
@@ -209,6 +221,11 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                                                 .syncAll();
                                           } catch (_) {}
                                         },
+                                        onEdit: () => showItemSheet(
+                                          context,
+                                          ref,
+                                          existing: categoryItems[i],
+                                        ),
                                       ),
                                       if (i != categoryItems.length - 1)
                                         const Divider(height: 1, indent: 52),
@@ -230,47 +247,253 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
       ),
     );
   }
+
+  static Future<void> showItemSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    required ShoppingItem existing,
+  }) async {
+    final result = await showModalBottomSheet<
+        ({
+          String name,
+          String category,
+          String qty,
+          bool deleteItem,
+        })>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => _ItemSheet(existing: existing),
+    );
+
+    if (result == null) return;
+
+    if (result.deleteItem) {
+      await ref.read(shoppingRepositoryProvider).deleteItem(existing.id);
+      try {
+        await ref.read(syncServiceProvider).syncAll();
+      } catch (_) {}
+      return;
+    }
+
+    if (result.name.isEmpty) return;
+
+    await ref.read(shoppingRepositoryProvider).updateItem(
+          id: existing.id,
+          name: result.name,
+          category: result.category,
+          qty: result.qty,
+        );
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+  }
+}
+
+class _ItemSheet extends StatefulWidget {
+  const _ItemSheet({required this.existing});
+
+  final ShoppingItem existing;
+
+  @override
+  State<_ItemSheet> createState() => _ItemSheetState();
+}
+
+class _ItemSheetState extends State<_ItemSheet> {
+  late final TextEditingController _name;
+  late final TextEditingController _qty;
+  late String _category;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.existing.name);
+    _qty = TextEditingController(text: widget.existing.qty);
+    _category = widget.existing.category;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _qty.dispose();
+    super.dispose();
+  }
+
+  void _submit({bool deleteItem = false}) {
+    final name = _name.text.trim();
+    if (!deleteItem && name.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(
+      context,
+      (
+        name: name,
+        category: _category,
+        qty: _qty.text.trim().isEmpty ? '1' : _qty.text.trim(),
+        deleteItem: deleteItem,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final cats = {
+      ..._shopCategories,
+      if (!_shopCategories.contains(_category)) _category,
+    }.toList();
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Edit item',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(hintText: 'Item name'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _qty,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(hintText: 'Qty (e.g. 2, 1 kg)'),
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final q in _qtyPresets)
+                SoftPill(
+                  label: q,
+                  selected: _qty.text.trim() == q,
+                  onTap: () => setState(() => _qty.text = q),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Category',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final cat in cats)
+                SoftPill(
+                  label: cat,
+                  selected: _category == cat,
+                  onTap: () => setState(() => _category = cat),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: _submit,
+            child: const Text('Save'),
+          ),
+          TextButton(
+            onPressed: () => _submit(deleteItem: true),
+            child: const Text(
+              'Delete item',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ShopRow extends StatelessWidget {
-  const _ShopRow({required this.item, required this.onToggle});
+  const _ShopRow({
+    required this.item,
+    required this.onToggle,
+    required this.onEdit,
+  });
 
   final ShoppingItem item;
   final VoidCallback onToggle;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onToggle,
+      onTap: onEdit,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            Icon(
-              item.done
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              color: item.done ? AppColors.ink : AppColors.inkMuted,
+            GestureDetector(
+              onTap: onToggle,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Icon(
+                  item.done
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: item.done ? AppColors.ink : AppColors.inkMuted,
+                ),
+              ),
             ),
-            const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                item.name,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  decoration: item.done ? TextDecoration.lineThrough : null,
-                  color: item.done ? AppColors.inkMuted : AppColors.ink,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      decoration:
+                          item.done ? TextDecoration.lineThrough : null,
+                      color: item.done ? AppColors.inkMuted : AppColors.ink,
+                    ),
+                  ),
+                  if (item.qty != '1')
+                    Text(
+                      item.qty,
+                      style: const TextStyle(
+                        color: AppColors.inkMuted,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                ],
               ),
             ),
-            if (item.qty != '1')
-              Text(
-                item.qty,
-                style: const TextStyle(
-                  color: AppColors.inkMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.inkMuted,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -283,47 +506,73 @@ class _SuggestionsStrip extends ConsumerWidget {
 
   final VoidCallback onAdded;
 
+  static String _restockLabel(GroceryHabit habit) {
+    final overdue =
+        DateTime.now().difference(habit.lastBoughtAt).inDays - habit.cadenceDays;
+    if (overdue >= 2) return '${habit.name} · ${overdue}d overdue';
+    if (overdue >= 0) return '${habit.name} · due now';
+    return '${habit.name} · ~${habit.cadenceDays}d';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final suggestions =
         ref.watch(grocerySuggestionsProvider).valueOrNull ?? const [];
     if (suggestions.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 6),
-          child: Text(
-            'Often bought — tap to add',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.inkSecondary,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
+    return NestCard(
+      color: AppColors.tileOrange,
+      bordered: false,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
             children: [
-              for (final habit in suggestions) ...[
-                SoftPill(
-                  label: '+ ${habit.name} · ~${habit.cadenceDays}d',
-                  onTap: () async {
-                    await ref
-                        .read(shoppingRepositoryProvider)
-                        .addSuggestion(habit);
-                    onAdded();
-                  },
+              Icon(Icons.replay_rounded, size: 18, color: AppColors.ink),
+              SizedBox(width: 6),
+              Text(
+                'Restock',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
                 ),
-                const SizedBox(width: 6),
-              ],
+              ),
             ],
           ),
-        ),
-        const SizedBox(height: 4),
-      ],
+          const SizedBox(height: 2),
+          const Text(
+            'Based on what you usually buy',
+            style: TextStyle(
+              color: AppColors.inkSecondary,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final habit in suggestions) ...[
+                  SoftPill(
+                    label: '+ ${_restockLabel(habit)}',
+                    background: Colors.white,
+                    foreground: AppColors.ink,
+                    onTap: () async {
+                      await ref
+                          .read(shoppingRepositoryProvider)
+                          .addSuggestion(habit);
+                      onAdded();
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

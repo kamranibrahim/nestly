@@ -116,10 +116,20 @@ abstract final class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceMuted,
         selectedColor: AppColors.primary,
+        // Selected bg is near-black; keep check/avatar icons white.
+        checkmarkColor: AppColors.onDark,
+        secondarySelectedColor: AppColors.primary,
         labelStyle: GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w600,
           fontSize: 13,
+          color: AppColors.ink,
         ),
+        secondaryLabelStyle: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+          color: AppColors.onDark,
+        ),
+        iconTheme: const IconThemeData(color: AppColors.ink, size: 18),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(999),
