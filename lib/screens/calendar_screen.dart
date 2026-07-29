@@ -6,6 +6,7 @@ import '../data/db/app_database.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/sheet_form.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -224,8 +225,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Future<void> _showAddEvent(BuildContext context) async {
-    final controller = TextEditingController();
-    final created = await showModalBottomSheet<bool>(
+    final title = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -233,41 +233,38 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'New event',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: const InputDecoration(hintText: 'Event title'),
-                onSubmitted: (_) => Navigator.pop(context, true),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Add event'),
-              ),
-            ],
-          ),
+        return OwnedControllers(
+          count: 1,
+          builder: (context, c) {
+            void submit() => Navigator.pop(context, c[0].text.trim());
+            return sheetBody(
+              context: context,
+              children: [
+                sheetHandle(),
+                const SizedBox(height: 16),
+                const Text(
+                  'New event',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: c[0],
+                  autofocus: true,
+                  decoration: const InputDecoration(hintText: 'Event title'),
+                  onSubmitted: (_) => submit(),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: submit,
+                  child: const Text('Add event'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-    final title = controller.text.trim();
-    controller.dispose();
-    if (created == true && title.isNotEmpty) {
+    if (title != null && title.isNotEmpty) {
       final members = ref.read(membersProvider).valueOrNull ?? const [];
       await ref.read(eventRepositoryProvider).addEvent(
             title: title,

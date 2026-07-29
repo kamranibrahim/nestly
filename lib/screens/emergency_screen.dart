@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/sheet_form.dart';
 
 class EmergencyScreen extends ConsumerWidget {
   const EmergencyScreen({super.key});
@@ -121,9 +122,7 @@ class EmergencyScreen extends ConsumerWidget {
   }
 
   Future<void> _addEntry(BuildContext context, WidgetRef ref) async {
-    final label = TextEditingController();
-    final value = TextEditingController();
-    final ok = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<({String label, String value})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -131,47 +130,49 @@ class EmergencyScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            16,
-            20,
-            MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Emergency info',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: label,
-                decoration: const InputDecoration(labelText: 'Label'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: value,
-                decoration: const InputDecoration(labelText: 'Details'),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Save offline'),
-              ),
-            ],
-          ),
+        return OwnedControllers(
+          count: 2,
+          builder: (context, c) {
+            return sheetBody(
+              context: context,
+              children: [
+                sheetHandle(),
+                const SizedBox(height: 16),
+                const Text(
+                  'Emergency info',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: c[0],
+                  decoration: const InputDecoration(labelText: 'Label'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: c[1],
+                  decoration: const InputDecoration(labelText: 'Details'),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => Navigator.pop(
+                    context,
+                    (label: c[0].text.trim(), value: c[1].text.trim()),
+                  ),
+                  child: const Text('Save offline'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-    final l = label.text.trim();
-    final v = value.text.trim();
-    label.dispose();
-    value.dispose();
-    if (ok == true && l.isNotEmpty && v.isNotEmpty) {
-      await ref.read(emergencyRepositoryProvider).upsert(label: l, value: v);
+    if (result != null &&
+        result.label.isNotEmpty &&
+        result.value.isNotEmpty) {
+      await ref.read(emergencyRepositoryProvider).upsert(
+            label: result.label,
+            value: result.value,
+          );
       try {
         await ref.read(syncServiceProvider).syncAll();
       } catch (_) {}

@@ -7,6 +7,7 @@ import '../data/repositories.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/sheet_form.dart';
 
 class ExpensesScreen extends ConsumerWidget {
   const ExpensesScreen({super.key});
@@ -205,9 +206,7 @@ class ExpensesScreen extends ConsumerWidget {
   }
 
   Future<void> _addExpense(BuildContext context, WidgetRef ref) async {
-    final title = TextEditingController();
-    final amount = TextEditingController();
-    final ok = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<({String title, double amount})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -215,51 +214,53 @@ class ExpensesScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            16,
-            20,
-            MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Add expense',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: title,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: amount,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Amount'),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Save'),
-              ),
-            ],
-          ),
+        return OwnedControllers(
+          count: 2,
+          builder: (context, c) {
+            return sheetBody(
+              context: context,
+              children: [
+                sheetHandle(),
+                const SizedBox(height: 16),
+                const Text(
+                  'Add expense',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: c[0],
+                  decoration: const InputDecoration(labelText: 'Title'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: c[1],
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Amount'),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () {
+                    final parsed = double.tryParse(c[1].text.trim());
+                    final name = c[0].text.trim();
+                    if (name.isEmpty || parsed == null) {
+                      Navigator.pop(context);
+                      return;
+                    }
+                    Navigator.pop(context, (title: name, amount: parsed));
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-    final parsed = double.tryParse(amount.text.trim());
-    final name = title.text.trim();
-    title.dispose();
-    amount.dispose();
-    if (ok == true && name.isNotEmpty && parsed != null) {
+    if (result != null) {
       await ref.read(expenseRepositoryProvider).addExpense(
-            title: name,
-            amount: parsed,
+            title: result.title,
+            amount: result.amount,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
@@ -268,9 +269,7 @@ class ExpensesScreen extends ConsumerWidget {
   }
 
   Future<void> _addBill(BuildContext context, WidgetRef ref) async {
-    final title = TextEditingController();
-    final amount = TextEditingController();
-    final ok = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<({String title, double amount})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -278,51 +277,53 @@ class ExpensesScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            16,
-            20,
-            MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Add bill',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: title,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: amount,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Amount'),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Save · due in 7 days'),
-              ),
-            ],
-          ),
+        return OwnedControllers(
+          count: 2,
+          builder: (context, c) {
+            return sheetBody(
+              context: context,
+              children: [
+                sheetHandle(),
+                const SizedBox(height: 16),
+                const Text(
+                  'Add bill',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: c[0],
+                  decoration: const InputDecoration(labelText: 'Title'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: c[1],
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Amount'),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () {
+                    final parsed = double.tryParse(c[1].text.trim());
+                    final name = c[0].text.trim();
+                    if (name.isEmpty || parsed == null) {
+                      Navigator.pop(context);
+                      return;
+                    }
+                    Navigator.pop(context, (title: name, amount: parsed));
+                  },
+                  child: const Text('Save · due in 7 days'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-    final parsed = double.tryParse(amount.text.trim());
-    final name = title.text.trim();
-    title.dispose();
-    amount.dispose();
-    if (ok == true && name.isNotEmpty && parsed != null) {
+    if (result != null) {
       await ref.read(billRepositoryProvider).addBill(
-            title: name,
-            amount: parsed,
+            title: result.title,
+            amount: result.amount,
             dueAt: DateTime.now().add(const Duration(days: 7)),
           );
       await ref.read(notificationServiceProvider).rescheduleBillReminders();

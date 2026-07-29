@@ -6,6 +6,7 @@ import '../data/repositories.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/sheet_form.dart';
 
 class MealsScreen extends ConsumerWidget {
   const MealsScreen({super.key});
@@ -171,11 +172,8 @@ class MealsScreen extends ConsumerWidget {
     WidgetRef ref, {
     required int weekday,
   }) async {
-    final title = TextEditingController();
-    final ingredients = TextEditingController();
-    var mealType = 'Dinner';
-
-    final saved = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<
+        ({String title, String mealType, String ingredients})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -183,86 +181,98 @@ class MealsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModal) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                12,
-                20,
-                MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Plan a meal',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      for (final type in const [
-                        'Breakfast',
-                        'Lunch',
-                        'Dinner',
-                      ])
-                        ChoiceChip(
-                          label: Text(type),
-                          selected: mealType == type,
-                          selectedColor: AppColors.primary,
-                          labelStyle: TextStyle(
-                            color: mealType == type
-                                ? Colors.white
-                                : AppColors.ink,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          onSelected: (_) => setModal(() => mealType = type),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: title,
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(hintText: 'Dish name'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: ingredients,
-                    minLines: 2,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'Ingredients (comma or new line)',
+        var mealType = 'Dinner';
+        return OwnedControllers(
+          count: 2,
+          builder: (context, c) {
+            return StatefulBuilder(
+              builder: (context, setModal) {
+                return sheetBody(
+                  context: context,
+                  children: [
+                    sheetHandle(),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Plan a meal',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Save meal'),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final type in const [
+                          'Breakfast',
+                          'Lunch',
+                          'Dinner',
+                        ])
+                          ChoiceChip(
+                            label: Text(type),
+                            selected: mealType == type,
+                            selectedColor: AppColors.primary,
+                            labelStyle: TextStyle(
+                              color: mealType == type
+                                  ? Colors.white
+                                  : AppColors.ink,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            onSelected: (_) =>
+                                setModal(() => mealType = type),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c[0],
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration:
+                          const InputDecoration(hintText: 'Dish name'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c[1],
+                      minLines: 2,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText: 'Ingredients (comma or new line)',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () {
+                        final name = c[0].text.trim();
+                        if (name.isEmpty) {
+                          Navigator.pop(context);
+                          return;
+                        }
+                        Navigator.pop(
+                          context,
+                          (
+                            title: name,
+                            mealType: mealType,
+                            ingredients: c[1].text.trim(),
+                          ),
+                        );
+                      },
+                      child: const Text('Save meal'),
+                    ),
+                  ],
+                );
+              },
             );
           },
         );
       },
     );
 
-    final name = title.text.trim();
-    title.dispose();
-    final ings = ingredients.text.trim();
-    ingredients.dispose();
-    if (saved == true && name.isNotEmpty) {
+    if (result != null) {
       await ref.read(mealRepositoryProvider).upsert(
             weekday: weekday,
-            title: name,
-            mealType: mealType,
-            ingredients: ings,
+            title: result.title,
+            mealType: result.mealType,
+            ingredients: result.ingredients,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
