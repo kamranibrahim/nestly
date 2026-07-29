@@ -19,7 +19,12 @@ void main() {
 
     expect(find.text('Your nest'), findsWidgets);
     expect(find.text('Lists'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is Tooltip && (w).message == 'Home',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Tasks'), findsWidgets);
     expect(find.text('Nothing planned today'), findsOneWidget);
 
