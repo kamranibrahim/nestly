@@ -46,6 +46,32 @@ void main() {
     expect(titles, contains('Test chore'));
   });
 
+  test('tasks can be updated for assignee due and recurring', () async {
+    await tasks.addTask(
+      title: 'Walk dog',
+      assigneeId: 'dad',
+      dueLabel: 'Today',
+      recurring: false,
+    );
+    final added = (await tasks.watchAll().first)
+        .firstWhere((t) => t.title == 'Walk dog');
+
+    await tasks.updateTask(
+      id: added.id,
+      title: 'Walk the dog',
+      assigneeId: 'mom',
+      dueLabel: 'Tomorrow',
+      recurring: true,
+    );
+
+    final updated = (await tasks.watchAll().first)
+        .firstWhere((t) => t.id == added.id);
+    expect(updated.title, 'Walk the dog');
+    expect(updated.assigneeId, 'mom');
+    expect(updated.dueLabel, 'Tomorrow');
+    expect(updated.recurring, isTrue);
+  });
+
   test('recurring task rolls due label and stays open', () async {
     await tasks.addTask(
       title: 'Water plants',

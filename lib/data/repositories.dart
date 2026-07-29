@@ -103,6 +103,25 @@ class TaskRepository {
         );
   }
 
+  Future<void> updateTask({
+    required String id,
+    required String title,
+    String assigneeId = '',
+    String dueLabel = 'Today',
+    bool recurring = false,
+  }) {
+    return (_db.update(_db.tasks)..where((t) => t.id.equals(id))).write(
+      TasksCompanion(
+        title: Value(title.trim()),
+        assigneeId: Value(assigneeId),
+        dueLabel: Value(dueLabel),
+        recurring: Value(recurring),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<void> deleteTask(String id) {
     return (_db.update(_db.tasks)..where((t) => t.id.equals(id))).write(
       TasksCompanion(
