@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
@@ -19,6 +20,27 @@ class CalendarScreen extends ConsumerStatefulWidget {
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   late DateTime _selected;
+  String _memberFilter = 'All';
+
+  bool _matchesMemberFilter(
+    String memberId,
+    List<NestMember> members,
+  ) {
+    if (_memberFilter == 'All') return true;
+    final member = members.where((m) => m.id == memberId).toList();
+    if (member.isEmpty) return true;
+    final role = member.first.role;
+    switch (_memberFilter) {
+      case 'Adults':
+        return MemberRoles.isAdultLike(role);
+      case 'Kids':
+        return MemberRoles.isKid(role);
+      case 'Grandparents':
+        return MemberRoles.normalize(role) == MemberRoles.grandparent;
+      default:
+        return true;
+    }
+  }
 
   @override
   void initState() {
@@ -119,6 +141,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final filter in const [
+                          'All',
+                          'Adults',
+                          'Kids',
+                          'Grandparents',
+                        ]) ...[
+                          SoftPill(
+                            label: filter,
+                            selected: _memberFilter == filter,
+                            onTap: () => setState(() => _memberFilter = filter),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -153,7 +196,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   final dayEvents = allEvents.where((e) {
                     return e.startsAt.year == _selected.year &&
                         e.startsAt.month == _selected.month &&
-                        e.startsAt.day == _selected.day;
+                        e.startsAt.day == _selected.day &&
+                        _matchesMemberFilter(e.memberId, members);
                   }).toList();
 
                   return ListView(
@@ -189,14 +233,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       if (allEvents
                           .where((e) => e.startsAt.isAfter(
                                 _selected.add(const Duration(days: 1)),
-                              ))
+                              ) && _matchesMemberFilter(e.memberId, members))
                           .isNotEmpty) ...[
                         const SizedBox(height: 6),
                         const SectionLabel('Upcoming'),
                         for (final event in allEvents
                             .where((e) => e.startsAt.isAfter(
                                   _selected.add(const Duration(days: 1)),
-                                ))
+                              ) && _matchesMemberFilter(e.memberId, members))
                             .take(4))
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
@@ -347,10 +391,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
     if (title != null && title.isNotEmpty) {
       final members = ref.read(membersProvider).valueOrNull ?? const [];
+      String memberId = '';
+      for (final m in members) {
+        if (MemberRoles.isAdultLike(m.role)) {
+          memberId = m.id;
+          break;
+        }
+      }
+      memberId = memberId.isEmpty && members.isNotEmpty ? members.first.id : memberId;
       await ref.read(eventRepositoryProvider).addEvent(
             title: title,
             startsAt: _selected.add(const Duration(hours: 9)),
-            memberId: members.isNotEmpty ? members.first.id : '',
+            memberId: memberId,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
