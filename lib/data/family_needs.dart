@@ -14,7 +14,7 @@ class FamilyNeed {
   final String actionLabel;
 }
 
-enum FamilyNeedKind { tasks, shopping, bills, care, school, meals, calendar }
+enum FamilyNeedKind { tasks, shopping, bills, care, school, meals, calendar, vault }
 
 class FamilyNeedsSummary {
   const FamilyNeedsSummary(this.needs);
@@ -34,6 +34,7 @@ FamilyNeedsSummary buildFamilyNeeds({
   required int eventsToday,
   int grocerySuggestions = 0,
   String? dinnerTitle,
+  int vaultExpiringSoon = 0,
 }) {
   final needs = <FamilyNeed>[];
 
@@ -96,6 +97,17 @@ FamilyNeedsSummary buildFamilyNeeds({
         detail: 'Confirm who’s covering the run',
         kind: FamilyNeedKind.school,
         actionLabel: 'Done',
+      ),
+    );
+  }
+  if (vaultExpiringSoon > 0) {
+    needs.add(
+      FamilyNeed(
+        title:
+            '$vaultExpiringSoon vault doc${vaultExpiringSoon == 1 ? '' : 's'} expiring',
+        detail: 'IDs, insurance, or licenses need a look',
+        kind: FamilyNeedKind.vault,
+        actionLabel: 'Open',
       ),
     );
   }

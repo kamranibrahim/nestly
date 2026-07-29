@@ -131,6 +131,10 @@ final vaultDocumentsProvider =
   return ref.watch(vaultRepositoryProvider).watchAll(category: category);
 });
 
+final vaultExpiringSoonProvider = StreamProvider<List<VaultDocument>>((ref) {
+  return ref.watch(vaultRepositoryProvider).watchExpiringSoon();
+});
+
 final mealRepositoryProvider = Provider<MealRepository>((ref) {
   return MealRepository(ref.watch(databaseProvider));
 });

@@ -650,6 +650,66 @@ class VaultRepository {
       ),
     );
   }
+
+  Future<void> setLocalPath({
+    required String id,
+    required String localPath,
+  }) {
+    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
+        .write(
+      VaultDocumentsCompanion(
+        localPath: Value(localPath),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> updateMeta({
+    required String id,
+    String? notes,
+    DateTime? expiresAt,
+    bool clearExpiry = false,
+  }) {
+    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
+        .write(
+      VaultDocumentsCompanion(
+        notes: notes == null ? const Value.absent() : Value(notes),
+        expiresAt: clearExpiry
+            ? const Value(null)
+            : (expiresAt == null
+                ? const Value.absent()
+                : Value(expiresAt)),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> delete(String id) {
+    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
+        .write(
+      VaultDocumentsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Docs expiring within [withinDays] (includes already expired).
+  Stream<List<VaultDocument>> watchExpiringSoon({int withinDays = 45}) {
+    final cutoff =
+        DateTime.now().add(Duration(days: withinDays)).add(const Duration(days: 1));
+    return (_db.select(_db.vaultDocuments)
+          ..where(
+            (d) =>
+                d.deleted.equals(false) &
+                d.expiresAt.isNotNull() &
+                d.expiresAt.isSmallerOrEqualValue(cutoff),
+          )
+          ..orderBy([(d) => OrderingTerm(expression: d.expiresAt)]))
+        .watch();
+  }
 }
 
 class MealRepository {

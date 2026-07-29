@@ -75,6 +75,8 @@ class HomeScreen extends ConsumerWidget {
       }
     }
     final dinnerToday = dinnerMeal != null;
+    final vaultExpiring =
+        ref.watch(vaultExpiringSoonProvider).valueOrNull ?? const [];
     final needs = buildFamilyNeeds(
       openTasks: openTasks,
       openShopping: openShopping,
@@ -85,6 +87,7 @@ class HomeScreen extends ConsumerWidget {
       eventsToday: todayEvents.length,
       grocerySuggestions: grocerySuggestions.length,
       dinnerTitle: dinnerMeal?.title,
+      vaultExpiringSoon: vaultExpiring.length,
     );
 
     final nestName =
@@ -739,6 +742,8 @@ class HomeScreen extends ConsumerWidget {
         nestPush(context, const SchoolScreen());
       case FamilyNeedKind.meals:
         nestPush(context, const MealsScreen());
+      case FamilyNeedKind.vault:
+        nestPush(context, const VaultScreen());
     }
   }
 }

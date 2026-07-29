@@ -133,4 +133,22 @@ void main() {
     );
     expect(dinners.where((m) => m.weekday == 3), isEmpty);
   });
+
+  test('vault expiry meta is listed as expiring soon', () async {
+    final vault = VaultRepository(database);
+    final doc = await vault.addLocalMeta(
+      title: 'Passport',
+      category: 'IDs',
+      fileName: 'passport.pdf',
+    );
+    await vault.updateMeta(
+      id: doc.id,
+      notes: 'Renew online',
+      expiresAt: DateTime.now().add(const Duration(days: 10)),
+    );
+
+    final soon = await vault.watchExpiringSoon().first;
+    expect(soon.any((d) => d.id == doc.id), isTrue);
+    expect(soon.firstWhere((d) => d.id == doc.id).notes, 'Renew online');
+  });
 }

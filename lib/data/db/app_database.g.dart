@@ -5122,6 +5122,27 @@ class $VaultDocumentsTable extends VaultDocuments
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _expiresAtMeta = const VerificationMeta(
+    'expiresAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiresAt = GeneratedColumn<DateTime>(
+    'expires_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
   late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
@@ -5185,6 +5206,8 @@ class $VaultDocumentsTable extends VaultDocuments
     localPath,
     mimeType,
     sizeBytes,
+    notes,
+    expiresAt,
     dirty,
     deleted,
     createdAt,
@@ -5262,6 +5285,18 @@ class $VaultDocumentsTable extends VaultDocuments
         sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta),
       );
     }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(
+        _expiresAtMeta,
+        expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta),
+      );
+    }
     if (data.containsKey('dirty')) {
       context.handle(
         _dirtyMeta,
@@ -5331,6 +5366,14 @@ class $VaultDocumentsTable extends VaultDocuments
         DriftSqlType.int,
         data['${effectivePrefix}size_bytes'],
       )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      expiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expires_at'],
+      ),
       dirty: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
@@ -5366,6 +5409,12 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
   final String? localPath;
   final String? mimeType;
   final int sizeBytes;
+
+  /// Optional note (e.g. passport numbers last-4, renewal tips).
+  final String notes;
+
+  /// Optional expiry for IDs / insurance / licenses.
+  final DateTime? expiresAt;
   final bool dirty;
   final bool deleted;
   final DateTime createdAt;
@@ -5380,6 +5429,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
     this.localPath,
     this.mimeType,
     required this.sizeBytes,
+    required this.notes,
+    this.expiresAt,
     required this.dirty,
     required this.deleted,
     required this.createdAt,
@@ -5405,6 +5456,10 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
       map['mime_type'] = Variable<String>(mimeType);
     }
     map['size_bytes'] = Variable<int>(sizeBytes);
+    map['notes'] = Variable<String>(notes);
+    if (!nullToAbsent || expiresAt != null) {
+      map['expires_at'] = Variable<DateTime>(expiresAt);
+    }
     map['dirty'] = Variable<bool>(dirty);
     map['deleted'] = Variable<bool>(deleted);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -5431,6 +5486,10 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
           ? const Value.absent()
           : Value(mimeType),
       sizeBytes: Value(sizeBytes),
+      notes: Value(notes),
+      expiresAt: expiresAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expiresAt),
       dirty: Value(dirty),
       deleted: Value(deleted),
       createdAt: Value(createdAt),
@@ -5453,6 +5512,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
       localPath: serializer.fromJson<String?>(json['localPath']),
       mimeType: serializer.fromJson<String?>(json['mimeType']),
       sizeBytes: serializer.fromJson<int>(json['sizeBytes']),
+      notes: serializer.fromJson<String>(json['notes']),
+      expiresAt: serializer.fromJson<DateTime?>(json['expiresAt']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deleted: serializer.fromJson<bool>(json['deleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -5472,6 +5533,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
       'localPath': serializer.toJson<String?>(localPath),
       'mimeType': serializer.toJson<String?>(mimeType),
       'sizeBytes': serializer.toJson<int>(sizeBytes),
+      'notes': serializer.toJson<String>(notes),
+      'expiresAt': serializer.toJson<DateTime?>(expiresAt),
       'dirty': serializer.toJson<bool>(dirty),
       'deleted': serializer.toJson<bool>(deleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -5489,6 +5552,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
     Value<String?> localPath = const Value.absent(),
     Value<String?> mimeType = const Value.absent(),
     int? sizeBytes,
+    String? notes,
+    Value<DateTime?> expiresAt = const Value.absent(),
     bool? dirty,
     bool? deleted,
     DateTime? createdAt,
@@ -5503,6 +5568,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
     localPath: localPath.present ? localPath.value : this.localPath,
     mimeType: mimeType.present ? mimeType.value : this.mimeType,
     sizeBytes: sizeBytes ?? this.sizeBytes,
+    notes: notes ?? this.notes,
+    expiresAt: expiresAt.present ? expiresAt.value : this.expiresAt,
     dirty: dirty ?? this.dirty,
     deleted: deleted ?? this.deleted,
     createdAt: createdAt ?? this.createdAt,
@@ -5521,6 +5588,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
       localPath: data.localPath.present ? data.localPath.value : this.localPath,
       mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
       sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -5540,6 +5609,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
           ..write('localPath: $localPath, ')
           ..write('mimeType: $mimeType, ')
           ..write('sizeBytes: $sizeBytes, ')
+          ..write('notes: $notes, ')
+          ..write('expiresAt: $expiresAt, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -5559,6 +5630,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
     localPath,
     mimeType,
     sizeBytes,
+    notes,
+    expiresAt,
     dirty,
     deleted,
     createdAt,
@@ -5577,6 +5650,8 @@ class VaultDocument extends DataClass implements Insertable<VaultDocument> {
           other.localPath == this.localPath &&
           other.mimeType == this.mimeType &&
           other.sizeBytes == this.sizeBytes &&
+          other.notes == this.notes &&
+          other.expiresAt == this.expiresAt &&
           other.dirty == this.dirty &&
           other.deleted == this.deleted &&
           other.createdAt == this.createdAt &&
@@ -5593,6 +5668,8 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
   final Value<String?> localPath;
   final Value<String?> mimeType;
   final Value<int> sizeBytes;
+  final Value<String> notes;
+  final Value<DateTime?> expiresAt;
   final Value<bool> dirty;
   final Value<bool> deleted;
   final Value<DateTime> createdAt;
@@ -5608,6 +5685,8 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
     this.localPath = const Value.absent(),
     this.mimeType = const Value.absent(),
     this.sizeBytes = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.expiresAt = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -5624,6 +5703,8 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
     this.localPath = const Value.absent(),
     this.mimeType = const Value.absent(),
     this.sizeBytes = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.expiresAt = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -5642,6 +5723,8 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
     Expression<String>? localPath,
     Expression<String>? mimeType,
     Expression<int>? sizeBytes,
+    Expression<String>? notes,
+    Expression<DateTime>? expiresAt,
     Expression<bool>? dirty,
     Expression<bool>? deleted,
     Expression<DateTime>? createdAt,
@@ -5658,6 +5741,8 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
       if (localPath != null) 'local_path': localPath,
       if (mimeType != null) 'mime_type': mimeType,
       if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (notes != null) 'notes': notes,
+      if (expiresAt != null) 'expires_at': expiresAt,
       if (dirty != null) 'dirty': dirty,
       if (deleted != null) 'deleted': deleted,
       if (createdAt != null) 'created_at': createdAt,
@@ -5676,6 +5761,8 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
     Value<String?>? localPath,
     Value<String?>? mimeType,
     Value<int>? sizeBytes,
+    Value<String>? notes,
+    Value<DateTime?>? expiresAt,
     Value<bool>? dirty,
     Value<bool>? deleted,
     Value<DateTime>? createdAt,
@@ -5692,6 +5779,8 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
       localPath: localPath ?? this.localPath,
       mimeType: mimeType ?? this.mimeType,
       sizeBytes: sizeBytes ?? this.sizeBytes,
+      notes: notes ?? this.notes,
+      expiresAt: expiresAt ?? this.expiresAt,
       dirty: dirty ?? this.dirty,
       deleted: deleted ?? this.deleted,
       createdAt: createdAt ?? this.createdAt,
@@ -5730,6 +5819,12 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
     if (sizeBytes.present) {
       map['size_bytes'] = Variable<int>(sizeBytes.value);
     }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<DateTime>(expiresAt.value);
+    }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
@@ -5760,6 +5855,8 @@ class VaultDocumentsCompanion extends UpdateCompanion<VaultDocument> {
           ..write('localPath: $localPath, ')
           ..write('mimeType: $mimeType, ')
           ..write('sizeBytes: $sizeBytes, ')
+          ..write('notes: $notes, ')
+          ..write('expiresAt: $expiresAt, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -12383,6 +12480,8 @@ typedef $$VaultDocumentsTableCreateCompanionBuilder =
       Value<String?> localPath,
       Value<String?> mimeType,
       Value<int> sizeBytes,
+      Value<String> notes,
+      Value<DateTime?> expiresAt,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -12400,6 +12499,8 @@ typedef $$VaultDocumentsTableUpdateCompanionBuilder =
       Value<String?> localPath,
       Value<String?> mimeType,
       Value<int> sizeBytes,
+      Value<String> notes,
+      Value<DateTime?> expiresAt,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -12458,6 +12559,16 @@ class $$VaultDocumentsTableFilterComposer
 
   ColumnFilters<int> get sizeBytes => $composableBuilder(
     column: $table.sizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12536,6 +12647,16 @@ class $$VaultDocumentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get dirty => $composableBuilder(
     column: $table.dirty,
     builder: (column) => ColumnOrderings(column),
@@ -12595,6 +12716,12 @@ class $$VaultDocumentsTableAnnotationComposer
   GeneratedColumn<int> get sizeBytes =>
       $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
 
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
@@ -12650,6 +12777,8 @@ class $$VaultDocumentsTableTableManager
                 Value<String?> localPath = const Value.absent(),
                 Value<String?> mimeType = const Value.absent(),
                 Value<int> sizeBytes = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<DateTime?> expiresAt = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -12665,6 +12794,8 @@ class $$VaultDocumentsTableTableManager
                 localPath: localPath,
                 mimeType: mimeType,
                 sizeBytes: sizeBytes,
+                notes: notes,
+                expiresAt: expiresAt,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,
@@ -12682,6 +12813,8 @@ class $$VaultDocumentsTableTableManager
                 Value<String?> localPath = const Value.absent(),
                 Value<String?> mimeType = const Value.absent(),
                 Value<int> sizeBytes = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<DateTime?> expiresAt = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -12697,6 +12830,8 @@ class $$VaultDocumentsTableTableManager
                 localPath: localPath,
                 mimeType: mimeType,
                 sizeBytes: sizeBytes,
+                notes: notes,
+                expiresAt: expiresAt,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,

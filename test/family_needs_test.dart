@@ -76,4 +76,22 @@ void main() {
         summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.school);
     expect(school.actionLabel, 'Done');
   });
+
+  test('vault expiring soon surfaces on Home needs', () {
+    final summary = buildFamilyNeeds(
+      openTasks: 0,
+      openShopping: 0,
+      unpaidBillsDueSoon: 0,
+      careDue: 0,
+      schoolDue: 0,
+      dinnerPlannedToday: true,
+      eventsToday: 0,
+      vaultExpiringSoon: 2,
+    );
+
+    final vault =
+        summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.vault);
+    expect(vault.title, contains('vault'));
+    expect(vault.actionLabel, 'Open');
+  });
 }

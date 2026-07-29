@@ -152,6 +152,10 @@ class VaultDocuments extends Table {
   TextColumn get localPath => text().nullable()();
   TextColumn get mimeType => text().nullable()();
   IntColumn get sizeBytes => integer().withDefault(const Constant(0))();
+  /// Optional note (e.g. passport numbers last-4, renewal tips).
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  /// Optional expiry for IDs / insurance / licenses.
+  DateTimeColumn get expiresAt => dateTime().nullable()();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -295,7 +299,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -348,6 +352,14 @@ class AppDatabase extends _$AppDatabase {
           if (from < 9) {
             await _createTableIfMissing(m, careProfiles);
             await _addColumnIfMissing(m, careItems, careItems.memberId);
+          }
+          if (from < 10) {
+            await _addColumnIfMissing(m, vaultDocuments, vaultDocuments.notes);
+            await _addColumnIfMissing(
+              m,
+              vaultDocuments,
+              vaultDocuments.expiresAt,
+            );
           }
         },
       );

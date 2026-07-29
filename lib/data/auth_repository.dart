@@ -796,6 +796,10 @@ class SyncService {
           'storagePath': item.storagePath,
           'mimeType': item.mimeType,
           'sizeBytes': item.sizeBytes,
+          'notes': item.notes,
+          'expiresAt': item.expiresAt == null
+              ? null
+              : Timestamp.fromDate(item.expiresAt!),
           'updatedAt': Timestamp.fromDate(item.updatedAt),
           'createdAt': Timestamp.fromDate(item.createdAt),
         });
@@ -832,6 +836,10 @@ class SyncService {
               storagePath: Value(data['storagePath'] as String?),
               mimeType: Value(data['mimeType'] as String?),
               sizeBytes: Value(data['sizeBytes'] as int? ?? 0),
+              notes: Value(data['notes'] as String? ?? ''),
+              expiresAt: Value(
+                (data['expiresAt'] as Timestamp?)?.toDate(),
+              ),
               dirty: const Value(false),
               createdAt: Value(
                 (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,

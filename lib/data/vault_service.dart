@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'db/app_database.dart';
 import 'repositories.dart';
@@ -59,5 +61,44 @@ class VaultService {
     }
 
     return doc;
+  }
+
+  /// Prefer local file; otherwise download from Storage into cache.
+  Future<File?> resolveFile(VaultDocument doc) async {
+    final local = doc.localPath;
+    if (local != null && local.isNotEmpty) {
+      final f = File(local);
+      if (await f.exists()) return f;
+    }
+
+    final remote = doc.storagePath;
+    if (remote == null || remote.isEmpty) return null;
+
+    try {
+      final dir = await getTemporaryDirectory();
+      final out = File(p.join(dir.path, 'nestly_vault_${doc.id}_${doc.fileName}'));
+      if (!await out.exists()) {
+        await _storage.ref(remote).writeToFile(out);
+      }
+      await VaultRepository(_db).setLocalPath(id: doc.id, localPath: out.path);
+      return out;
+    } catch (e) {
+      debugPrint('Vault download failed: $e');
+      return null;
+    }
+  }
+
+  Future<void> shareDocument(VaultDocument doc) async {
+    final file = await resolveFile(doc);
+    if (file == null) {
+      throw StateError('File unavailable offline and not synced yet.');
+    }
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, name: doc.fileName)],
+        subject: doc.title,
+        text: doc.notes.trim().isEmpty ? doc.title : '${doc.title}\n${doc.notes}',
+      ),
+    );
   }
 }
