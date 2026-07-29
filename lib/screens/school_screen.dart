@@ -143,6 +143,9 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
     try {
       await ref.read(syncServiceProvider).syncAll();
     } catch (_) {}
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
   }
 
   Future<void> _pickup(SchoolActivity item) async {

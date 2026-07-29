@@ -186,7 +186,12 @@ class TasksScreen extends ConsumerWidget {
     final initialAssignee = members.isNotEmpty ? members.first.id : '';
 
     final result = await showModalBottomSheet<
-        ({String title, String assigneeId, bool recurring})>(
+        ({
+          String title,
+          String assigneeId,
+          bool recurring,
+          String dueLabel,
+        })>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -204,6 +209,7 @@ class TasksScreen extends ConsumerWidget {
             title: result.title,
             assigneeId: result.assigneeId,
             recurring: result.recurring,
+            dueLabel: result.dueLabel,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
@@ -229,6 +235,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
   late final TextEditingController _controller;
   late String _assigneeId;
   bool _recurring = false;
+  String _dueLabel = 'Today';
 
   @override
   void initState() {
@@ -251,7 +258,12 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
     }
     Navigator.pop(
       context,
-      (title: title, assigneeId: _assigneeId, recurring: _recurring),
+      (
+        title: title,
+        assigneeId: _assigneeId,
+        recurring: _recurring,
+        dueLabel: _dueLabel,
+      ),
     );
   }
 
@@ -289,6 +301,19 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 hintText: 'What needs doing?',
               ),
               onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final label in const ['Today', 'Tomorrow', 'In 7 days'])
+                  SoftPill(
+                    label: label,
+                    selected: _dueLabel == label,
+                    onTap: () => setState(() => _dueLabel = label),
+                  ),
+              ],
             ),
             if (widget.members.isNotEmpty) ...[
               const SizedBox(height: 6),

@@ -73,12 +73,13 @@ class NotificationService {
     }, SetOptions(merge: true));
   }
 
-  /// Bills + care — prefer this after any schedule change.
+  /// Bills + care + school — prefer this after any schedule change.
   Future<void> rescheduleReminders() async {
     if (!_ready) return;
     await _local.cancelAll();
     await _scheduleBillReminders();
     await _scheduleCareReminders();
+    await _scheduleSchoolReminders();
   }
 
   /// Kept for existing call sites.
@@ -150,6 +151,55 @@ class NotificationService {
             'nestly_care',
             'Care',
             channelDescription: 'Reminders for household and elder care',
+            importance: Importance.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+      i++;
+      if (i >= 20) break;
+    }
+  }
+
+  Future<void> _scheduleSchoolReminders() async {
+    final now = DateTime.now();
+    final endTomorrow = DateTime(now.year, now.month, now.day + 1, 23, 59, 59);
+    final items = await (_db.select(_db.schoolActivities)
+          ..where(
+            (s) =>
+                s.deleted.equals(false) &
+                s.nextAt.isSmallerOrEqualValue(endTomorrow),
+          )
+          ..orderBy([(s) => OrderingTerm(expression: s.nextAt)]))
+        .get();
+
+    var i = 0;
+    for (final item in items) {
+      final dueMorning = DateTime(
+        item.nextAt.year,
+        item.nextAt.month,
+        item.nextAt.day,
+        7,
+        30,
+      );
+      var remindAt = dueMorning;
+      if (!remindAt.isAfter(now)) {
+        remindAt = now.add(const Duration(minutes: 45));
+      }
+      if (!remindAt.isAfter(now)) continue;
+
+      final when = tz.TZDateTime.from(remindAt, tz.local);
+      await _local.zonedSchedule(
+        id: 3000 + i,
+        title: 'School / pickup',
+        body: item.title,
+        scheduledDate: when,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'nestly_school',
+            'School',
+            channelDescription: 'Reminders for school runs and activities',
             importance: Importance.high,
           ),
           iOS: DarwinNotificationDetails(),

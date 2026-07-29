@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../data/db/app_database.dart';
+import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
+import 'care_screen.dart';
 
 class EmergencyScreen extends ConsumerWidget {
   const EmergencyScreen({super.key});
@@ -12,12 +18,27 @@ class EmergencyScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entries = ref.watch(emergencyProvider);
+    final profiles = ref.watch(careProfilesProvider).valueOrNull ?? const [];
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+    final nestName =
+        ref.watch(nestInfoProvider).valueOrNull?.name ?? 'Our nest';
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Emergency'),
         actions: [
+          IconButton(
+            tooltip: 'Share card',
+            onPressed: () => _shareCard(
+              context,
+              nestName: nestName,
+              entries: entries.valueOrNull ?? const [],
+              profiles: profiles,
+              members: members,
+            ),
+            icon: const Icon(Icons.ios_share_rounded),
+          ),
           IconButton(
             onPressed: () => _addEntry(context, ref),
             icon: const Icon(Icons.add_rounded),
@@ -45,14 +66,36 @@ class EmergencyScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          if (profiles.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const SectionLabel('Care profiles'),
+            NestCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (var i = 0; i < profiles.length; i++) ...[
+                    _CareSnapshotTile(
+                      profile: profiles[i],
+                      member: _memberFor(members, profiles[i].memberId),
+                      onOpen: () => nestPush(context, const CareScreen()),
+                    ),
+                    if (i != profiles.length - 1)
+                      const Divider(height: 1, indent: 68),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          const SectionLabel('Contacts & notes'),
           entries.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Text('$e'),
             data: (items) {
               if (items.isEmpty) {
-                return const NestCard(
-                  child: Text(
+                return NestCard(
+                  onTap: () => _addEntry(context, ref),
+                  child: const Text(
                     'Add emergency contacts, allergies, and doctors.',
                     style: TextStyle(color: AppColors.inkMuted),
                   ),
@@ -64,6 +107,7 @@ class EmergencyScreen extends ConsumerWidget {
                   children: [
                     for (var i = 0; i < items.length; i++) ...[
                       ListTile(
+                        onTap: () => _onEntryTap(context, items[i]),
                         leading: CircleAvatar(
                           backgroundColor: AppColors.dangerSoft,
                           child: Icon(
@@ -88,6 +132,13 @@ class EmergencyScreen extends ConsumerWidget {
                             fontSize: 14.5,
                           ),
                         ),
+                        trailing: _looksLikePhone(items[i].value)
+                            ? const Icon(
+                                Icons.copy_rounded,
+                                size: 18,
+                                color: AppColors.inkMuted,
+                              )
+                            : null,
                       ),
                       if (i != items.length - 1)
                         const Divider(height: 1, indent: 72),
@@ -99,6 +150,75 @@ class EmergencyScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  NestMember? _memberFor(List<NestMember> members, String memberId) {
+    for (final m in members) {
+      if (m.id == memberId) return m;
+    }
+    return null;
+  }
+
+  static bool _looksLikePhone(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    return digits.length >= 7;
+  }
+
+  Future<void> _onEntryTap(BuildContext context, EmergencyEntry entry) async {
+    if (_looksLikePhone(entry.value)) {
+      await Clipboard.setData(ClipboardData(text: entry.value.trim()));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Copied ${entry.label}')),
+        );
+      }
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: entry.value.trim()));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Copied to clipboard')),
+      );
+    }
+  }
+
+  Future<void> _shareCard(
+    BuildContext context, {
+    required String nestName,
+    required List<EmergencyEntry> entries,
+    required List<CareProfile> profiles,
+    required List<NestMember> members,
+  }) async {
+    final buf = StringBuffer('Nestly emergency card — $nestName\n');
+    if (profiles.isNotEmpty) {
+      buf.writeln('\nCare profiles');
+      for (final p in profiles) {
+        final name = _memberFor(members, p.memberId)?.name ?? 'Member';
+        buf.writeln('• $name');
+        if (p.allergies.trim().isNotEmpty) {
+          buf.writeln('  Allergies: ${p.allergies.trim()}');
+        }
+        if (p.medications.trim().isNotEmpty) {
+          buf.writeln('  Meds: ${p.medications.trim()}');
+        }
+        if (p.primaryDoctor.trim().isNotEmpty) {
+          buf.writeln('  Doctor: ${p.primaryDoctor.trim()}');
+        }
+        if (p.mobilityNotes.trim().isNotEmpty) {
+          buf.writeln('  Mobility: ${p.mobilityNotes.trim()}');
+        }
+      }
+    }
+    if (entries.isNotEmpty) {
+      buf.writeln('\nContacts & notes');
+      for (final e in entries) {
+        buf.writeln('• ${e.label}: ${e.value}');
+      }
+    }
+    buf.writeln('\nShared from Nestly (offline-ready on family devices).');
+    await SharePlus.instance.share(
+      ShareParams(text: buf.toString(), subject: '$nestName emergency card'),
     );
   }
 
@@ -177,5 +297,58 @@ class EmergencyScreen extends ConsumerWidget {
         await ref.read(syncServiceProvider).syncAll();
       } catch (_) {}
     }
+  }
+}
+
+class _CareSnapshotTile extends StatelessWidget {
+  const _CareSnapshotTile({
+    required this.profile,
+    required this.member,
+    required this.onOpen,
+  });
+
+  final CareProfile profile;
+  final NestMember? member;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = member?.name ?? 'Family member';
+    final allergies = profile.allergies.trim();
+    final meds = profile.medications.trim();
+    final lines = <String>[
+      if (allergies.isNotEmpty) 'Allergies: $allergies',
+      if (meds.isNotEmpty) 'Meds: $meds',
+      if (profile.primaryDoctor.trim().isNotEmpty)
+        'Doctor: ${profile.primaryDoctor.trim()}',
+    ];
+
+    return ListTile(
+      onTap: onOpen,
+      leading: member == null
+          ? const CircleAvatar(
+              backgroundColor: AppColors.dangerSoft,
+              child: Icon(Icons.favorite_outline, color: AppColors.danger),
+            )
+          : MemberAvatar(
+              initials: member!.initials,
+              color: Color(member!.colorValue),
+              size: 36,
+            ),
+      title: Text(
+        name,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      subtitle: Text(
+        lines.isEmpty
+            ? '${MemberRoles.normalize(member?.role ?? '')} · tap to edit in Care'
+            : lines.join('\n'),
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 12.5, height: 1.35),
+      ),
+      isThreeLine: lines.length > 1,
+      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
+    );
   }
 }

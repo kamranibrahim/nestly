@@ -133,17 +133,14 @@ class HomeScreen extends ConsumerWidget {
                           background: AppColors.surfaceMuted,
                           foreground: AppColors.ink,
                           size: 38,
-                          onTap: () async {
-                            try {
-                              await ref.read(syncServiceProvider).syncAll();
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Sync failed: $e')),
-                                );
-                              }
-                            }
-                          },
+                          onTap: () => _showTodayReminders(
+                            context,
+                            ref,
+                            careDue: careDue,
+                            schoolDue: schoolDue,
+                            billsDueSoon: billsDueSoon,
+                            openTasks: openTasks,
+                          ),
                         ),
                       ],
                     ),
@@ -475,6 +472,89 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _showTodayReminders(
+    BuildContext context,
+    WidgetRef ref, {
+    required int careDue,
+    required int schoolDue,
+    required int billsDueSoon,
+    required int openTasks,
+  }) async {
+    final lines = <String>[
+      if (openTasks > 0) '$openTasks open task${openTasks == 1 ? '' : 's'}',
+      if (careDue > 0) '$careDue care item${careDue == 1 ? '' : 's'} due',
+      if (schoolDue > 0)
+        '$schoolDue school / pickup${schoolDue == 1 ? '' : 's'} due',
+      if (billsDueSoon > 0)
+        '$billsDueSoon bill${billsDueSoon == 1 ? '' : 's'} due soon',
+    ];
+
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        final bottom = MediaQuery.viewPaddingOf(context).bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Today’s reminders',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                lines.isEmpty
+                    ? 'Nothing urgent right now. Local reminders stay scheduled when items are due.'
+                    : lines.map((l) => '• $l').join('\n'),
+                style: const TextStyle(
+                  color: AppColors.inkSecondary,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 14),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  nestPush(context, const EmergencyScreen());
+                },
+                child: const Text('Open emergency card'),
+              ),
+              const SizedBox(height: 6),
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Got it'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   String? _needDetailOverride(
     FamilyNeedKind kind, {
     Task? firstOpenTask,
@@ -556,6 +636,9 @@ class HomeScreen extends ConsumerWidget {
         await ref.read(schoolRepositoryProvider).markDone(firstSchoolDue);
         try {
           await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        try {
+          await ref.read(notificationServiceProvider).rescheduleReminders();
         } catch (_) {}
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
