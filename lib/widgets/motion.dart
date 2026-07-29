@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_motion.dart';
@@ -76,6 +78,7 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
   late final Animation<double> _opacity;
   late final Animation<Offset> _slide;
   Object? _lastKey;
+  Timer? _delayTimer;
 
   @override
   void initState() {
@@ -99,16 +102,21 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
     }
   }
 
-  Future<void> _play() async {
+  void _play() {
+    _delayTimer?.cancel();
     if (widget.delay > Duration.zero) {
-      await Future<void>.delayed(widget.delay);
-      if (!mounted) return;
+      _delayTimer = Timer(widget.delay, () {
+        if (!mounted) return;
+        _controller.forward();
+      });
+      return;
     }
     _controller.forward();
   }
 
   @override
   void dispose() {
+    _delayTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

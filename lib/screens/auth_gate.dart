@@ -17,9 +17,7 @@ class AuthGate extends ConsumerWidget {
     final auth = ref.watch(authStateProvider);
 
     return auth.when(
-      loading: () => const Scaffold(
-        body: NestLoadingSkeleton(itemCount: 3),
-      ),
+      loading: () => const HomeLoadingSkeleton(),
       error: (e, _) => Scaffold(
         body: Center(child: Text('Auth error: $e')),
       ),
@@ -39,10 +37,7 @@ class _PreAuthGate extends ConsumerWidget {
     final seen = ref.watch(onboardingSeenProvider);
 
     return seen.when(
-      loading: () => const Scaffold(
-        backgroundColor: Color(0xFFFBF6F0),
-        body: NestLoadingSkeleton(itemCount: 2),
-      ),
+      loading: () => const HomeLoadingSkeleton(),
       error: (_, _) => const AuthScreen(),
       data: (done) => done ? const AuthScreen() : const OnboardingScreen(),
     );
@@ -57,9 +52,7 @@ class _NestGate extends ConsumerWidget {
     final nest = ref.watch(nestInfoProvider);
 
     return nest.when(
-      loading: () => const Scaffold(
-        body: NestLoadingSkeleton(itemCount: 3),
-      ),
+      loading: () => const HomeLoadingSkeleton(),
       error: (e, _) => Scaffold(
         body: Center(
           child: Padding(

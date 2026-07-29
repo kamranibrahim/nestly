@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
 import '../widgets/common.dart';
 import '../widgets/motion.dart';
+import '../widgets/shimmer.dart';
 import 'care_screen.dart';
 import 'emergency_screen.dart';
 import 'expenses_screen.dart';
@@ -24,9 +25,20 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final membersAsync = ref.watch(membersProvider);
+    final tasksAsync = ref.watch(tasksProvider);
+    final eventsAsync = ref.watch(eventsProvider);
+
+    final homeReady =
+        membersAsync.hasValue && tasksAsync.hasValue && eventsAsync.hasValue;
+
+    if (!homeReady) {
+      return const HomeLoadingSkeleton();
+    }
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final events = ref.watch(eventsProvider).valueOrNull ?? const [];
+    final events = eventsAsync.valueOrNull ?? const [];
     final todayEvents = events.where((e) {
       final d = DateTime(e.startsAt.year, e.startsAt.month, e.startsAt.day);
       return d == today;
@@ -41,7 +53,7 @@ class HomeScreen extends ConsumerWidget {
         ref.watch(grocerySuggestionsProvider).valueOrNull ?? const [];
     final meals = ref.watch(mealsProvider).valueOrNull ?? const [];
     final bills = ref.watch(billsProvider).valueOrNull ?? const [];
-    final tasks = ref.watch(tasksProvider).valueOrNull ?? const [];
+    final tasks = tasksAsync.valueOrNull ?? const [];
     final openTaskList = tasks.where((t) => !t.done).take(4).toList();
     final careItems = ref.watch(careItemsProvider).valueOrNull ?? const [];
     final endToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
@@ -92,7 +104,7 @@ class HomeScreen extends ConsumerWidget {
 
     final nestName =
         ref.watch(nestInfoProvider).valueOrNull?.name ?? 'Your nest';
-    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+    final members = membersAsync.valueOrNull ?? const [];
     final greetingName = members.isNotEmpty
         ? members.first.name.split(' ').first
         : nestName;

@@ -5,9 +5,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
 import 'package:nestly/screens/app_shell.dart';
 
+Future<void> _pumpUntilHome(WidgetTester tester) async {
+  await tester.pump();
+  for (var i = 0; i < 40; i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (find.text('Lists').evaluate().isNotEmpty) {
+      // Clear staggered Appear timers on Home.
+      await tester.pump(const Duration(milliseconds: 800));
+      return;
+    }
+  }
+}
+
 void main() {
   testWidgets('Nestly home shows family hub and feature tiles', (tester) async {
     final database = AppDatabase(NativeDatabase.memory());
+    await database.ensureSeeded();
 
     await tester.pumpWidget(
       ProviderScope(
@@ -15,9 +28,8 @@ void main() {
         child: const MaterialApp(home: AppShell()),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUntilHome(tester);
 
-    expect(find.text('Your nest'), findsWidgets);
     expect(find.text('Lists'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
@@ -26,10 +38,11 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Tasks'), findsWidgets);
-    expect(find.text('Nothing planned today'), findsOneWidget);
+    expect(find.text('Today snapshot'), findsOneWidget);
+    expect(find.textContaining('Hello'), findsOneWidget);
 
-    await database.close();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 50));
+    await database.close();
   });
 }
