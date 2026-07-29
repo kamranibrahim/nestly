@@ -1,29 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/db/app_database.dart';
 import '../data/mock_data.dart';
+import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 
-class ShoppingScreen extends StatefulWidget {
+class ShoppingScreen extends ConsumerStatefulWidget {
   const ShoppingScreen({super.key});
 
   @override
-  State<ShoppingScreen> createState() => _ShoppingScreenState();
+  ConsumerState<ShoppingScreen> createState() => _ShoppingScreenState();
 }
 
-class _ShoppingScreenState extends State<ShoppingScreen> {
-  late List<ShoppingItem> _items;
+class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
+  final _addController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _items = List.of(MockData.shopping);
+  void dispose() {
+    _addController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addItem() async {
+    final name = _addController.text.trim();
+    if (name.isEmpty) return;
+    await ref.read(shoppingRepositoryProvider).addItem(name: name);
+    _addController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
-    final categories = _items.map((i) => i.category).toSet().toList();
-    final left = _items.where((i) => !i.done).length;
+    final itemsAsync = ref.watch(shoppingItemsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -36,99 +45,124 @@ class _ShoppingScreenState extends State<ShoppingScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        children: [
-          NestCard(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                ...MockData.members.take(3).map(
-                      (m) => Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: MemberAvatar(
-                          initials: m.initials,
-                          color: m.color,
-                          size: 32,
+      body: itemsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) =>
+            Center(child: Text('Could not load list: $error')),
+        data: (items) {
+          final categories = <String>[];
+          for (final item in items) {
+            if (!categories.contains(item.category)) {
+              categories.add(item.category);
+            }
+          }
+          final left = items.where((i) => !i.done).length;
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            children: [
+              NestCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    ...MockData.members.take(3).map(
+                          (m) => Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: MemberAvatar(
+                              initials: m.initials,
+                              color: m.color,
+                              size: 32,
+                            ),
+                          ),
                         ),
+                    const Spacer(),
+                    Text(
+                      '$left left',
+                      style: const TextStyle(
+                        color: AppColors.inkMuted,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                const Spacer(),
-                Text(
-                  '$left left',
-                  style: const TextStyle(
-                    color: AppColors.inkMuted,
-                    fontWeight: FontWeight.w600,
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              NestCard(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                child: TextField(
+                  controller: _addController,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _addItem(),
+                  decoration: InputDecoration(
+                    hintText: 'Add an item',
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    prefixIcon: IconButton(
+                      onPressed: _addItem,
+                      icon: const Icon(
+                        Icons.add_circle_outline_rounded,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    hintStyle: const TextStyle(color: AppColors.inkMuted),
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          NestCard(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Add an item',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-                prefixIcon: const Icon(
-                  Icons.add_circle_outline_rounded,
-                  color: AppColors.primary,
-                ),
-                hintStyle: const TextStyle(color: AppColors.inkMuted),
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          for (final category in categories) ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 8, top: 4),
-              child: Text(
-                category,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.inkSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-            NestCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  ...() {
-                    final items =
-                        _items.where((i) => i.category == category).toList();
-                    return [
-                      for (var i = 0; i < items.length; i++) ...[
-                        _ShopRow(
-                          item: items[i],
-                          onToggle: () {
-                            final index = _items.indexOf(items[i]);
-                            setState(() {
-                              _items[index] = ShoppingItem(
-                                name: items[i].name,
-                                category: items[i].category,
-                                qty: items[i].qty,
-                                done: !items[i].done,
-                              );
-                            });
-                          },
-                        ),
-                        if (i != items.length - 1)
-                          const Divider(height: 1, indent: 52),
+              const SizedBox(height: 16),
+              if (items.isEmpty)
+                const NestCard(
+                  child: Text(
+                    'List is empty. Add milk, eggs, or anything else.',
+                    style: TextStyle(color: AppColors.inkMuted),
+                  ),
+                )
+              else
+                for (final category in categories) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 8, top: 4),
+                    child: Text(
+                      category,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.inkSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  NestCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        ...() {
+                          final categoryItems = items
+                              .where((i) => i.category == category)
+                              .toList();
+                          return [
+                            for (var i = 0; i < categoryItems.length; i++) ...[
+                              _ShopRow(
+                                item: categoryItems[i],
+                                onToggle: () => ref
+                                    .read(shoppingRepositoryProvider)
+                                    .toggleDone(categoryItems[i]),
+                              ),
+                              if (i != categoryItems.length - 1)
+                                const Divider(height: 1, indent: 52),
+                            ],
+                          ];
+                        }(),
                       ],
-                    ];
-                  }(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                 ],
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ],
+            ],
+          );
+        },
       ),
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/mock_data.dart';
+import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import 'emergency_screen.dart';
@@ -9,16 +11,18 @@ import 'expenses_screen.dart';
 import 'shopping_screen.dart';
 import 'vault_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key, required this.onOpenTab});
 
   final ValueChanged<int> onOpenTab;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime(2026, 7, 28);
     final dateLabel = DateFormat('EEE d MMM').format(now);
     final next = MockData.todayEvents.first;
+    final openTasks = ref.watch(openTaskCountProvider).valueOrNull ?? 0;
+    final openShopping = ref.watch(openShoppingCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -97,7 +101,6 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    // FamilyWall-style colorful module grid
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
@@ -115,8 +118,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         FeatureTile(
                           title: 'Lists',
-                          subtitle:
-                              '${MockData.shopping.where((s) => !s.done).length} items',
+                          subtitle: '$openShopping items',
                           icon: Icons.shopping_bag_rounded,
                           color: AppColors.tileOrange,
                           onTap: () => Navigator.of(context).push(
@@ -127,8 +129,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         FeatureTile(
                           title: 'Tasks',
-                          subtitle:
-                              '${MockData.tasks.where((t) => !t.done).length} open',
+                          subtitle: '$openTasks open',
                           icon: Icons.checklist_rounded,
                           color: AppColors.tileGreen,
                           onTap: () => onOpenTab(2),

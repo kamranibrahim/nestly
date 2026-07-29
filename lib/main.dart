@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'data/db/app_database.dart';
 import 'screens/app_shell.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -12,7 +14,18 @@ void main() {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  runApp(const NestlyApp());
+
+  final database = AppDatabase();
+  await database.ensureSeeded();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        databaseProvider.overrideWithValue(database),
+      ],
+      child: const NestlyApp(),
+    ),
+  );
 }
 
 class NestlyApp extends StatelessWidget {

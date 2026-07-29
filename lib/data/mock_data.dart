@@ -34,36 +34,6 @@ class CalendarEvent {
   final String? location;
 }
 
-class HouseholdTask {
-  const HouseholdTask({
-    required this.title,
-    required this.assigneeId,
-    required this.dueLabel,
-    required this.done,
-    this.recurring = false,
-  });
-
-  final String title;
-  final String assigneeId;
-  final String dueLabel;
-  final bool done;
-  final bool recurring;
-}
-
-class ShoppingItem {
-  const ShoppingItem({
-    required this.name,
-    required this.category,
-    required this.qty,
-    required this.done,
-  });
-
-  final String name;
-  final String category;
-  final String qty;
-  final bool done;
-}
-
 class ExpenseItem {
   const ExpenseItem({
     required this.title,
@@ -218,60 +188,6 @@ abstract final class MockData {
       memberId: 'dad',
       category: 'Home',
     ),
-  ];
-
-  static const tasks = [
-    HouseholdTask(
-      title: 'Buy groceries',
-      assigneeId: 'dad',
-      dueLabel: 'Today',
-      done: false,
-    ),
-    HouseholdTask(
-      title: 'Pack soccer kit',
-      assigneeId: 'ayaan',
-      dueLabel: 'Today',
-      done: false,
-    ),
-    HouseholdTask(
-      title: 'Water plants',
-      assigneeId: 'noor',
-      dueLabel: 'Today',
-      done: true,
-      recurring: true,
-    ),
-    HouseholdTask(
-      title: 'Clean kitchen',
-      assigneeId: 'mom',
-      dueLabel: 'Tomorrow',
-      done: false,
-      recurring: true,
-    ),
-    HouseholdTask(
-      title: 'Pay internet bill',
-      assigneeId: 'dad',
-      dueLabel: 'Fri',
-      done: false,
-    ),
-  ];
-
-  static const shopping = [
-    ShoppingItem(name: 'Milk', category: 'Dairy', qty: '2 L', done: false),
-    ShoppingItem(name: 'Eggs', category: 'Dairy', qty: '12', done: false),
-    ShoppingItem(name: 'Bananas', category: 'Produce', qty: '1 kg', done: true),
-    ShoppingItem(
-      name: 'Chicken breast',
-      category: 'Meat',
-      qty: '1 kg',
-      done: false,
-    ),
-    ShoppingItem(
-      name: 'Dish soap',
-      category: 'Home',
-      qty: '1',
-      done: false,
-    ),
-    ShoppingItem(name: 'Bread', category: 'Bakery', qty: '2', done: false),
   ];
 
   static const expenses = [
