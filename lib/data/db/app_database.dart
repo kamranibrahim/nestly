@@ -241,35 +241,79 @@ class AppDatabase extends _$AppDatabase {
         },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
-            await m.createTable(nestMembers);
-            await m.createTable(calendarEvents);
-            await m.createTable(syncMeta);
-            await m.addColumn(tasks, tasks.nestId);
-            await m.addColumn(tasks, tasks.dirty);
-            await m.addColumn(tasks, tasks.deleted);
-            await m.addColumn(shoppingLists, shoppingLists.nestId);
-            await m.addColumn(shoppingLists, shoppingLists.dirty);
-            await m.addColumn(shoppingLists, shoppingLists.deleted);
-            await m.addColumn(shoppingLists, shoppingLists.updatedAt);
-            await m.addColumn(shoppingItems, shoppingItems.nestId);
-            await m.addColumn(shoppingItems, shoppingItems.dirty);
-            await m.addColumn(shoppingItems, shoppingItems.deleted);
+            await _createTableIfMissing(m, nestMembers);
+            await _createTableIfMissing(m, calendarEvents);
+            await _createTableIfMissing(m, syncMeta);
+            // Constant defaults are fine for ALTER TABLE; currentDateAndTime is not.
+            await _addColumnIfMissing(m, tasks, tasks.nestId);
+            await _addColumnIfMissing(m, tasks, tasks.dirty);
+            await _addColumnIfMissing(m, tasks, tasks.deleted);
+            await _addColumnIfMissing(m, shoppingLists, shoppingLists.nestId);
+            await _addColumnIfMissing(m, shoppingLists, shoppingLists.dirty);
+            await _addColumnIfMissing(m, shoppingLists, shoppingLists.deleted);
+            await _addUpdatedAtIfMissing('shopping_lists');
+            await _addColumnIfMissing(m, shoppingItems, shoppingItems.nestId);
+            await _addColumnIfMissing(m, shoppingItems, shoppingItems.dirty);
+            await _addColumnIfMissing(m, shoppingItems, shoppingItems.deleted);
           }
           if (from < 3) {
-            await m.createTable(expenses);
-            await m.createTable(bills);
-            await m.createTable(emergencyEntries);
+            await _createTableIfMissing(m, expenses);
+            await _createTableIfMissing(m, bills);
+            await _createTableIfMissing(m, emergencyEntries);
           }
           if (from < 4) {
-            await m.createTable(vaultDocuments);
-            await m.createTable(timelineEvents);
+            await _createTableIfMissing(m, vaultDocuments);
+            await _createTableIfMissing(m, timelineEvents);
           }
           if (from < 5) {
-            await m.createTable(mealPlans);
-            await m.createTable(careItems);
+            await _createTableIfMissing(m, mealPlans);
+            await _createTableIfMissing(m, careItems);
           }
         },
       );
+
+  Future<bool> _tableExists(String tableName) async {
+    final row = await customSelect(
+      "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable.withString(tableName)],
+      readsFrom: {},
+    ).getSingleOrNull();
+    return row != null;
+  }
+
+  Future<bool> _columnExists(String tableName, String columnName) async {
+    final rows = await customSelect(
+      'PRAGMA table_info($tableName)',
+      readsFrom: {},
+    ).get();
+    return rows.any((r) => r.read<String>('name') == columnName);
+  }
+
+  Future<void> _createTableIfMissing(Migrator m, TableInfo table) async {
+    if (!await _tableExists(table.actualTableName)) {
+      await m.createTable(table);
+    }
+  }
+
+  Future<void> _addColumnIfMissing(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    if (!await _columnExists(table.actualTableName, column.name)) {
+      await m.addColumn(table, column);
+    }
+  }
+
+  /// SQLite forbids ALTER TABLE … ADD COLUMN with non-constant defaults
+  /// (e.g. CURRENT_TIMESTAMP). Use a constant, then backfill.
+  Future<void> _addUpdatedAtIfMissing(String tableName) async {
+    if (await _columnExists(tableName, 'updated_at')) return;
+    final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    await customStatement(
+      'ALTER TABLE "$tableName" ADD COLUMN "updated_at" INTEGER NOT NULL DEFAULT $nowSecs',
+    );
+  }
 
   static QueryExecutor _openConnection() {
     return driftDatabase(
