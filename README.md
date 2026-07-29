@@ -77,11 +77,15 @@ flutter run
 
 Flutter web app (same repo) that talks to Firestore directly — no local Drift DB.
 
+Live: https://glowing-strudel-442ff8.netlify.app
+
 ```bash
 flutter run -d chrome
 # or
 flutter build web --release
-npx netlify deploy --dir=build/web --prod
+./node_modules/.bin/netlify deploy --dir=build/web --prod --no-build --functions=netlify/functions
 ```
 
 In Firebase Console → Authentication → Settings → Authorized domains, add your Netlify domain (and `localhost` for local runs).
+
+Before first sign-up, enable **Email/Password** in Firebase Authentication → Sign-in method.

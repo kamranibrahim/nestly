@@ -5,9 +5,8 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 ## Before upload
 
 - [ ] Enable Email/Password in Firebase Auth console
-- [ ] Deploy rules: `firebase deploy --only firestore:rules,storage`
-- [ ] Enable Firebase Storage in console (Get Started) if not already:
-  https://console.firebase.google.com/project/nestly-family-os/storage
+- [x] Deploy rules: `firebase deploy --only firestore:rules,storage` (auth-only)
+- [x] Enable Firebase Storage in console + deploy storage rules
 - [ ] Confirm `com.nestly.nestly` matches store listing package / bundle ID
 - [ ] Build release: `flutter build appbundle` / `flutter build ipa`
 - [ ] Privacy policy URL live (in-app: Nest → Privacy — includes export + delete)
@@ -17,10 +16,12 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 
 ## Optional AI scan (not required for store)
 
-- [ ] Deploy web/API: `npx netlify deploy --dir=build/web --prod` (after `flutter build web`)
-- [ ] Enable Netlify AI Gateway in site settings (needs one production deploy)
+- [x] Deploy web/API to https://glowing-strudel-442ff8.netlify.app
+- [ ] Enable Netlify AI Gateway in site settings (Site configuration → AI Gateway / Environment)
+- [ ] Add Netlify domain in Firebase Auth → Settings → Authorized domains:
+  `glowing-strudel-442ff8.netlify.app`
 - [ ] Run mobile with:
-  `flutter run --dart-define=NESTLY_SITE_URL=https://YOUR-SITE.netlify.app`
+  `flutter run --dart-define=NESTLY_SITE_URL=https://glowing-strudel-442ff8.netlify.app`
 
 ## Tester flow
 

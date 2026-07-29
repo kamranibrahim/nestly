@@ -2,13 +2,14 @@
 #
 # Local:  flutter run -d chrome
 # Build:  flutter build web --release
-# Deploy: npx netlify deploy --dir=build/web --prod
+# Deploy: netlify deploy --dir=build/web --prod --no-build --functions=netlify/functions
 #
 # After first production deploy, enable AI Gateway in the Netlify UI.
 # Functions live in netlify/functions (path /api/parse-document).
 
 [build]
-  command = "git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter && export PATH=\"$PATH:$HOME/flutter/bin\" && flutter config --no-analytics && flutter config --enable-web && flutter pub get && flutter build web --release"
+  # Prefer local `flutter build web` + `--no-build` deploys. This command is for Netlify CI.
+  command = "if [ ! -d \"$HOME/flutter/bin\" ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter; fi && export PATH=\"$PATH:$HOME/flutter/bin\" && flutter config --no-analytics && flutter config --enable-web && flutter pub get && flutter build web --release"
   publish = "build/web"
   functions = "netlify/functions"
 
