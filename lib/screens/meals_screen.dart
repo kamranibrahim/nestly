@@ -22,6 +22,11 @@ class MealsScreen extends ConsumerWidget {
         title: const Text('Meals'),
         actions: [
           IconButton(
+            tooltip: 'Plan dinner week',
+            onPressed: () => _showPlanWeek(context, ref, mealsAsync.valueOrNull ?? const []),
+            icon: const Icon(Icons.calendar_view_week_rounded),
+          ),
+          IconButton(
             onPressed: () => _showAddMeal(context, ref, weekday: today),
             icon: const Icon(Icons.add_rounded),
           ),
@@ -278,5 +283,121 @@ class MealsScreen extends ConsumerWidget {
         await ref.read(syncServiceProvider).syncAll();
       } catch (_) {}
     }
+  }
+
+  Future<void> _showPlanWeek(
+    BuildContext context,
+    WidgetRef ref,
+    List<MealPlan> meals,
+  ) async {
+    final result = await showModalBottomSheet<Map<int, String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _PlanDinnerWeekSheet(meals: meals),
+    );
+
+    if (result == null) return;
+    await ref.read(mealRepositoryProvider).planDinnerWeek(result);
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Dinner week updated')),
+    );
+  }
+}
+
+class _PlanDinnerWeekSheet extends StatefulWidget {
+  const _PlanDinnerWeekSheet({required this.meals});
+
+  final List<MealPlan> meals;
+
+  @override
+  State<_PlanDinnerWeekSheet> createState() => _PlanDinnerWeekSheetState();
+}
+
+class _PlanDinnerWeekSheetState extends State<_PlanDinnerWeekSheet> {
+  late final Map<int, TextEditingController> _controllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = {
+      for (final day in MealRepository.weekdays)
+        day.$1: TextEditingController(text: _initialTitle(day.$1)),
+    };
+  }
+
+  String _initialTitle(int weekday) {
+    for (final meal in widget.meals) {
+      if (meal.weekday == weekday && meal.mealType == 'Dinner' && !meal.deleted) {
+        return meal.title;
+      }
+    }
+    return '';
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return sheetBody(
+      context: context,
+      children: [
+        sheetHandle(),
+        const SizedBox(height: 6),
+        const Text(
+          'Plan dinner week',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Fill the nights you care about. Blank days stay empty.',
+          style: TextStyle(color: AppColors.inkSecondary),
+        ),
+        const SizedBox(height: 12),
+        for (final day in MealRepository.weekdays) ...[
+          Text(
+            day.$2,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.inkMuted,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _controllers[day.$1],
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: 'Dinner for ${day.$2}',
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(
+              context,
+              {
+                for (final day in MealRepository.weekdays)
+                  day.$1: _controllers[day.$1]!.text.trim(),
+              },
+            );
+          },
+          child: const Text('Save week'),
+        ),
+      ],
+    );
   }
 }

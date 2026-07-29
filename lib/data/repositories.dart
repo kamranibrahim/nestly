@@ -722,6 +722,70 @@ class MealRepository {
     );
   }
 
+  Future<void> planDinnerWeek(Map<int, String> titlesByWeekday) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final existingDinners = await (_db.select(_db.mealPlans)
+          ..where(
+            (m) =>
+                m.deleted.equals(false) & m.mealType.equals('Dinner'),
+          ))
+        .get();
+
+    final byWeekday = <int, List<MealPlan>>{};
+    for (final meal in existingDinners) {
+      byWeekday.putIfAbsent(meal.weekday, () => []).add(meal);
+    }
+
+    for (final day in weekdays) {
+      final weekday = day.$1;
+      final title = (titlesByWeekday[weekday] ?? '').trim();
+      final dinners = byWeekday[weekday] ?? const <MealPlan>[];
+      final primary = dinners.isEmpty ? null : dinners.first;
+      final extras = dinners.skip(1);
+
+      for (final extra in extras) {
+        await delete(extra.id);
+      }
+
+      if (title.isEmpty) {
+        if (primary != null) {
+          await delete(primary.id);
+        }
+        continue;
+      }
+
+      if (primary != null) {
+        await (_db.update(_db.mealPlans)..where((m) => m.id.equals(primary.id)))
+            .write(
+          MealPlansCompanion(
+            title: Value(title),
+            dirty: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+      } else {
+        await _db.into(_db.mealPlans).insert(
+              MealPlansCompanion.insert(
+                id: _uuid.v4(),
+                nestId: Value(nestId),
+                weekday: weekday,
+                mealType: const Value('Dinner'),
+                title: title,
+                dirty: const Value(true),
+                createdAt: Value(now),
+                updatedAt: Value(now),
+              ),
+            );
+      }
+    }
+
+    await TimelineRepository(_db).add(
+      message: 'Planned dinner week',
+      memberName: 'You',
+    );
+  }
+
   /// Parses ingredients (comma or newline) and adds missing ones to groceries.
   Future<int> addIngredientsToShopping(MealPlan meal) async {
     final raw = meal.ingredients

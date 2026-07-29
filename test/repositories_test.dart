@@ -8,12 +8,14 @@ void main() {
   late AppDatabase database;
   late TaskRepository tasks;
   late ShoppingRepository shopping;
+  late MealRepository meals;
 
   setUp(() async {
     database = AppDatabase(NativeDatabase.memory());
     await database.ensureSeeded();
     tasks = TaskRepository(database);
     shopping = ShoppingRepository(database);
+    meals = MealRepository(database);
   });
 
   tearDown(() async {
@@ -104,5 +106,31 @@ void main() {
         .where((i) => !i.done)
         .map((i) => i.name);
     expect(openNames, contains(name));
+  });
+
+  test('plan dinner week replaces weekday dinners cleanly', () async {
+    await meals.planDinnerWeek({
+      1: 'Tacos',
+      2: 'Pasta',
+      3: '',
+      4: 'Soup',
+    });
+
+    final allMeals = await meals.watchAll().first;
+    final dinners = allMeals.where((m) => m.mealType == 'Dinner').toList();
+
+    expect(
+      dinners.where((m) => m.weekday == 1).map((m) => m.title),
+      contains('Tacos'),
+    );
+    expect(
+      dinners.where((m) => m.weekday == 2).map((m) => m.title),
+      contains('Pasta'),
+    );
+    expect(
+      dinners.where((m) => m.weekday == 4).map((m) => m.title),
+      contains('Soup'),
+    );
+    expect(dinners.where((m) => m.weekday == 3), isEmpty);
   });
 }
