@@ -21,7 +21,7 @@ class DocumentDraft {
     this.summary,
   });
 
-  final String kind; // event | expense | task | unknown
+  final String kind; // event | expense | task | bill | unknown
   final String title;
   final double confidence;
   final bool allDay;
@@ -122,14 +122,14 @@ Today's date is $today (use this to resolve relative dates like "tomorrow" or we
 $hintLine
 Return ONLY valid JSON (no markdown) with this shape:
 {
-  "kind": "event" | "expense" | "task" | "unknown",
+  "kind": "event" | "expense" | "task" | "bill" | "unknown",
   "confidence": number between 0 and 1,
   "title": string,
-  "startsAt": string | null (ISO-8601 datetime if known),
+  "startsAt": string | null (ISO-8601 datetime if known; for bills use due date),
   "endsAt": string | null,
   "allDay": boolean,
   "location": string | null,
-  "amount": number | null (receipt total if present),
+  "amount": number | null (receipt total or bill amount if present),
   "currency": string | null (e.g. "USD"),
   "category": string | null,
   "notes": string | null,
@@ -138,7 +138,8 @@ Return ONLY valid JSON (no markdown) with this shape:
 
 Rules:
 - Prefer kind "event" for invitations, appointments, school/sports schedules.
-- Prefer kind "expense" for store receipts with a clear total.
+- Prefer kind "expense" for store receipts with a clear total already paid.
+- Prefer kind "bill" for utility/service invoices with an amount due (and set startsAt to the due date when visible).
 - Prefer kind "task" for todo-like notes without a firm datetime.
 - If unsure of datetime, set startsAt to null and allDay false.
 - Do not invent a title; use the clearest label from the document.

@@ -151,7 +151,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 Text(
                   'Document scan sends the photo or PDF you choose to Google’s '
                   'Gemini models through Firebase AI Logic (Vertex AI) so Nestly '
-                  'can draft an event, expense, or task. You review before '
+                  'can draft an event, expense, bill, or task. You review before '
                   'anything is saved. Nestly stays free — there is no paywall '
                   'for core family features.',
                   style: TextStyle(

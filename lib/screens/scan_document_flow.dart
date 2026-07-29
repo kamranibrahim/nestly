@@ -172,7 +172,7 @@ Future<String?> _pickScanHint(BuildContext context) {
                 (label: 'Receipt', hint: 'Store receipt — extract total as expense'),
                 (label: 'Invite / event', hint: 'Invitation or appointment — calendar event'),
                 (label: 'School notice', hint: 'School notice or sports schedule'),
-                (label: 'Bill', hint: 'Utility or service bill'),
+                (label: 'Bill', hint: 'Utility or service bill — save as bill with due date'),
                 (label: 'Other', hint: ''),
               ]) ...[
                 ListTile(
@@ -249,6 +249,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
   late bool _allDay;
   late DateTime _startsAt;
   DateTime? _endsAt;
+  late DateTime _dueAt;
   late String _assigneeId;
   bool _busy = false;
 
@@ -258,19 +259,25 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
     final d = widget.draft;
     _title = TextEditingController(text: d.title);
     _kind = d.kind == 'unknown' ? 'event' : d.kind;
-    if (_kind != 'event' && _kind != 'expense' && _kind != 'task') {
+    if (_kind != 'event' &&
+        _kind != 'expense' &&
+        _kind != 'task' &&
+        _kind != 'bill') {
       _kind = d.amount != null ? 'expense' : 'event';
     }
     _allDay = d.allDay;
     _startsAt = d.startsAt ?? DateTime.now().add(const Duration(hours: 1));
     _endsAt = d.endsAt;
+    final now = DateTime.now();
+    _dueAt = d.startsAt ??
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
     _location = TextEditingController(text: d.location ?? '');
     _amount = TextEditingController(
       text: d.amount == null ? '' : d.amount!.toStringAsFixed(2),
     );
     _category = TextEditingController(
       text: (d.category == null || d.category!.isEmpty)
-          ? (_kind == 'expense' ? 'General' : 'Family')
+          ? (_kind == 'expense' || _kind == 'bill' ? 'General' : 'Family')
           : d.category!,
     );
     _notes = TextEditingController(text: d.notes ?? d.summary ?? '');
@@ -342,6 +349,19 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
     });
   }
 
+  Future<void> _pickDue() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dueAt,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (date == null || !mounted) return;
+    setState(() {
+      _dueAt = DateTime(date.year, date.month, date.day);
+    });
+  }
+
   Future<void> _save() async {
     final title = _title.text.trim();
     if (title.isEmpty) {
@@ -350,7 +370,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
       );
       return;
     }
-    if (_kind == 'expense') {
+    if (_kind == 'expense' || _kind == 'bill') {
       final amount = double.tryParse(_amount.text.trim());
       if (amount == null || amount < 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -367,7 +387,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
           ? _assigneeId
           : (members.isNotEmpty ? members.first.id : '');
       final category = _category.text.trim().isEmpty
-          ? (_kind == 'expense' ? 'General' : 'Family')
+          ? (_kind == 'expense' || _kind == 'bill' ? 'General' : 'Family')
           : _category.text.trim();
 
       switch (_kind) {
@@ -379,6 +399,16 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
                 category: category,
                 paidBy: memberId,
               );
+        case 'bill':
+          final amount = double.tryParse(_amount.text.trim()) ?? 0;
+          await ref.read(billRepositoryProvider).addBill(
+                title: title,
+                amount: amount,
+                dueAt: _dueAt,
+              );
+          await ref
+              .read(notificationServiceProvider)
+              .rescheduleBillReminders();
         case 'task':
           await ref.read(taskRepositoryProvider).addTask(
                 title: title,
@@ -408,11 +438,12 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _kind == 'expense'
-                ? 'Expense added'
-                : _kind == 'task'
-                    ? 'Task added'
-                    : 'Event added',
+            switch (_kind) {
+              'expense' => 'Expense added',
+              'bill' => 'Bill added',
+              'task' => 'Task added',
+              _ => 'Event added',
+            },
           ),
         ),
       );
@@ -476,8 +507,9 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
+          runSpacing: 6,
           children: [
-            for (final kind in const ['event', 'expense', 'task'])
+            for (final kind in const ['event', 'expense', 'bill', 'task'])
               SoftPill(
                 label: kind[0].toUpperCase() + kind.substring(1),
                 selected: _kind == kind,
@@ -485,8 +517,9 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
                   _kind = kind;
                   if (_category.text == 'General' ||
                       _category.text == 'Family') {
-                    _category.text =
-                        kind == 'expense' ? 'General' : 'Family';
+                    _category.text = (kind == 'expense' || kind == 'bill')
+                        ? 'General'
+                        : 'Family';
                   }
                 }),
               ),
@@ -498,12 +531,14 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
           textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(labelText: 'Title'),
         ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _category,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Category'),
-        ),
+        if (_kind != 'bill') ...[
+          const SizedBox(height: 10),
+          TextField(
+            controller: _category,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Category'),
+          ),
+        ],
         if (_kind == 'event') ...[
           const SizedBox(height: 10),
           NestCard(
@@ -566,16 +601,36 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
             decoration: const InputDecoration(labelText: 'Location'),
           ),
         ],
-        if (_kind == 'expense') ...[
+        if (_kind == 'expense' || _kind == 'bill') ...[
           const SizedBox(height: 10),
           TextField(
             controller: _amount,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: 'Amount',
+              labelText: _kind == 'bill' ? 'Amount due' : 'Amount',
               prefixText: (d.currency == null || d.currency!.isEmpty)
                   ? '\$ '
                   : '${d.currency} ',
+            ),
+          ),
+        ],
+        if (_kind == 'bill') ...[
+          const SizedBox(height: 10),
+          NestCard(
+            onTap: _pickDue,
+            child: Row(
+              children: [
+                const Icon(Icons.event_available_rounded, color: AppColors.ink),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Due ${DateFormat.yMMMEd().format(_dueAt)}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const Icon(Icons.edit_calendar_outlined,
+                    color: AppColors.inkMuted, size: 20),
+              ],
             ),
           ),
         ],
@@ -619,11 +674,12 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
                     color: Colors.white,
                   ),
                 )
-              : Text(_kind == 'expense'
-                  ? 'Add expense'
-                  : _kind == 'task'
-                      ? 'Add task'
-                      : 'Add event'),
+              : Text(switch (_kind) {
+                  'expense' => 'Add expense',
+                  'bill' => 'Add bill',
+                  'task' => 'Add task',
+                  _ => 'Add event',
+                }),
         ),
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
