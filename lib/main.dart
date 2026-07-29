@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,17 +8,30 @@ import 'data/db/app_database.dart';
 import 'firebase_options.dart';
 import 'screens/auth_gate.dart';
 import 'theme/app_theme.dart';
+import 'web/web_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-    ),
-  );
+
+  if (!kIsWeb) {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
+  }
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (kIsWeb) {
+    runApp(
+      const ProviderScope(
+        child: WebCompanionApp(),
+      ),
+    );
+    return;
+  }
 
   final database = AppDatabase();
 

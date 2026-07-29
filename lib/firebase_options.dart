@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError('Nestly web is not configured yet.');
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -21,6 +21,15 @@ class DefaultFirebaseOptions {
         );
     }
   }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBjOi7n11m9Hc82fOyD4zFUx2BtrnHmEhg',
+    appId: '1:165083787847:web:5919fb0537b3fa157c7762',
+    messagingSenderId: '165083787847',
+    projectId: 'nestly-family-os',
+    authDomain: 'nestly-family-os.firebaseapp.com',
+    storageBucket: 'nestly-family-os.firebasestorage.app',
+  );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBDLNP2Gsubh2gFdw_ME-_4ZxfalyINgeU',

@@ -66,5 +66,18 @@ flutter run
 - [x] Weekly meal plan → push ingredients to shopping
 - [x] Care schedules (home / pet / car) with due + mark done
 - [x] Quiet “Today for your nest” summary on Home (local, no chatbot)
-- [ ] Web companion (calendar + lists)
+- [x] Web companion (calendar + tasks + lists)
 - [ ] Model-backed quiet AI (receipts, PDF → event)
+
+## Web companion
+
+Flutter web app (same repo) that talks to Firestore directly — no local Drift DB.
+
+```bash
+flutter run -d chrome
+# or
+flutter build web --release
+npx netlify deploy --dir=build/web --prod
+```
+
+In Firebase Console → Authentication → Settings → Authorized domains, add your Netlify domain (and `localhost` for local runs).

@@ -1,0 +1,19 @@
+# Nestly web companion (Flutter web)
+#
+# Local:  flutter run -d chrome
+# Build:  flutter build web --release
+# Deploy: npx netlify deploy --dir=build/web --prod
+#
+# Netlify build clones Flutter stable (first build is slow).
+
+[build]
+  command = "git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter && export PATH=\"$PATH:$HOME/flutter/bin\" && flutter config --no-analytics && flutter config --enable-web && flutter pub get && flutter build web --release"
+  publish = "build/web"
+
+[build.environment]
+  FLUTTER_WEB = "true"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
