@@ -30,7 +30,8 @@ void main() {
   });
 
   test('toggle and add task persist', () async {
-    final first = (await tasks.watchAll().first).firstWhere((t) => !t.done);
+    final first = (await tasks.watchAll().first)
+        .firstWhere((t) => !t.done && !t.recurring);
     await tasks.toggleDone(first);
     final afterToggle =
         (await tasks.watchAll().first).firstWhere((t) => t.id == first.id);
@@ -39,6 +40,21 @@ void main() {
     await tasks.addTask(title: 'Test chore', assigneeId: 'mom');
     final titles = (await tasks.watchAll().first).map((t) => t.title);
     expect(titles, contains('Test chore'));
+  });
+
+  test('recurring task rolls due label and stays open', () async {
+    await tasks.addTask(
+      title: 'Water plants',
+      dueLabel: 'Today',
+      recurring: true,
+    );
+    final task = (await tasks.watchAll().first)
+        .firstWhere((t) => t.title == 'Water plants');
+    await tasks.toggleDone(task);
+    final after =
+        (await tasks.watchAll().first).firstWhere((t) => t.id == task.id);
+    expect(after.done, isFalse);
+    expect(after.dueLabel, 'Tomorrow');
   });
 
   test('toggle and add shopping item persist', () async {

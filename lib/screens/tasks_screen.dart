@@ -185,8 +185,8 @@ class TasksScreen extends ConsumerWidget {
     )..sort((a, b) => MemberRoles.adultLikeFirst(a.role, b.role));
     final initialAssignee = members.isNotEmpty ? members.first.id : '';
 
-    final result =
-        await showModalBottomSheet<({String title, String assigneeId})>(
+    final result = await showModalBottomSheet<
+        ({String title, String assigneeId, bool recurring})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -203,6 +203,7 @@ class TasksScreen extends ConsumerWidget {
       await ref.read(taskRepositoryProvider).addTask(
             title: result.title,
             assigneeId: result.assigneeId,
+            recurring: result.recurring,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
@@ -227,6 +228,7 @@ class _AddTaskSheet extends StatefulWidget {
 class _AddTaskSheetState extends State<_AddTaskSheet> {
   late final TextEditingController _controller;
   late String _assigneeId;
+  bool _recurring = false;
 
   @override
   void initState() {
@@ -247,7 +249,10 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
       Navigator.pop(context);
       return;
     }
-    Navigator.pop(context, (title: title, assigneeId: _assigneeId));
+    Navigator.pop(
+      context,
+      (title: title, assigneeId: _assigneeId, recurring: _recurring),
+    );
   }
 
   @override
@@ -301,7 +306,20 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 ],
               ),
             ],
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Repeats',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: const Text(
+                'Stays open and rolls the due label when done',
+                style: TextStyle(fontSize: 12.5),
+              ),
+              value: _recurring,
+              onChanged: (v) => setState(() => _recurring = v),
+            ),
             FilledButton(
               onPressed: _submit,
               child: const Text('Add task'),
@@ -377,7 +395,7 @@ class _PastelTaskCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '$name · ${task.dueLabel}',
+                '$name · ${task.dueLabel}${task.recurring ? ' · repeats' : ''}',
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: AppColors.inkSecondary,
@@ -393,9 +411,9 @@ class _PastelTaskCard extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
-                    'Open',
-                    style: TextStyle(
+                  child: Text(
+                    task.recurring ? 'Repeats' : 'Open',
+                    style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                     ),

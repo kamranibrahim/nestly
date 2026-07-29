@@ -61,18 +61,19 @@ void main() {
     expect(meal.actionLabel, 'Shop');
   });
 
-  test('bills use Paid action label', () {
+  test('school due uses Done action', () {
     final summary = buildFamilyNeeds(
       openTasks: 0,
       openShopping: 0,
-      unpaidBillsDueSoon: 2,
+      unpaidBillsDueSoon: 0,
       careDue: 0,
-      schoolDue: 0,
+      schoolDue: 2,
       dinnerPlannedToday: true,
       eventsToday: 0,
     );
 
-    final bill = summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.bills);
-    expect(bill.actionLabel, 'Paid');
+    final school =
+        summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.school);
+    expect(school.actionLabel, 'Done');
   });
 }

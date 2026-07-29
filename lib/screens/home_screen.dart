@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
 import '../data/family_needs.dart';
+import '../data/repositories.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
@@ -47,6 +48,10 @@ class HomeScreen extends ConsumerWidget {
     final careDueItems = careItems
         .where((c) => !c.nextDueAt.isAfter(endToday))
         .toList();
+    final schoolItems =
+        ref.watch(schoolActivitiesProvider).valueOrNull ?? const [];
+    final schoolDueItems =
+        schoolItems.where((s) => !s.nextAt.isAfter(endToday)).toList();
     final timeline = ref.watch(timelineProvider).valueOrNull ?? const [];
     final recent = timeline.take(5).toList();
 
@@ -300,6 +305,9 @@ class HomeScreen extends ConsumerWidget {
                                 firstBillDue: billsDueSoonList.isEmpty
                                     ? null
                                     : billsDueSoonList.first,
+                                firstSchoolDue: schoolDueItems.isEmpty
+                                    ? null
+                                    : schoolDueItems.first,
                               ),
                               onOpen: () => _openNeed(
                                 context,
@@ -320,6 +328,9 @@ class HomeScreen extends ConsumerWidget {
                                 firstBillDue: billsDueSoonList.isEmpty
                                     ? null
                                     : billsDueSoonList.first,
+                                firstSchoolDue: schoolDueItems.isEmpty
+                                    ? null
+                                    : schoolDueItems.first,
                                 dinnerMeal: dinnerMeal,
                               ),
                             ),
@@ -469,6 +480,7 @@ class HomeScreen extends ConsumerWidget {
     Task? firstOpenTask,
     CareItem? firstCareDue,
     Bill? firstBillDue,
+    SchoolActivity? firstSchoolDue,
   }) {
     switch (kind) {
       case FamilyNeedKind.tasks:
@@ -481,6 +493,10 @@ class HomeScreen extends ConsumerWidget {
         return firstBillDue == null
             ? null
             : 'Next: ${firstBillDue.title} · \$${firstBillDue.amount.toStringAsFixed(0)}';
+      case FamilyNeedKind.school:
+        return firstSchoolDue == null
+            ? null
+            : 'Next: ${firstSchoolDue.title}';
       default:
         return null;
     }
@@ -494,6 +510,7 @@ class HomeScreen extends ConsumerWidget {
     Task? firstOpenTask,
     CareItem? firstCareDue,
     Bill? firstBillDue,
+    SchoolActivity? firstSchoolDue,
     MealPlan? dinnerMeal,
   }) async {
     switch (kind) {
@@ -507,8 +524,11 @@ class HomeScreen extends ConsumerWidget {
           await ref.read(syncServiceProvider).syncAll();
         } catch (_) {}
         if (context.mounted) {
+          final note = firstOpenTask.recurring
+              ? 'Done · next ${TaskRepository.nextDueLabel(firstOpenTask.dueLabel)}'
+              : 'Done: ${firstOpenTask.title}';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Done: ${firstOpenTask.title}')),
+            SnackBar(content: Text(note)),
           );
         }
       case FamilyNeedKind.care:
@@ -526,6 +546,20 @@ class HomeScreen extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Done: ${firstCareDue.title}')),
+          );
+        }
+      case FamilyNeedKind.school:
+        if (firstSchoolDue == null) {
+          nestPush(context, const SchoolScreen());
+          return;
+        }
+        await ref.read(schoolRepositoryProvider).markDone(firstSchoolDue);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Done: ${firstSchoolDue.title}')),
           );
         }
       case FamilyNeedKind.bills:

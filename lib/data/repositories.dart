@@ -30,11 +30,30 @@ class TaskRepository {
 
   Future<void> toggleDone(Task task) async {
     final markingDone = !task.done;
+    final now = DateTime.now();
+
+    if (markingDone && task.recurring) {
+      final nextLabel = nextDueLabel(task.dueLabel);
+      await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
+        TasksCompanion(
+          done: const Value(false),
+          dueLabel: Value(nextLabel),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+      await TimelineRepository(_db).add(
+        message: 'Completed "${task.title}" · next $nextLabel',
+        memberName: 'You',
+      );
+      return;
+    }
+
     await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
       TasksCompanion(
         done: Value(markingDone),
         dirty: const Value(true),
-        updatedAt: Value(DateTime.now()),
+        updatedAt: Value(now),
       ),
     );
     if (markingDone) {
@@ -45,10 +64,25 @@ class TaskRepository {
     }
   }
 
+  /// Advances recurring chore labels without a full calendar cadence.
+  static String nextDueLabel(String current) {
+    switch (current.trim().toLowerCase()) {
+      case 'today':
+        return 'Tomorrow';
+      case 'tomorrow':
+        return 'In 7 days';
+      case 'in 7 days':
+        return 'Today';
+      default:
+        return 'Tomorrow';
+    }
+  }
+
   Future<void> addTask({
     required String title,
     String assigneeId = '',
     String dueLabel = 'Today',
+    bool recurring = false,
     String? nestId,
   }) async {
     final now = DateTime.now();
@@ -61,6 +95,7 @@ class TaskRepository {
             title: title.trim(),
             assigneeId: Value(assigneeId),
             dueLabel: Value(dueLabel),
+            recurring: Value(recurring),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),

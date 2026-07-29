@@ -95,7 +95,7 @@ FamilyNeedsSummary buildFamilyNeeds({
             '$schoolDue school / pickup${schoolDue == 1 ? '' : 's'} due',
         detail: 'Confirm who’s covering the run',
         kind: FamilyNeedKind.school,
-        actionLabel: 'Open',
+        actionLabel: 'Done',
       ),
     );
   }
