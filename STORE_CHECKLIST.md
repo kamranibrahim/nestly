@@ -16,13 +16,11 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 
 ## Optional AI scan (not required for store)
 
-- [x] Deploy web/API to https://glowing-strudel-442ff8.netlify.app
+- [x] Mobile scan uses **Firebase AI Logic** (Gemini) — no Netlify AI Gateway
+- [ ] Confirm Gemini Developer API / AI Logic is enabled for Android + iOS apps in Firebase Console → Build → AI
 - [x] Harden scan AI acceptance UX (hint picker, editable review, clearer errors)
-- [ ] Enable Netlify AI Gateway in site settings (Site configuration → AI Gateway / Environment)
-- [ ] Add Netlify domain in Firebase Auth → Settings → Authorized domains:
-  `glowing-strudel-442ff8.netlify.app`
-- [ ] Run mobile with:
-  `flutter run --dart-define=NESTLY_SITE_URL=https://glowing-strudel-442ff8.netlify.app`
+- [ ] (Optional) Web companion: https://glowing-strudel-442ff8.netlify.app
+  - Add domain in Firebase Auth → Authorized domains if using web sign-in
 
 ## Tester flow
 

@@ -36,7 +36,7 @@ Future<void> startDocumentScanFlow(
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Scan is not configured. Set NESTLY_SITE_URL to your Netlify site.',
+            'Scan is not available. Enable Firebase AI Logic in the console.',
           ),
         ),
       );

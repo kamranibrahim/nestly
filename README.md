@@ -67,7 +67,7 @@ flutter run
 - [x] Care schedules (home / pet / car) with due + mark done
 - [x] Quiet “Today for your nest” summary on Home (local, no chatbot)
 - [x] Web companion (calendar + tasks + lists)
-- [x] Model-backed quiet AI (receipts, PDF → event / expense / task)
+- [x] Model-backed quiet AI via Firebase AI Logic (Gemini) — receipts/PDF → event / expense / task
 - [x] School & activities (sports, pickups, clubs)
 - [x] Grocery suggestions from recurring buys (device-local)
 - [x] Harden scan AI acceptance UX

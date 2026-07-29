@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
 
 /// Draft extracted from a receipt, invitation, or PDF via Nestly AI.
 class DocumentDraft {
@@ -69,7 +69,7 @@ class DocumentDraft {
   }
 }
 
-/// User-facing scan failure (avoids raw "Bad state:" snackbars).
+/// User-facing scan failure (avoids raw exception snackbars).
 class DocumentAiException implements Exception {
   const DocumentAiException(this.message);
 
@@ -79,56 +79,14 @@ class DocumentAiException implements Exception {
   String toString() => message;
 }
 
+/// Quiet document scan via **Firebase AI Logic** (Gemini) — no Netlify required.
 class DocumentAiService {
-  DocumentAiService({
-    FirebaseAuth? auth,
-    http.Client? client,
-    String? baseUrl,
-    String? siteUrl,
-  })  : _auth = auth ?? FirebaseAuth.instance,
-        _client = client ?? http.Client(),
-        _baseUrl = baseUrl ??
-            const String.fromEnvironment(
-              'NESTLY_AI_URL',
-              defaultValue: '',
-            ),
-        _siteUrl = siteUrl ?? fallbackSiteUrl;
+  DocumentAiService({FirebaseAuth? auth}) : _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseAuth _auth;
-  final http.Client _client;
-  final String _baseUrl;
-  final String _siteUrl;
 
-  /// Production Netlify site hosting `/api/parse-document`.
-  /// Override with `--dart-define=NESTLY_SITE_URL=https://…`
-  static const fallbackSiteUrl = String.fromEnvironment(
-    'NESTLY_SITE_URL',
-    defaultValue: 'https://glowing-strudel-442ff8.netlify.app',
-  );
-
-  bool get isConfigured {
-    try {
-      _endpoint;
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Uri get _endpoint {
-    final configured = _baseUrl.trim();
-    if (configured.isNotEmpty) {
-      return Uri.parse(configured);
-    }
-    final site = _siteUrl.trim().replaceAll(RegExp(r'/$'), '');
-    if (site.isNotEmpty) {
-      return Uri.parse('$site/api/parse-document');
-    }
-    throw const DocumentAiException(
-      'Document scan is not configured. Set NESTLY_SITE_URL to your '
-      'Netlify site, then try again.',
-    );
-  }
+  /// Always available when Firebase is configured; user must be signed in to call.
+  bool get isConfigured => true;
 
   Future<DocumentDraft> parseDocument({
     required Uint8List bytes,
@@ -139,12 +97,6 @@ class DocumentAiService {
     if (user == null) {
       throw const DocumentAiException('Sign in to scan documents.');
     }
-    final token = await user.getIdToken();
-    if (token == null || token.isEmpty) {
-      throw const DocumentAiException(
-        'Could not get auth token. Sign out, sign back in, then try again.',
-      );
-    }
 
     if (bytes.length > 4 * 1024 * 1024) {
       throw const DocumentAiException(
@@ -152,100 +104,115 @@ class DocumentAiService {
       );
     }
 
-    final endpoint = _endpoint;
+    final today = DateTime.now().toIso8601String().split('T').first;
+    final hintLine = (hint == null || hint.trim().isEmpty)
+        ? ''
+        : 'User hint: ${hint.trim()}\n';
+
+    final prompt = '''
+You extract structured family-organizer data from a photo or PDF (receipt, invitation, school notice, appointment card, flyer).
+Today's date is $today (use this to resolve relative dates like "tomorrow" or weekday-only dates).
+$hintLine
+Return ONLY valid JSON (no markdown) with this shape:
+{
+  "kind": "event" | "expense" | "task" | "unknown",
+  "confidence": number between 0 and 1,
+  "title": string,
+  "startsAt": string | null (ISO-8601 datetime if known),
+  "endsAt": string | null,
+  "allDay": boolean,
+  "location": string | null,
+  "amount": number | null (receipt total if present),
+  "currency": string | null (e.g. "USD"),
+  "category": string | null,
+  "notes": string | null,
+  "summary": string (one short sentence of what you saw)
+}
+
+Rules:
+- Prefer kind "event" for invitations, appointments, school/sports schedules.
+- Prefer kind "expense" for store receipts with a clear total.
+- Prefer kind "task" for todo-like notes without a firm datetime.
+- If unsure of datetime, set startsAt to null and allDay false.
+- Do not invent a title; use the clearest label from the document.
+''';
 
     try {
-      final response = await _client
-          .post(
-            endpoint,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-              'mimeType': mimeType,
-              'dataBase64': base64Encode(bytes),
-              if (hint != null && hint.trim().isNotEmpty) 'hint': hint.trim(),
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
+      final model = FirebaseAI.googleAI().generativeModel(
+        model: 'gemini-flash-latest',
+        generationConfig: GenerationConfig(
+          temperature: 0.2,
+          responseMimeType: 'application/json',
+        ),
+      );
 
-      Object? decoded;
-      try {
-        decoded = jsonDecode(response.body);
-      } catch (_) {
-        decoded = null;
-      }
+      final response = await model.generateContent([
+        Content.multi([
+          InlineDataPart(mimeType, bytes),
+          TextPart(prompt),
+        ]),
+      ]).timeout(const Duration(seconds: 60));
 
-      if (response.statusCode >= 400) {
-        throw DocumentAiException(
-          _messageForStatus(response.statusCode, decoded),
-        );
-      }
-
-      final draftJson = decoded is Map ? decoded['draft'] : null;
-      if (draftJson is! Map) {
+      final text = response.text?.trim() ?? '';
+      if (text.isEmpty) {
         throw const DocumentAiException(
-          'Scan returned an unexpected response. Try another photo.',
+          'Scan returned an empty result. Try a clearer photo.',
         );
       }
-      return DocumentDraft.fromJson(Map<String, dynamic>.from(draftJson));
+
+      final jsonMap = _decodeJsonObject(text);
+      return DocumentDraft.fromJson(jsonMap);
     } on DocumentAiException {
       rethrow;
-    } on http.ClientException {
-      throw const DocumentAiException(
-        'Could not reach the scan service. Check your connection and try again.',
-      );
     } catch (e) {
-      final text = '$e'.toLowerCase();
-      if (text.contains('timeout')) {
-        throw const DocumentAiException(
-          'Scan timed out. Try a clearer photo or a smaller file.',
-        );
-      }
-      if (text.contains('socket') || text.contains('failed host lookup')) {
-        throw const DocumentAiException(
-          'Could not reach the scan service. Check your connection and try again.',
-        );
-      }
-      throw const DocumentAiException(
-        'Could not finish the scan. Check your connection and try again.',
-      );
+      throw DocumentAiException(_friendlyFirebaseError(e));
     }
   }
 
-  static String _messageForStatus(int status, Object? decoded) {
-    final server = decoded is Map && decoded['error'] is String
-        ? (decoded['error'] as String).trim()
-        : '';
-    final lower = server.toLowerCase();
-
-    if (status == 401) {
-      return 'Sign in required. Sign out, sign back in, then try again.';
-    }
-    if (status == 413) {
-      return server.isNotEmpty
-          ? server
-          : 'That file is too large. Use a photo or PDF under about 4 MB.';
-    }
-    if (status == 400 && server.isNotEmpty) {
-      return server;
-    }
-    if (lower.contains('api key') ||
-        lower.contains('ai gateway') ||
-        lower.contains('permission') ||
-        lower.contains('unauthorized') ||
-        lower.contains('credential')) {
-      return 'AI Gateway is not ready on Netlify yet. Enable it in site '
-          'settings, wait a minute, then try again.';
-    }
-    if (status >= 500) {
-      if (server.isNotEmpty && server.length < 120) {
-        return 'Scan service error: $server';
+  static Map<String, dynamic> _decodeJsonObject(String text) {
+    try {
+      final decoded = jsonDecode(text);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      final match = RegExp(r'\{[\s\S]*\}').firstMatch(text);
+      if (match != null) {
+        final decoded = jsonDecode(match.group(0)!);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
       }
-      return 'Scan service had a problem. Try again in a moment.';
     }
-    if (server.isNotEmpty) return server;
-    return 'Scan failed ($status). Try again.';
+    throw const DocumentAiException(
+      'Scan returned an unexpected response. Try another photo.',
+    );
+  }
+
+  static String _friendlyFirebaseError(Object e) {
+    final text = '$e';
+    final lower = text.toLowerCase();
+    if (lower.contains('permission') ||
+        lower.contains('permission_denied') ||
+        lower.contains('not enabled') ||
+        lower.contains('ai logic') ||
+        lower.contains('api key') ||
+        lower.contains('unauthenticated')) {
+      return 'Firebase AI Logic is not enabled yet. In Firebase Console → '
+          'Build → AI → enable Gemini Developer API, then try again.';
+    }
+    if (lower.contains('timeout')) {
+      return 'Scan timed out. Try a clearer photo or a smaller file.';
+    }
+    if (lower.contains('network') ||
+        lower.contains('socket') ||
+        lower.contains('unavailable')) {
+      return 'Could not reach Gemini. Check your connection and try again.';
+    }
+    if (lower.contains('quota') || lower.contains('resource exhausted')) {
+      return 'AI quota reached for today. Try again later.';
+    }
+    // Strip noisy prefixes for snackbars.
+    return text
+        .replaceFirst(RegExp(r'^\[firebase_ai[^\]]*\]\s*'), '')
+        .replaceFirst(RegExp(r'^Exception:\s*'), '')
+        .trim();
   }
 }
