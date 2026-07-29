@@ -180,6 +180,31 @@ void main() {
     expect(soon.firstWhere((d) => d.id == doc.id).notes, 'Renew online');
   });
 
+  test('vault docs can be renamed and moved between folders', () async {
+    final vault = VaultRepository(database);
+    final doc = await vault.addLocalMeta(
+      title: 'Lease',
+      category: 'House',
+      fileName: 'lease.pdf',
+    );
+
+    await vault.updateMeta(
+      id: doc.id,
+      title: 'Apartment lease',
+      category: 'Finance',
+      notes: 'Signed copy',
+    );
+
+    final updated = (await vault.watchAll().first)
+        .firstWhere((d) => d.id == doc.id);
+    expect(updated.title, 'Apartment lease');
+    expect(updated.category, 'Finance');
+    expect(updated.notes, 'Signed copy');
+
+    final finance = await vault.watchAll(category: 'Finance').first;
+    expect(finance.any((d) => d.id == doc.id), isTrue);
+  });
+
   test('calendar events can be updated and deleted', () async {
     final startsAt = DateTime(2026, 7, 29, 9);
     final endsAt = DateTime(2026, 7, 29, 10);

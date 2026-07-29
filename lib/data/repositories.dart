@@ -701,6 +701,8 @@ class VaultRepository {
 
   Future<void> updateMeta({
     required String id,
+    String? title,
+    String? category,
     String? notes,
     DateTime? expiresAt,
     bool clearExpiry = false,
@@ -708,6 +710,9 @@ class VaultRepository {
     return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
         .write(
       VaultDocumentsCompanion(
+        title: title == null ? const Value.absent() : Value(title.trim()),
+        category:
+            category == null ? const Value.absent() : Value(category.trim()),
         notes: notes == null ? const Value.absent() : Value(notes),
         expiresAt: clearExpiry
             ? const Value(null)

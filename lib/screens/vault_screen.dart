@@ -7,6 +7,7 @@ import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
+import '../widgets/shimmer.dart';
 import 'scan_document_flow.dart';
 
 class VaultScreen extends ConsumerStatefulWidget {
@@ -30,6 +31,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
   ];
 
   late String _category;
+  String _query = '';
 
   @override
   void initState() {
@@ -70,14 +72,40 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (context) => _VaultDocSheet(doc: doc),
+      builder: (context) => _VaultDocSheet(
+        doc: doc,
+        folders: _folders.map((f) => f.$2).toList(),
+      ),
     );
+  }
+
+  List<VaultDocument> _filtered(List<VaultDocument> docs) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return docs;
+    return docs.where((d) {
+      return d.title.toLowerCase().contains(q) ||
+          d.fileName.toLowerCase().contains(q) ||
+          d.category.toLowerCase().contains(q) ||
+          d.notes.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  Map<String, int> _counts(List<VaultDocument> all) {
+    final map = <String, int>{};
+    for (final doc in all) {
+      map[doc.category] = (map[doc.category] ?? 0) + 1;
+    }
+    return map;
   }
 
   @override
   Widget build(BuildContext context) {
     final docsAsync = ref.watch(vaultDocumentsProvider(_category));
+    final allDocs =
+        ref.watch(vaultDocumentsProvider('All')).valueOrNull ?? const [];
     final docs = docsAsync.valueOrNull ?? const <VaultDocument>[];
+    final filtered = _filtered(docs);
+    final counts = _counts(allDocs);
     final expiring =
         ref.watch(vaultExpiringSoonProvider).valueOrNull ?? const [];
 
@@ -109,8 +137,18 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
         children: [
+          TextField(
+            onChanged: (value) => setState(() => _query = value),
+            textInputAction: TextInputAction.search,
+            decoration: const InputDecoration(
+              hintText: 'Search documents',
+              prefixIcon: Icon(Icons.search_rounded),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 10),
           if (_category == 'All') ...[
-            if (expiring.isNotEmpty) ...[
+            if (expiring.isNotEmpty && _query.isEmpty) ...[
               const SectionLabel('Expiring soon'),
               NestCard(
                 padding: EdgeInsets.zero,
@@ -141,95 +179,114 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
               ),
               const SizedBox(height: 10),
             ],
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 6,
-              crossAxisSpacing: 6,
-              childAspectRatio: 0.92,
-              children: [
-                for (final folder in _folders)
-                  NestCard(
-                    onTap: () => setState(() => _category = folder.$2),
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: folder.$3.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(14),
+            if (_query.isEmpty)
+              GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 6,
+                crossAxisSpacing: 6,
+                childAspectRatio: 0.92,
+                children: [
+                  for (final folder in _folders)
+                    NestCard(
+                      onTap: () => setState(() => _category = folder.$2),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: folder.$3.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(folder.$1, color: folder.$3),
                           ),
-                          child: Icon(folder.$1, color: folder.$3),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          folder.$2,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                          const SizedBox(height: 6),
+                          Text(
+                            folder.$2,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
-                        ),
-                      ],
+                          Text(
+                            '${counts[folder.$2] ?? 0}',
+                            style: const TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const SectionLabel('Recent files'),
+                ],
+              ),
+            if (_query.isEmpty) ...[
+              const SizedBox(height: 6),
+              const SectionLabel('Recent files'),
+            ] else
+              const SectionLabel('Search results'),
           ] else
             SectionLabel(_category),
-          NestCard(
-            padding: EdgeInsets.zero,
-            child: docs.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Text(
-                      'No documents yet. Tap + to add one.',
-                      style: TextStyle(color: AppColors.inkMuted),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : Column(
-                    children: [
-                      for (var i = 0; i < docs.length; i++) ...[
-                        ListTile(
-                          onTap: () => _openDoc(docs[i]),
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppColors.primarySoft,
-                              borderRadius: BorderRadius.circular(10),
+          docsAsync.when(
+            loading: () => const NestLoadingSkeleton(itemCount: 3),
+            error: (e, _) => NestCard(child: Text('$e')),
+            data: (_) => NestCard(
+              padding: EdgeInsets.zero,
+              child: filtered.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        _query.isEmpty
+                            ? 'No documents yet. Tap + to add one.'
+                            : 'No documents match “$_query”.',
+                        style: const TextStyle(color: AppColors.inkMuted),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        for (var i = 0; i < filtered.length; i++) ...[
+                          ListTile(
+                            onTap: () => _openDoc(filtered[i]),
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.primarySoft,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                _iconFor(filtered[i]),
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
                             ),
-                            child: Icon(
-                              _iconFor(docs[i]),
-                              color: AppColors.primary,
-                              size: 20,
+                            title: Text(
+                              filtered[i].title,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text(
+                              '${filtered[i].category} · ${_relative(filtered[i].updatedAt)}'
+                              '${filtered[i].expiresAt == null ? '' : ' · ${_expiryLabel(filtered[i].expiresAt)}'}'
+                              '${filtered[i].storagePath == null ? ' · local' : ''}',
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.inkMuted,
                             ),
                           ),
-                          title: Text(
-                            docs[i].title,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(
-                            '${docs[i].category} · ${_relative(docs[i].updatedAt)}'
-                            '${docs[i].expiresAt == null ? '' : ' · ${_expiryLabel(docs[i].expiresAt)}'}'
-                            '${docs[i].storagePath == null ? ' · local' : ''}',
-                          ),
-                          trailing: const Icon(
-                            Icons.chevron_right_rounded,
-                            color: AppColors.inkMuted,
-                          ),
-                        ),
-                        if (i != docs.length - 1)
-                          const Divider(height: 1, indent: 72),
+                          if (i != filtered.length - 1)
+                            const Divider(height: 1, indent: 72),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
+            ),
           ),
         ],
       ),
@@ -270,26 +327,35 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
 }
 
 class _VaultDocSheet extends ConsumerStatefulWidget {
-  const _VaultDocSheet({required this.doc});
+  const _VaultDocSheet({
+    required this.doc,
+    required this.folders,
+  });
 
   final VaultDocument doc;
+  final List<String> folders;
 
   @override
   ConsumerState<_VaultDocSheet> createState() => _VaultDocSheetState();
 }
 
 class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
+  late final TextEditingController _title;
   late final TextEditingController _notes;
+  late String _category;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
+    _title = TextEditingController(text: widget.doc.title);
     _notes = TextEditingController(text: widget.doc.notes);
+    _category = widget.doc.category;
   }
 
   @override
   void dispose() {
+    _title.dispose();
     _notes.dispose();
     super.dispose();
   }
@@ -333,9 +399,28 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
     Navigator.pop(context);
   }
 
-  Future<void> _saveNotes() async {
+  Future<void> _clearExpiry() async {
     await ref.read(vaultRepositoryProvider).updateMeta(
           id: widget.doc.id,
+          clearExpiry: true,
+        );
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Expiry cleared')),
+    );
+    Navigator.pop(context);
+  }
+
+  Future<void> _saveDetails() async {
+    final title = _title.text.trim();
+    if (title.isEmpty) return;
+    await ref.read(vaultRepositoryProvider).updateMeta(
+          id: widget.doc.id,
+          title: title,
+          category: _category,
           notes: _notes.text.trim(),
         );
     try {
@@ -343,8 +428,9 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
     } catch (_) {}
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Notes saved')),
+      const SnackBar(content: Text('Document updated')),
     );
+    Navigator.pop(context);
   }
 
   Future<void> _delete() async {
@@ -383,13 +469,13 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
       children: [
         sheetHandle(),
         const SizedBox(height: 6),
-        Text(
-          doc.title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        const Text(
+          'Document details',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 4),
         Text(
-          '${doc.category} · ${doc.fileName}',
+          doc.fileName,
           style: const TextStyle(color: AppColors.inkMuted),
         ),
         if (expiry != null) ...[
@@ -402,6 +488,32 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
             ),
           ),
         ],
+        const SizedBox(height: 12),
+        TextField(
+          controller: _title,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: 'Title',
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Folder',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final folder in widget.folders)
+              SoftPill(
+                label: folder,
+                selected: _category == folder,
+                onTap: () => setState(() => _category = folder),
+              ),
+          ],
+        ),
         const SizedBox(height: 12),
         TextField(
           controller: _notes,
@@ -420,16 +532,23 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
           label: Text(_busy ? 'Preparing…' : 'Share / open'),
         ),
         const SizedBox(height: 8),
+        FilledButton(
+          onPressed: _saveDetails,
+          child: const Text('Save details'),
+        ),
+        const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: _setExpiry,
           icon: const Icon(Icons.event_rounded),
           label: Text(expiry == null ? 'Set expiry date' : 'Change expiry'),
         ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: _saveNotes,
-          child: const Text('Save notes'),
-        ),
+        if (expiry != null) ...[
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _clearExpiry,
+            child: const Text('Clear expiry'),
+          ),
+        ],
         const SizedBox(height: 8),
         TextButton(
           onPressed: _delete,
