@@ -146,7 +146,9 @@ Rules:
 
     try {
       final model = FirebaseAI.vertexAI(location: _location).generativeModel(
-        model: 'gemini-flash-latest',
+        // Vertex requires a concrete model id (aliases like gemini-flash-latest
+        // are Gemini Developer API only).
+        model: 'gemini-2.5-flash',
         generationConfig: GenerationConfig(
           temperature: 0.2,
           responseMimeType: 'application/json',
