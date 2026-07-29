@@ -101,7 +101,9 @@ class DocumentAiService {
       return Uri.parse('$site/api/parse-document');
     }
     throw StateError(
-      'Set NESTLY_SITE_URL or NESTLY_AI_URL so Nestly can reach the AI API.',
+      'Document scan is not configured yet. Deploy Nestly to Netlify, '
+      'enable AI Gateway, then run with '
+      '--dart-define=NESTLY_SITE_URL=https://YOUR-SITE.netlify.app',
     );
   }
 
@@ -116,36 +118,52 @@ class DocumentAiService {
     }
     final token = await user.getIdToken();
     if (token == null || token.isEmpty) {
-      throw StateError('Could not get auth token.');
+      throw StateError('Could not get auth token. Try signing in again.');
     }
 
-    final response = await _client
-        .post(
-          _endpoint,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode({
-            'mimeType': mimeType,
-            'dataBase64': base64Encode(bytes),
-            if (hint != null && hint.trim().isNotEmpty) 'hint': hint.trim(),
-          }),
-        )
-        .timeout(const Duration(seconds: 60));
-
-    final decoded = jsonDecode(response.body);
-    if (response.statusCode >= 400) {
-      final message = decoded is Map && decoded['error'] is String
-          ? decoded['error'] as String
-          : 'Scan failed (${response.statusCode})';
-      throw StateError(message);
+    late final Uri endpoint;
+    try {
+      endpoint = _endpoint;
+    } catch (e) {
+      throw StateError('$e');
     }
 
-    final draftJson = decoded is Map ? decoded['draft'] : null;
-    if (draftJson is! Map) {
-      throw StateError('Unexpected AI response');
+    try {
+      final response = await _client
+          .post(
+            endpoint,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'mimeType': mimeType,
+              'dataBase64': base64Encode(bytes),
+              if (hint != null && hint.trim().isNotEmpty) 'hint': hint.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 60));
+
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode >= 400) {
+        final message = decoded is Map && decoded['error'] is String
+            ? decoded['error'] as String
+            : 'Scan failed (${response.statusCode})';
+        throw StateError(message);
+      }
+
+      final draftJson = decoded is Map ? decoded['draft'] : null;
+      if (draftJson is! Map) {
+        throw StateError('Unexpected AI response');
+      }
+      return DocumentDraft.fromJson(Map<String, dynamic>.from(draftJson));
+    } on StateError {
+      rethrow;
+    } catch (e) {
+      throw StateError(
+        'Could not reach the scan service. Check your connection '
+        'and NESTLY_SITE_URL, then try again.',
+      );
     }
-    return DocumentDraft.fromJson(Map<String, dynamic>.from(draftJson));
   }
 }

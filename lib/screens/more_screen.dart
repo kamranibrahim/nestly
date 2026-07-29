@@ -189,7 +189,7 @@ class MoreScreen extends ConsumerWidget {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Privacy',
+                        'Privacy & data',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -225,6 +225,16 @@ class MoreScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Nestly is free for families — no paywall.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.inkMuted,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
               ),
             ),
             const SizedBox(height: 6),
