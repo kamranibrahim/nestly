@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
+import 'member_roles.dart';
 
 class TaskRepository {
   TaskRepository(this._db);
@@ -334,6 +335,17 @@ class MemberRepository {
   Future<NestMember?> byId(String id) {
     return (_db.select(_db.nestMembers)..where((m) => m.id.equals(id)))
         .getSingleOrNull();
+  }
+
+  Future<void> updateRole(String memberId, String role) {
+    return (_db.update(_db.nestMembers)..where((m) => m.id.equals(memberId)))
+        .write(
+      NestMembersCompanion(
+        role: Value(role),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 }
 
@@ -852,7 +864,22 @@ class SchoolRepository {
     final title = loc.isEmpty
         ? 'Pickup: ${item.title}'
         : 'Pickup: ${item.title} @ $loc';
-    await TaskRepository(_db).addTask(title: title, dueLabel: 'Today');
+    final members = await _db.select(_db.nestMembers).get();
+    String assigneeId = '';
+    for (final m in members) {
+      if (MemberRoles.isAdultLike(m.role)) {
+        assigneeId = m.id;
+        break;
+      }
+    }
+    if (assigneeId.isEmpty && members.isNotEmpty) {
+      assigneeId = members.first.id;
+    }
+    await TaskRepository(_db).addTask(
+      title: title,
+      dueLabel: 'Today',
+      assigneeId: assigneeId,
+    );
     await TimelineRepository(_db).add(
       message: 'Added pickup task for ${item.title}',
       memberName: 'You',

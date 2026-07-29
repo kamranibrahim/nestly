@@ -240,25 +240,66 @@ class SyncService {
         .doc(nestId)
         .collection('members')
         .get();
-    await _db.batch((b) {
-      b.deleteAll(_db.nestMembers);
-      for (final doc in snap.docs) {
-        final data = doc.data();
-        b.insert(
-          _db.nestMembers,
-          NestMembersCompanion.insert(
-            id: doc.id,
-            nestId: nestId,
-            name: data['name'] as String? ?? 'Member',
-            role: Value(data['role'] as String? ?? 'Member'),
-            initials: data['initials'] as String? ?? '?',
-            colorValue: data['colorValue'] as int? ?? 0xFF4A78DD,
-            dirty: const Value(false),
-            updatedAt: Value(DateTime.now()),
-          ),
-        );
+    final remoteIds = <String>{};
+    for (final doc in snap.docs) {
+      remoteIds.add(doc.id);
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(_db.nestMembers)
+            ..where((t) => t.id.equals(doc.id)))
+          .getSingleOrNull();
+      if (local != null &&
+          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+        continue;
       }
-    });
+      await _db.into(_db.nestMembers).insertOnConflictUpdate(
+            NestMembersCompanion.insert(
+              id: doc.id,
+              nestId: nestId,
+              name: data['name'] as String? ?? 'Member',
+              role: Value(data['role'] as String? ?? 'Member'),
+              initials: data['initials'] as String? ?? '?',
+              colorValue: data['colorValue'] as int? ?? 0xFF4A78DD,
+              dirty: const Value(false),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+
+    final locals = await _db.select(_db.nestMembers).get();
+    for (final local in locals) {
+      if (!remoteIds.contains(local.id) && !local.dirty) {
+        await (_db.delete(_db.nestMembers)..where((t) => t.id.equals(local.id)))
+            .go();
+      }
+    }
+  }
+
+  Future<void> _pushMembers(String nestId) async {
+    final dirty = await (_db.select(_db.nestMembers)
+          ..where((t) => t.dirty.equals(true)))
+        .get();
+    for (final member in dirty) {
+      await _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('members')
+          .doc(member.id)
+          .set(
+        {
+          'name': member.name,
+          'role': member.role,
+          'initials': member.initials,
+          'colorValue': member.colorValue,
+          'updatedAt': Timestamp.fromDate(member.updatedAt),
+        },
+        SetOptions(merge: true),
+      );
+      await (_db.update(_db.nestMembers)
+            ..where((t) => t.id.equals(member.id)))
+          .write(const NestMembersCompanion(dirty: Value(false)));
+    }
   }
 
   Future<void> syncAll() async {
@@ -288,6 +329,7 @@ class SyncService {
       await _pullCare(nestId);
       await _pushSchool(nestId);
       await _pullSchool(nestId);
+      await _pushMembers(nestId);
       await pullMembers(nestId);
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
     } catch (e, st) {

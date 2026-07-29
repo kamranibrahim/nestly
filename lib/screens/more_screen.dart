@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/db/app_database.dart';
+import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -11,6 +13,82 @@ import 'privacy_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
+
+  Future<void> _editRole(
+    BuildContext context,
+    WidgetRef ref,
+    NestMember member,
+  ) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        final current = MemberRoles.normalize(member.role);
+        final bottom = MediaQuery.viewPaddingOf(context).bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Role for ${member.name}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Used for assignees, school activities, and family context.',
+                style: TextStyle(color: AppColors.inkSecondary),
+              ),
+              const SizedBox(height: 12),
+              for (final role in MemberRoles.all)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    role,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  trailing: role == current
+                      ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                      : null,
+                  onTap: () => Navigator.pop(context, role),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected == null || selected == MemberRoles.normalize(member.role)) {
+      return;
+    }
+    await ref.read(memberRepositoryProvider).updateRole(member.id, selected);
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${member.name} is now $selected')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,13 +125,6 @@ class MoreScreen extends ConsumerWidget {
                       onTap: () async {
                         try {
                           await ref.read(syncServiceProvider).syncAll();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Synced with nest'),
-                              ),
-                            );
-                          }
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -114,6 +185,48 @@ class MoreScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            if (members.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const SectionLabel('Family roles'),
+              Appear(
+                delay: const Duration(milliseconds: 55),
+                child: NestCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < members.length; i++) ...[
+                        ListTile(
+                          onTap: () => _editRole(context, ref, members[i]),
+                          leading: MemberAvatar(
+                            initials: members[i].initials,
+                            color: Color(members[i].colorValue),
+                            size: 36,
+                          ),
+                          title: Text(
+                            members[i].name,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(
+                            MemberRoles.normalize(members[i].role),
+                            style: const TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.edit_outlined,
+                            color: AppColors.inkMuted,
+                            size: 20,
+                          ),
+                        ),
+                        if (i != members.length - 1)
+                          const Divider(height: 1, indent: 68),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
             if (nest != null) ...[
               const SizedBox(height: 6),
               Appear(

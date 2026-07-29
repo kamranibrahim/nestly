@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -163,8 +164,17 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
   }
 
   Future<void> _showAdd(BuildContext context) async {
+    final members = List<NestMember>.from(
+      ref.read(membersProvider).valueOrNull ?? const [],
+    )..sort((a, b) => MemberRoles.kidsFirst(a.role, b.role));
     final result = await showModalBottomSheet<
-        ({String title, String kind, int cadence, String location})>(
+        ({
+          String title,
+          String kind,
+          int cadence,
+          String location,
+          String memberId,
+        })>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -174,6 +184,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
       builder: (context) {
         var kind = 'School';
         var cadence = 7;
+        var memberId = members.isEmpty ? '' : members.first.id;
         return OwnedControllers(
           count: 2,
           builder: (context, c) {
@@ -230,6 +241,27 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                           ),
                       ],
                     ),
+                    if (members.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Who is this for?',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          for (final m in members)
+                            SoftPill(
+                              label:
+                                  '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
+                              selected: memberId == m.id,
+                              onTap: () => setModal(() => memberId = m.id),
+                            ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Text(
                       'Every $cadence day${cadence == 1 ? '' : 's'}',
@@ -258,6 +290,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                             kind: kind,
                             cadence: cadence,
                             location: c[1].text.trim(),
+                            memberId: memberId,
                           ),
                         );
                       },
@@ -278,6 +311,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
             kind: result.kind,
             cadenceDays: result.cadence,
             location: result.location,
+            memberId: result.memberId,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();

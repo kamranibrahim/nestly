@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
+import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
@@ -179,7 +180,9 @@ class TasksScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final members = ref.read(membersProvider).valueOrNull ?? const [];
+    final members = List<NestMember>.from(
+      ref.read(membersProvider).valueOrNull ?? const [],
+    )..sort((a, b) => MemberRoles.adultLikeFirst(a.role, b.role));
     final initialAssignee = members.isNotEmpty ? members.first.id : '';
 
     final result =
@@ -286,10 +289,12 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
+                runSpacing: 6,
                 children: [
                   for (final member in widget.members)
                     SoftPill(
-                      label: member.name,
+                      label:
+                          '${member.name.split(' ').first} · ${MemberRoles.normalize(member.role)}',
                       selected: _assigneeId == member.id,
                       onTap: () => setState(() => _assigneeId = member.id),
                     ),
