@@ -31,6 +31,8 @@ flutter run
 
 ## Year 1 status
 
+Full horizon: see [`FIVE_YEAR_PLAN.md`](FIVE_YEAR_PLAN.md).
+
 ### Q1
 - [x] Firebase project + Android/iOS apps
 - [x] Email auth screens + nest create/join (invite code)
