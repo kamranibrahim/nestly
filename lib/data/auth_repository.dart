@@ -214,6 +214,10 @@ class SyncService {
     await (_db.update(_db.bills)).write(BillsCompanion(nestId: Value(nestId)));
     await (_db.update(_db.emergencyEntries))
         .write(EmergencyEntriesCompanion(nestId: Value(nestId)));
+    await (_db.update(_db.vaultDocuments))
+        .write(VaultDocumentsCompanion(nestId: Value(nestId)));
+    await (_db.update(_db.timelineEvents))
+        .write(TimelineEventsCompanion(nestId: Value(nestId)));
   }
 
   Future<void> pullMembers(String nestId) async {
@@ -260,6 +264,10 @@ class SyncService {
       await _pullBills(nestId);
       await _pushEmergency(nestId);
       await _pullEmergency(nestId);
+      await _pushVault(nestId);
+      await _pullVault(nestId);
+      await _pushTimeline(nestId);
+      await _pullTimeline(nestId);
       await pullMembers(nestId);
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
     } catch (e, st) {
@@ -699,6 +707,129 @@ class SyncService {
               sortOrder: Value(data['sortOrder'] as int? ?? 0),
               dirty: const Value(false),
               updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushVault(String nestId) async {
+    final dirty = await (_db.select(_db.vaultDocuments)
+          ..where((t) => t.dirty.equals(true)))
+        .get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('vault')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'title': item.title,
+          'category': item.category,
+          'fileName': item.fileName,
+          'storagePath': item.storagePath,
+          'mimeType': item.mimeType,
+          'sizeBytes': item.sizeBytes,
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
+          'createdAt': Timestamp.fromDate(item.createdAt),
+        });
+      }
+      await (_db.update(_db.vaultDocuments)..where((t) => t.id.equals(item.id)))
+          .write(const VaultDocumentsCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullVault(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('vault')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(_db.vaultDocuments)
+            ..where((t) => t.id.equals(doc.id)))
+          .getSingleOrNull();
+      if (local != null &&
+          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+        continue;
+      }
+      await _db.into(_db.vaultDocuments).insertOnConflictUpdate(
+            VaultDocumentsCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              title: data['title'] as String? ?? '',
+              category: Value(data['category'] as String? ?? 'Family'),
+              fileName: data['fileName'] as String? ?? 'file',
+              storagePath: Value(data['storagePath'] as String?),
+              mimeType: Value(data['mimeType'] as String?),
+              sizeBytes: Value(data['sizeBytes'] as int? ?? 0),
+              dirty: const Value(false),
+              createdAt: Value(
+                (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushTimeline(String nestId) async {
+    final dirty = await (_db.select(_db.timelineEvents)
+          ..where((t) => t.dirty.equals(true)))
+        .get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('timeline')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'message': item.message,
+          'memberId': item.memberId,
+          'memberName': item.memberName,
+          'createdAt': Timestamp.fromDate(item.createdAt),
+        });
+      }
+      await (_db.update(_db.timelineEvents)..where((t) => t.id.equals(item.id)))
+          .write(const TimelineEventsCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullTimeline(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('timeline')
+        .orderBy('createdAt', descending: true)
+        .limit(100)
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final created =
+          (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(_db.timelineEvents)
+            ..where((t) => t.id.equals(doc.id)))
+          .getSingleOrNull();
+      if (local != null && local.dirty) continue;
+      await _db.into(_db.timelineEvents).insertOnConflictUpdate(
+            TimelineEventsCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              message: data['message'] as String? ??
+                  data['text'] as String? ??
+                  '',
+              memberId: Value(data['memberId'] as String? ?? ''),
+              memberName: Value(data['memberName'] as String? ?? 'Family'),
+              dirty: const Value(false),
+              createdAt: Value(created),
             ),
           );
     }

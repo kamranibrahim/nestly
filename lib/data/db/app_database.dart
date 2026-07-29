@@ -142,6 +142,39 @@ class EmergencyEntries extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class VaultDocuments extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get title => text()();
+  TextColumn get category => text().withDefault(const Constant('Family'))();
+  TextColumn get fileName => text()();
+  TextColumn get storagePath => text().nullable()();
+  TextColumn get localPath => text().nullable()();
+  TextColumn get mimeType => text().nullable()();
+  IntColumn get sizeBytes => integer().withDefault(const Constant(0))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class TimelineEvents extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get message => text()();
+  TextColumn get memberId => text().withDefault(const Constant(''))();
+  TextColumn get memberName => text().withDefault(const Constant('Family'))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     NestMembers,
@@ -153,13 +186,15 @@ class EmergencyEntries extends Table {
     Expenses,
     Bills,
     EmergencyEntries,
+    VaultDocuments,
+    TimelineEvents,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -186,6 +221,10 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(expenses);
             await m.createTable(bills);
             await m.createTable(emergencyEntries);
+          }
+          if (from < 4) {
+            await m.createTable(vaultDocuments);
+            await m.createTable(timelineEvents);
           }
         },
       );
@@ -219,12 +258,16 @@ class AppDatabase extends _$AppDatabase {
     final eventCount = await (select(calendarEvents)..limit(1)).get();
     final expenseCount = await (select(expenses)..limit(1)).get();
     final emergencyCount = await (select(emergencyEntries)..limit(1)).get();
+    final vaultCount = await (select(vaultDocuments)..limit(1)).get();
+    final timelineCount = await (select(timelineEvents)..limit(1)).get();
 
     if (taskCount.isNotEmpty || listCount.isNotEmpty) {
       if (memberCount.isEmpty) await _seedMembers();
       if (eventCount.isEmpty) await _seedEvents();
       if (expenseCount.isEmpty) await _seedMoney();
       if (emergencyCount.isEmpty) await _seedEmergency();
+      if (vaultCount.isEmpty) await _seedVaultMeta();
+      if (timelineCount.isEmpty) await _seedTimeline();
       return;
     }
 
@@ -233,6 +276,8 @@ class AppDatabase extends _$AppDatabase {
     await _seedEvents();
     await _seedMoney();
     await _seedEmergency();
+    await _seedVaultMeta();
+    await _seedTimeline();
 
     await batch((b) {
       b.insertAll(tasks, [
@@ -609,6 +654,73 @@ class AppDatabase extends _$AppDatabase {
           sortOrder: const Value(5),
           dirty: const Value(false),
           updatedAt: Value(now),
+        ),
+      ]);
+    });
+  }
+
+  Future<void> _seedVaultMeta() async {
+    final now = DateTime.now();
+    await batch((b) {
+      b.insertAll(vaultDocuments, [
+        VaultDocumentsCompanion.insert(
+          id: 'vault-1',
+          title: 'Passports',
+          category: const Value('IDs'),
+          fileName: 'passports.pdf',
+          dirty: const Value(false),
+          createdAt: Value(now.subtract(const Duration(days: 14))),
+          updatedAt: Value(now.subtract(const Duration(days: 14))),
+        ),
+        VaultDocumentsCompanion.insert(
+          id: 'vault-2',
+          title: 'Car insurance',
+          category: const Value('Car'),
+          fileName: 'car-insurance.pdf',
+          dirty: const Value(false),
+          createdAt: Value(now.subtract(const Duration(days: 1))),
+          updatedAt: Value(now.subtract(const Duration(days: 1))),
+        ),
+        VaultDocumentsCompanion.insert(
+          id: 'vault-3',
+          title: 'School records',
+          category: const Value('Family'),
+          fileName: 'school-records.pdf',
+          dirty: const Value(false),
+          createdAt: Value(now.subtract(const Duration(days: 7))),
+          updatedAt: Value(now.subtract(const Duration(days: 7))),
+        ),
+      ]);
+    });
+  }
+
+  Future<void> _seedTimeline() async {
+    final now = DateTime.now();
+    await batch((b) {
+      b.insertAll(timelineEvents, [
+        TimelineEventsCompanion.insert(
+          id: 'tl-1',
+          message: 'Kamran completed grocery shopping',
+          memberId: const Value('dad'),
+          memberName: const Value('Kamran'),
+          dirty: const Value(false),
+          createdAt: Value(now.subtract(const Duration(minutes: 20))),
+        ),
+        TimelineEventsCompanion.insert(
+          id: 'tl-2',
+          message: 'Sara uploaded car insurance',
+          memberId: const Value('mom'),
+          memberName: const Value('Sara'),
+          dirty: const Value(false),
+          createdAt: Value(now.subtract(const Duration(hours: 1))),
+        ),
+        TimelineEventsCompanion.insert(
+          id: 'tl-3',
+          message: 'Noor watered the plants',
+          memberId: const Value('noor'),
+          memberName: const Value('Noor'),
+          dirty: const Value(false),
+          createdAt: Value(now.subtract(const Duration(hours: 2))),
         ),
       ]);
     });

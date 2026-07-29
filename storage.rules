@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function nestMember(nestId) {
+      return signedIn()
+        && firestore.exists(
+          /databases/(default)/documents/nests/$(nestId)/members/$(request.auth.uid)
+        );
+    }
+
+    match /nests/{nestId}/vault/{allPaths=**} {
+      allow read: if nestMember(nestId);
+      allow create, update: if nestMember(nestId)
+        && request.resource.size < 25 * 1024 * 1024;
+      allow delete: if nestMember(nestId);
+    }
+  }
+}

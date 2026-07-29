@@ -7,6 +7,7 @@ The operating system for modern families.
 - Flutter + Material 3
 - Drift (SQLite) offline-first
 - Firebase Auth + Cloud Firestore sync
+- Firebase Storage (family vault files)
 - Riverpod
 
 ## Firebase
@@ -18,6 +19,7 @@ Before first sign-up, enable **Email/Password** in:
 https://console.firebase.google.com/project/nestly-family-os/authentication/providers
 
 Firestore rules are in `firestore.rules` (already deployable via `firebase deploy --only firestore:rules`).
+Storage rules are in `storage.rules` (`firebase deploy --only storage`).
 
 ## Run
 
@@ -42,3 +44,10 @@ flutter run
 - [x] Emergency center (offline-first + sync)
 - [x] FCM token registration + local bill reminders
 - [x] Faster nest onboarding
+
+### Q3
+- [x] Family vault (local + Firebase Storage upload)
+- [x] Timeline / family wall (offline + sync)
+- [x] In-app privacy summary
+- [x] Closed-testing checklist (`STORE_CHECKLIST.md`)
+- [ ] Play / App Store closed testing submission (manual)

@@ -5,6 +5,7 @@ import '../data/auth_repository.dart';
 import '../data/db/app_database.dart';
 import '../data/notification_service.dart';
 import '../data/repositories.dart';
+import '../data/vault_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
@@ -56,6 +57,18 @@ final emergencyRepositoryProvider = Provider<EmergencyRepository>((ref) {
   return EmergencyRepository(ref.watch(databaseProvider));
 });
 
+final timelineRepositoryProvider = Provider<TimelineRepository>((ref) {
+  return TimelineRepository(ref.watch(databaseProvider));
+});
+
+final vaultRepositoryProvider = Provider<VaultRepository>((ref) {
+  return VaultRepository(ref.watch(databaseProvider));
+});
+
+final vaultServiceProvider = Provider<VaultService>((ref) {
+  return VaultService(ref.watch(databaseProvider));
+});
+
 final tasksProvider = StreamProvider<List<Task>>((ref) {
   return ref.watch(taskRepositoryProvider).watchAll();
 });
@@ -94,4 +107,17 @@ final billsProvider = StreamProvider<List<Bill>>((ref) {
 
 final emergencyProvider = StreamProvider<List<EmergencyEntry>>((ref) {
   return ref.watch(emergencyRepositoryProvider).watchAll();
+});
+
+final timelineProvider = StreamProvider<List<TimelineEvent>>((ref) {
+  return ref.watch(timelineRepositoryProvider).watchRecent();
+});
+
+final vaultCountProvider = StreamProvider<int>((ref) {
+  return ref.watch(vaultRepositoryProvider).watchCount();
+});
+
+final vaultDocumentsProvider =
+    StreamProvider.family<List<VaultDocument>, String>((ref, category) {
+  return ref.watch(vaultRepositoryProvider).watchAll(category: category);
 });

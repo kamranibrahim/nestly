@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../data/db/app_database.dart';
 import '../data/mock_data.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
@@ -18,11 +19,14 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final now = DateTime(2026, 7, 28);
+    final now = DateTime.now();
     final dateLabel = DateFormat('EEE d MMM').format(now);
     final next = MockData.todayEvents.first;
     final openTasks = ref.watch(openTaskCountProvider).valueOrNull ?? 0;
     final openShopping = ref.watch(openShoppingCountProvider).valueOrNull ?? 0;
+    final vaultCount = ref.watch(vaultCountProvider).valueOrNull ?? 0;
+    final timeline = ref.watch(timelineProvider).valueOrNull ?? const [];
+    final recent = timeline.take(5).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -147,7 +151,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         FeatureTile(
                           title: 'Vault',
-                          subtitle: '${MockData.vault.length} docs',
+                          subtitle: '$vaultCount docs',
                           icon: Icons.folder_rounded,
                           color: AppColors.tilePurple,
                           onTap: () => Navigator.of(context).push(
@@ -194,15 +198,26 @@ class HomeScreen extends ConsumerWidget {
                         horizontal: 14,
                         vertical: 6,
                       ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < 3; i++) ...[
-                            _ActivityRow(item: MockData.timeline[i]),
-                            if (i != 2)
-                              const Divider(height: 1, color: AppColors.divider),
-                          ],
-                        ],
-                      ),
+                      child: recent.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Text(
+                                'Activity from your nest will show up here.',
+                                style: TextStyle(color: AppColors.inkMuted),
+                              ),
+                            )
+                          : Column(
+                              children: [
+                                for (var i = 0; i < recent.length; i++) ...[
+                                  _ActivityRow(event: recent[i]),
+                                  if (i != recent.length - 1)
+                                    const Divider(
+                                      height: 1,
+                                      color: AppColors.divider,
+                                    ),
+                                ],
+                              ],
+                            ),
                     ),
                   ],
                 ),
@@ -293,20 +308,28 @@ class _FamilyHeader extends ConsumerWidget {
 }
 
 class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({required this.item});
+  const _ActivityRow({required this.event});
 
-  final TimelineItem item;
+  final TimelineEvent event;
 
   @override
   Widget build(BuildContext context) {
-    final member = MockData.memberById(item.memberId);
+    final initials = event.memberName.trim().isEmpty
+        ? 'F'
+        : event.memberName
+            .trim()
+            .split(RegExp(r'\s+'))
+            .map((p) => p[0])
+            .take(2)
+            .join()
+            .toUpperCase();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           MemberAvatar(
-            initials: member.initials,
-            color: member.color,
+            initials: initials,
+            color: AppColors.primary,
             size: 34,
           ),
           const SizedBox(width: 10),
@@ -315,7 +338,7 @@ class _ActivityRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.text,
+                  event.message,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppColors.ink,
@@ -323,7 +346,7 @@ class _ActivityRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  item.time,
+                  _relative(event.createdAt),
                   style: const TextStyle(
                     color: AppColors.inkMuted,
                     fontSize: 12,
@@ -336,5 +359,14 @@ class _ActivityRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _relative(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return DateFormat.MMMd().format(dt);
   }
 }

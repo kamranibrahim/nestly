@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../data/mock_data.dart';
 import '../providers/providers.dart';
@@ -8,6 +9,7 @@ import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import 'emergency_screen.dart';
 import 'expenses_screen.dart';
+import 'privacy_screen.dart';
 import 'shopping_screen.dart';
 import 'vault_screen.dart';
 
@@ -18,6 +20,8 @@ class MoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final nest = ref.watch(nestInfoProvider).valueOrNull;
     final members = ref.watch(membersProvider).valueOrNull ?? [];
+    final timeline = ref.watch(timelineProvider).valueOrNull ?? const [];
+    final wall = timeline.take(12).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -195,57 +199,80 @@ class MoreScreen extends ConsumerWidget {
           const SectionLabel('Family wall'),
           NestCard(
             padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                for (var i = 0; i < MockData.timeline.length; i++) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
+            child: wall.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'When someone completes a task or uploads a document, it shows up here.',
+                      style: TextStyle(color: AppColors.inkMuted),
                     ),
-                    child: Row(
-                      children: [
-                        MemberAvatar(
-                          initials: MockData.memberById(
-                            MockData.timeline[i].memberId,
-                          ).initials,
-                          color: MockData.memberById(
-                            MockData.timeline[i].memberId,
-                          ).color,
-                          size: 34,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  )
+                : Column(
+                    children: [
+                      for (var i = 0; i < wall.length; i++) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          child: Row(
                             children: [
-                              Text(
-                                MockData.timeline[i].text,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.ink,
-                                ),
+                              MemberAvatar(
+                                initials: _initials(wall[i].memberName),
+                                color: AppColors.primary,
+                                size: 34,
                               ),
-                              Text(
-                                MockData.timeline[i].time,
-                                style: const TextStyle(
-                                  color: AppColors.inkMuted,
-                                  fontSize: 12,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      wall[i].message,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.ink,
+                                      ),
+                                    ),
+                                    Text(
+                                      _relative(wall[i].createdAt),
+                                      style: const TextStyle(
+                                        color: AppColors.inkMuted,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        if (i != wall.length - 1)
+                          const Divider(height: 1, indent: 58),
                       ],
-                    ),
+                    ],
                   ),
-                  if (i != MockData.timeline.length - 1)
-                    const Divider(height: 1, indent: 58),
-                ],
+          ),
+          const SizedBox(height: 20),
+          NestCard(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Privacy',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           TextButton.icon(
             onPressed: () => ref.read(authRepositoryProvider).signOut(),
             icon: const Icon(Icons.logout_rounded),
@@ -254,5 +281,25 @@ class MoreScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  static String _initials(String name) {
+    if (name.trim().isEmpty) return 'F';
+    return name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((p) => p[0])
+        .take(2)
+        .join()
+        .toUpperCase();
+  }
+
+  static String _relative(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return DateFormat.MMMd().format(dt);
   }
 }

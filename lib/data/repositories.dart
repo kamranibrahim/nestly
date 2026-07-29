@@ -27,14 +27,21 @@ class TaskRepository {
     return query.watchSingle().map((row) => row.read(countExp) ?? 0);
   }
 
-  Future<void> toggleDone(Task task) {
-    return (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
+  Future<void> toggleDone(Task task) async {
+    final markingDone = !task.done;
+    await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
       TasksCompanion(
-        done: Value(!task.done),
+        done: Value(markingDone),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
     );
+    if (markingDone) {
+      await TimelineRepository(_db).add(
+        message: 'Completed "${task.title}"',
+        memberName: 'You',
+      );
+    }
   }
 
   Future<void> addTask({
@@ -102,16 +109,23 @@ class ShoppingRepository {
     return query.watchSingle().map((row) => row.read(countExp) ?? 0);
   }
 
-  Future<void> toggleDone(ShoppingItem item) {
-    return (_db.update(_db.shoppingItems)
+  Future<void> toggleDone(ShoppingItem item) async {
+    final markingDone = !item.done;
+    await (_db.update(_db.shoppingItems)
           ..where((i) => i.id.equals(item.id)))
         .write(
       ShoppingItemsCompanion(
-        done: Value(!item.done),
+        done: Value(markingDone),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
     );
+    if (markingDone) {
+      await TimelineRepository(_db).add(
+        message: 'Checked off ${item.name}',
+        memberName: 'You',
+      );
+    }
   }
 
   Future<void> addItem({
@@ -376,5 +390,108 @@ class EmergencyRepository {
             updatedAt: Value(now),
           ),
         );
+  }
+}
+
+class TimelineRepository {
+  TimelineRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+
+  Stream<List<TimelineEvent>> watchRecent({int limit = 40}) {
+    return (_db.select(_db.timelineEvents)
+          ..where((t) => t.deleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+          ..limit(limit))
+        .watch();
+  }
+
+  Future<void> add({
+    required String message,
+    String memberId = '',
+    String memberName = 'Family',
+  }) async {
+    final nestId = await _db.getMeta('nestId');
+    await _db.into(_db.timelineEvents).insert(
+          TimelineEventsCompanion.insert(
+            id: _uuid.v4(),
+            nestId: Value(nestId),
+            message: message,
+            memberId: Value(memberId),
+            memberName: Value(memberName),
+            dirty: const Value(true),
+            createdAt: Value(DateTime.now()),
+          ),
+        );
+  }
+}
+
+class VaultRepository {
+  VaultRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+
+  Stream<List<VaultDocument>> watchAll({String? category}) {
+    final query = _db.select(_db.vaultDocuments)
+      ..where((d) => d.deleted.equals(false))
+      ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]);
+    if (category != null && category != 'All') {
+      query.where((d) => d.category.equals(category));
+    }
+    return query.watch();
+  }
+
+  Stream<int> watchCount() {
+    final count = _db.vaultDocuments.id.count();
+    final query = _db.selectOnly(_db.vaultDocuments)
+      ..addColumns([count])
+      ..where(_db.vaultDocuments.deleted.equals(false));
+    return query.watchSingle().map((row) => row.read(count) ?? 0);
+  }
+
+  Future<VaultDocument> addLocalMeta({
+    required String title,
+    required String category,
+    required String fileName,
+    String? localPath,
+    String? mimeType,
+    int sizeBytes = 0,
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final id = _uuid.v4();
+    final companion = VaultDocumentsCompanion.insert(
+      id: id,
+      nestId: Value(nestId),
+      title: title,
+      category: Value(category),
+      fileName: fileName,
+      localPath: Value(localPath),
+      mimeType: Value(mimeType),
+      sizeBytes: Value(sizeBytes),
+      dirty: const Value(true),
+      createdAt: Value(now),
+      updatedAt: Value(now),
+    );
+    await _db.into(_db.vaultDocuments).insert(companion);
+    return (await (_db.select(_db.vaultDocuments)
+          ..where((d) => d.id.equals(id)))
+        .getSingle());
+  }
+
+  Future<void> markUploaded({
+    required String id,
+    required String storagePath,
+  }) {
+    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
+        .write(
+      VaultDocumentsCompanion(
+        storagePath: Value(storagePath),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 }
