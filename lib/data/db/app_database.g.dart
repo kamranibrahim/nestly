@@ -8417,6 +8417,18 @@ class $GroceryHabitsTable extends GroceryHabits
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _cadenceDaysMeta = const VerificationMeta(
+    'cadenceDays',
+  );
+  @override
+  late final GeneratedColumn<int> cadenceDays = GeneratedColumn<int>(
+    'cadence_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(7),
+  );
   static const VerificationMeta _lastBoughtAtMeta = const VerificationMeta(
     'lastBoughtAt',
   );
@@ -8446,6 +8458,7 @@ class $GroceryHabitsTable extends GroceryHabits
     name,
     category,
     buyCount,
+    cadenceDays,
     lastBoughtAt,
     updatedAt,
   ];
@@ -8484,6 +8497,15 @@ class $GroceryHabitsTable extends GroceryHabits
       context.handle(
         _buyCountMeta,
         buyCount.isAcceptableOrUnknown(data['buy_count']!, _buyCountMeta),
+      );
+    }
+    if (data.containsKey('cadence_days')) {
+      context.handle(
+        _cadenceDaysMeta,
+        cadenceDays.isAcceptableOrUnknown(
+          data['cadence_days']!,
+          _cadenceDaysMeta,
+        ),
       );
     }
     if (data.containsKey('last_bought_at')) {
@@ -8528,6 +8550,10 @@ class $GroceryHabitsTable extends GroceryHabits
         DriftSqlType.int,
         data['${effectivePrefix}buy_count'],
       )!,
+      cadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cadence_days'],
+      )!,
       lastBoughtAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_bought_at'],
@@ -8551,6 +8577,9 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
   final String name;
   final String category;
   final int buyCount;
+
+  /// Learned restock interval in days (updated from purchase gaps).
+  final int cadenceDays;
   final DateTime lastBoughtAt;
   final DateTime updatedAt;
   const GroceryHabit({
@@ -8558,6 +8587,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
     required this.name,
     required this.category,
     required this.buyCount,
+    required this.cadenceDays,
     required this.lastBoughtAt,
     required this.updatedAt,
   });
@@ -8568,6 +8598,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
     map['name'] = Variable<String>(name);
     map['category'] = Variable<String>(category);
     map['buy_count'] = Variable<int>(buyCount);
+    map['cadence_days'] = Variable<int>(cadenceDays);
     map['last_bought_at'] = Variable<DateTime>(lastBoughtAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -8579,6 +8610,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
       name: Value(name),
       category: Value(category),
       buyCount: Value(buyCount),
+      cadenceDays: Value(cadenceDays),
       lastBoughtAt: Value(lastBoughtAt),
       updatedAt: Value(updatedAt),
     );
@@ -8594,6 +8626,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
       name: serializer.fromJson<String>(json['name']),
       category: serializer.fromJson<String>(json['category']),
       buyCount: serializer.fromJson<int>(json['buyCount']),
+      cadenceDays: serializer.fromJson<int>(json['cadenceDays']),
       lastBoughtAt: serializer.fromJson<DateTime>(json['lastBoughtAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -8606,6 +8639,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
       'name': serializer.toJson<String>(name),
       'category': serializer.toJson<String>(category),
       'buyCount': serializer.toJson<int>(buyCount),
+      'cadenceDays': serializer.toJson<int>(cadenceDays),
       'lastBoughtAt': serializer.toJson<DateTime>(lastBoughtAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -8616,6 +8650,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
     String? name,
     String? category,
     int? buyCount,
+    int? cadenceDays,
     DateTime? lastBoughtAt,
     DateTime? updatedAt,
   }) => GroceryHabit(
@@ -8623,6 +8658,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
     name: name ?? this.name,
     category: category ?? this.category,
     buyCount: buyCount ?? this.buyCount,
+    cadenceDays: cadenceDays ?? this.cadenceDays,
     lastBoughtAt: lastBoughtAt ?? this.lastBoughtAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -8632,6 +8668,9 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
       name: data.name.present ? data.name.value : this.name,
       category: data.category.present ? data.category.value : this.category,
       buyCount: data.buyCount.present ? data.buyCount.value : this.buyCount,
+      cadenceDays: data.cadenceDays.present
+          ? data.cadenceDays.value
+          : this.cadenceDays,
       lastBoughtAt: data.lastBoughtAt.present
           ? data.lastBoughtAt.value
           : this.lastBoughtAt,
@@ -8646,6 +8685,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('buyCount: $buyCount, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('lastBoughtAt: $lastBoughtAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -8653,8 +8693,15 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, category, buyCount, lastBoughtAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    category,
+    buyCount,
+    cadenceDays,
+    lastBoughtAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -8663,6 +8710,7 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
           other.name == this.name &&
           other.category == this.category &&
           other.buyCount == this.buyCount &&
+          other.cadenceDays == this.cadenceDays &&
           other.lastBoughtAt == this.lastBoughtAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -8672,6 +8720,7 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
   final Value<String> name;
   final Value<String> category;
   final Value<int> buyCount;
+  final Value<int> cadenceDays;
   final Value<DateTime> lastBoughtAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -8680,6 +8729,7 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
     this.name = const Value.absent(),
     this.category = const Value.absent(),
     this.buyCount = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
     this.lastBoughtAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -8689,6 +8739,7 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
     required String name,
     this.category = const Value.absent(),
     this.buyCount = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
     required DateTime lastBoughtAt,
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -8700,6 +8751,7 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
     Expression<String>? name,
     Expression<String>? category,
     Expression<int>? buyCount,
+    Expression<int>? cadenceDays,
     Expression<DateTime>? lastBoughtAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -8709,6 +8761,7 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
       if (name != null) 'name': name,
       if (category != null) 'category': category,
       if (buyCount != null) 'buy_count': buyCount,
+      if (cadenceDays != null) 'cadence_days': cadenceDays,
       if (lastBoughtAt != null) 'last_bought_at': lastBoughtAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -8720,6 +8773,7 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
     Value<String>? name,
     Value<String>? category,
     Value<int>? buyCount,
+    Value<int>? cadenceDays,
     Value<DateTime>? lastBoughtAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -8729,6 +8783,7 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
       name: name ?? this.name,
       category: category ?? this.category,
       buyCount: buyCount ?? this.buyCount,
+      cadenceDays: cadenceDays ?? this.cadenceDays,
       lastBoughtAt: lastBoughtAt ?? this.lastBoughtAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -8750,6 +8805,9 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
     if (buyCount.present) {
       map['buy_count'] = Variable<int>(buyCount.value);
     }
+    if (cadenceDays.present) {
+      map['cadence_days'] = Variable<int>(cadenceDays.value);
+    }
     if (lastBoughtAt.present) {
       map['last_bought_at'] = Variable<DateTime>(lastBoughtAt.value);
     }
@@ -8769,6 +8827,7 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('buyCount: $buyCount, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('lastBoughtAt: $lastBoughtAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -13186,6 +13245,7 @@ typedef $$GroceryHabitsTableCreateCompanionBuilder =
       required String name,
       Value<String> category,
       Value<int> buyCount,
+      Value<int> cadenceDays,
       required DateTime lastBoughtAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -13196,6 +13256,7 @@ typedef $$GroceryHabitsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> category,
       Value<int> buyCount,
+      Value<int> cadenceDays,
       Value<DateTime> lastBoughtAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -13227,6 +13288,11 @@ class $$GroceryHabitsTableFilterComposer
 
   ColumnFilters<int> get buyCount => $composableBuilder(
     column: $table.buyCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13270,6 +13336,11 @@ class $$GroceryHabitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get lastBoughtAt => $composableBuilder(
     column: $table.lastBoughtAt,
     builder: (column) => ColumnOrderings(column),
@@ -13301,6 +13372,11 @@ class $$GroceryHabitsTableAnnotationComposer
 
   GeneratedColumn<int> get buyCount =>
       $composableBuilder(column: $table.buyCount, builder: (column) => column);
+
+  GeneratedColumn<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get lastBoughtAt => $composableBuilder(
     column: $table.lastBoughtAt,
@@ -13346,6 +13422,7 @@ class $$GroceryHabitsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<int> buyCount = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
                 Value<DateTime> lastBoughtAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -13354,6 +13431,7 @@ class $$GroceryHabitsTableTableManager
                 name: name,
                 category: category,
                 buyCount: buyCount,
+                cadenceDays: cadenceDays,
                 lastBoughtAt: lastBoughtAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -13364,6 +13442,7 @@ class $$GroceryHabitsTableTableManager
                 required String name,
                 Value<String> category = const Value.absent(),
                 Value<int> buyCount = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
                 required DateTime lastBoughtAt,
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -13372,6 +13451,7 @@ class $$GroceryHabitsTableTableManager
                 name: name,
                 category: category,
                 buyCount: buyCount,
+                cadenceDays: cadenceDays,
                 lastBoughtAt: lastBoughtAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

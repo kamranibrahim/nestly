@@ -113,7 +113,7 @@ class ShoppingRepository {
     return query.watchSingle().map((row) => row.read(countExp) ?? 0);
   }
 
-  /// Habits ready to restock: bought 2+ times, stale enough, not already open.
+  /// Habits ready to restock: bought 2+ times, past learned cadence, not open.
   Stream<List<GroceryHabit>> watchSuggestions({
     String listId = defaultListId,
   }) {
@@ -133,22 +133,34 @@ class ShoppingRepository {
       final due = habits.where((h) {
         if (h.buyCount < 2) return false;
         if (openNames.contains(h.id)) return false;
-        final staleDays = _restockAfterDays(h.buyCount);
+        final staleDays = h.cadenceDays.clamp(2, 60);
         return now.difference(h.lastBoughtAt).inDays >= staleDays;
       }).toList()
         ..sort((a, b) {
-          final byCount = b.buyCount.compareTo(a.buyCount);
-          if (byCount != 0) return byCount;
-          return a.lastBoughtAt.compareTo(b.lastBoughtAt);
+          final aOverdue =
+              now.difference(a.lastBoughtAt).inDays - a.cadenceDays;
+          final bOverdue =
+              now.difference(b.lastBoughtAt).inDays - b.cadenceDays;
+          final byOverdue = bOverdue.compareTo(aOverdue);
+          if (byOverdue != 0) return byOverdue;
+          return b.buyCount.compareTo(a.buyCount);
         });
       return due.take(8).toList();
     });
   }
 
-  static int _restockAfterDays(int buyCount) {
-    if (buyCount >= 6) return 5;
-    if (buyCount >= 4) return 7;
-    return 10;
+  /// Blend a new purchase gap into the habit cadence (days).
+  static int blendCadence({
+    required int previousCadence,
+    required int gapDays,
+    required int buyCount,
+  }) {
+    final gap = gapDays.clamp(1, 90);
+    if (buyCount <= 2) return gap;
+    // EMA: newer gaps weigh more as the habit matures.
+    final weight = buyCount >= 6 ? 0.45 : 0.35;
+    final blended = (previousCadence * (1 - weight)) + (gap * weight);
+    return blended.round().clamp(2, 60);
   }
 
   Future<void> toggleDone(ShoppingItem item) async {
@@ -185,17 +197,26 @@ class ShoppingRepository {
               name: item.name.trim(),
               category: Value(item.category),
               buyCount: const Value(1),
+              cadenceDays: const Value(7),
               lastBoughtAt: now,
               updatedAt: Value(now),
             ),
           );
     } else {
+      final gapDays = now.difference(existing.lastBoughtAt).inDays;
+      final nextCount = existing.buyCount + 1;
+      final cadence = blendCadence(
+        previousCadence: existing.cadenceDays,
+        gapDays: gapDays <= 0 ? existing.cadenceDays : gapDays,
+        buyCount: nextCount,
+      );
       await (_db.update(_db.groceryHabits)..where((h) => h.id.equals(key)))
           .write(
         GroceryHabitsCompanion(
           name: Value(item.name.trim()),
           category: Value(item.category),
-          buyCount: Value(existing.buyCount + 1),
+          buyCount: Value(nextCount),
+          cadenceDays: Value(cadence),
           lastBoughtAt: Value(now),
           updatedAt: Value(now),
         ),

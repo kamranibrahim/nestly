@@ -240,6 +240,8 @@ class GroceryHabits extends Table {
   TextColumn get name => text()();
   TextColumn get category => text().withDefault(const Constant('General'))();
   IntColumn get buyCount => integer().withDefault(const Constant(0))();
+  /// Learned restock interval in days (updated from purchase gaps).
+  IntColumn get cadenceDays => integer().withDefault(const Constant(7))();
   DateTimeColumn get lastBoughtAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -270,7 +272,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -312,6 +314,13 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await _createTableIfMissing(m, groceryHabits);
+          }
+          if (from < 8) {
+            await _addColumnIfMissing(
+              m,
+              groceryHabits,
+              groceryHabits.cadenceDays,
+            );
           }
         },
       );

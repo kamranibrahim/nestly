@@ -75,6 +75,7 @@ void main() {
           ..where((h) => h.id.equals(key)))
         .write(
       GroceryHabitsCompanion(
+        cadenceDays: const Value(10),
         lastBoughtAt: Value(DateTime.now().subtract(const Duration(days: 14))),
       ),
     );
