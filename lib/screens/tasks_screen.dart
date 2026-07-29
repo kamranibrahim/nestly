@@ -25,127 +25,140 @@ class TasksScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Tasks'),
-        actions: [
-          IconButton(
-            onPressed: () => showAddTaskSheet(context, ref),
-            icon: const Icon(Icons.add_rounded),
-          ),
-        ],
-      ),
-      body: tasksAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            const Center(child: Text('Could not load tasks. Pull to retry.')),
-        data: (tasks) {
-          final open = tasks.where((t) => !t.done).toList();
-          final done = tasks.where((t) => t.done).toList();
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            children: [
-              NestCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    if (members.isEmpty)
-                      const Text(
-                        'Your nest',
-                        style: TextStyle(
-                          color: AppColors.inkMuted,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      )
-                    else
-                      ...members.map(
-                        (m) => Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: MemberAvatar(
-                            initials: m.initials,
-                            color: Color(m.colorValue),
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                    const Spacer(),
-                    Text(
-                      '${open.length} open',
-                      style: const TextStyle(
-                        color: AppColors.inkMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (open.isEmpty && done.isEmpty)
-                const NestCard(
-                  child: Text(
-                    'No tasks yet. Tap + to add one.',
-                    style: TextStyle(color: AppColors.inkMuted),
-                  ),
-                )
-              else ...[
-                if (open.isNotEmpty)
-                  NestCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < open.length; i++) ...[
-                          _TaskRow(
-                            task: open[i],
-                            members: members,
-                            onToggle: () async {
-                              await ref
-                                  .read(taskRepositoryProvider)
-                                  .toggleDone(open[i]);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
-                            },
-                          ),
-                          if (i != open.length - 1)
-                            const Divider(height: 1, indent: 52),
-                        ],
-                      ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 2, 10, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Tasks',
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.8,
+                              ),
                     ),
                   ),
-                if (done.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  const SectionLabel('Completed'),
-                  NestCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < done.length; i++) ...[
-                          _TaskRow(
-                            task: done[i],
-                            members: members,
-                            onToggle: () async {
-                              await ref
-                                  .read(taskRepositoryProvider)
-                                  .toggleDone(done[i]);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
-                            },
-                          ),
-                          if (i != done.length - 1)
-                            const Divider(height: 1, indent: 52),
-                        ],
-                      ],
-                    ),
+                  CircleIconButton(
+                    icon: Icons.add_rounded,
+                    size: 38,
+                    onTap: () => showAddTaskSheet(context, ref),
                   ),
                 ],
-              ],
-            ],
-          );
-        },
+              ),
+            ),
+            Expanded(
+              child: tasksAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (error, _) => const Center(
+                  child: Text('Could not load tasks. Pull to retry.'),
+                ),
+                data: (tasks) {
+                  final open = tasks.where((t) => !t.done).toList();
+                  final done = tasks.where((t) => t.done).toList();
+
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 72),
+                    children: [
+                      Row(
+                        children: [
+                          SoftPill(
+                            label: 'Open (${open.length})',
+                            selected: true,
+                          ),
+                          const SizedBox(width: 8),
+                          SoftPill(label: 'Done (${done.length})'),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      if (members.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              for (final m in members.take(5))
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: MemberAvatar(
+                                    initials: m.initials,
+                                    color: Color(m.colorValue),
+                                    size: 34,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      if (open.isEmpty && done.isEmpty)
+                        NestCard(
+                          color: AppColors.mint,
+                          bordered: false,
+                          child: const Text(
+                            'No tasks yet. Tap + to add one for your nest.',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        )
+                      else ...[
+                        for (var i = 0; i < open.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: _PastelTaskCard(
+                              task: open[i],
+                              members: members,
+                              color: AppColors.softCardColors[
+                                  i % AppColors.softCardColors.length],
+                              onToggle: () async {
+                                await ref
+                                    .read(taskRepositoryProvider)
+                                    .toggleDone(open[i]);
+                                try {
+                                  await ref
+                                      .read(syncServiceProvider)
+                                      .syncAll();
+                                } catch (_) {}
+                              },
+                            ),
+                          ),
+                        if (done.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          const SectionLabel('Completed'),
+                          for (final task in done)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: _PastelTaskCard(
+                                task: task,
+                                members: members,
+                                color: AppColors.surfaceMuted,
+                                bordered: true,
+                                onToggle: () async {
+                                  await ref
+                                      .read(taskRepositoryProvider)
+                                      .toggleDone(task);
+                                  try {
+                                    await ref
+                                        .read(syncServiceProvider)
+                                        .syncAll();
+                                  } catch (_) {}
+                                },
+                              ),
+                            ),
+                        ],
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -155,15 +168,15 @@ class TasksScreen extends ConsumerWidget {
     WidgetRef ref,
   ) async {
     final members = ref.read(membersProvider).valueOrNull ?? const [];
-    final initialAssignee =
-        members.isNotEmpty ? members.first.id : '';
+    final initialAssignee = members.isNotEmpty ? members.first.id : '';
 
-    final result = await showModalBottomSheet<({String title, String assigneeId})>(
+    final result =
+        await showModalBottomSheet<({String title, String assigneeId})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (context) => _AddTaskSheet(
         members: members,
@@ -226,7 +239,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + 20),
+      padding: EdgeInsets.fromLTRB(12, 8, 12, bottomInset + 12),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -242,12 +255,12 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
             const Text(
               'New task',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             TextField(
               controller: _controller,
               autofocus: true,
@@ -258,29 +271,20 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
               onSubmitted: (_) => _submit(),
             ),
             if (widget.members.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
                 children: [
                   for (final member in widget.members)
-                    ChoiceChip(
-                      label: Text(member.name),
+                    SoftPill(
+                      label: member.name,
                       selected: _assigneeId == member.id,
-                      selectedColor: AppColors.primary,
-                      labelStyle: TextStyle(
-                        color: _assigneeId == member.id
-                            ? Colors.white
-                            : AppColors.ink,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      onSelected: (_) {
-                        setState(() => _assigneeId = member.id);
-                      },
+                      onTap: () => setState(() => _assigneeId = member.id),
                     ),
                 ],
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
             FilledButton(
               onPressed: _submit,
               child: const Text('Add task'),
@@ -292,16 +296,20 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
   }
 }
 
-class _TaskRow extends StatelessWidget {
-  const _TaskRow({
+class _PastelTaskCard extends StatelessWidget {
+  const _PastelTaskCard({
     required this.task,
     required this.members,
+    required this.color,
     required this.onToggle,
+    this.bordered = false,
   });
 
   final Task task;
   final List<NestMember> members;
+  final Color color;
   final VoidCallback onToggle;
+  final bool bordered;
 
   @override
   Widget build(BuildContext context) {
@@ -313,54 +321,72 @@ class _TaskRow extends StatelessWidget {
       }
     }
     final name = member?.name ?? 'Unassigned';
-    final initials = member?.initials ?? '?';
-    final color = Color(member?.colorValue ?? 0xFF4A78DD);
 
-    return InkWell(
+    return NestCard(
       onTap: onToggle,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        child: Row(
-          children: [
-            Icon(
-              task.done
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              color: task.done ? AppColors.primary : AppColors.inkMuted,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      decoration:
-                          task.done ? TextDecoration.lineThrough : null,
-                      color: task.done ? AppColors.inkMuted : AppColors.ink,
-                    ),
+      color: color,
+      bordered: bordered,
+      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  task.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    letterSpacing: -0.3,
+                    decoration: task.done ? TextDecoration.lineThrough : null,
+                    color: task.done ? AppColors.inkMuted : AppColors.ink,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$name · ${task.dueLabel}',
-                    style: const TextStyle(
-                      color: AppColors.inkMuted,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            MemberAvatar(
-              initials: initials,
-              color: color,
-              size: 28,
-            ),
-          ],
-        ),
+              CircleIconButton(
+                icon: task.done
+                    ? Icons.check_rounded
+                    : Icons.north_east_rounded,
+                background: Colors.white,
+                foreground: AppColors.ink,
+                size: 32,
+                onTap: onToggle,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text(
+                '$name · ${task.dueLabel}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.inkSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              const Spacer(),
+              if (!task.done)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'Open',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

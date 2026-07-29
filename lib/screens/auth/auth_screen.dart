@@ -80,19 +80,39 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+          padding: const EdgeInsets.fromLTRB(16, 28, 16, 16),
           children: [
+            Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.mint,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Text(
+                  'N',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text(
               'nestly',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 36,
                 fontWeight: FontWeight.w800,
-                color: AppColors.primary,
-                letterSpacing: -0.5,
+                color: AppColors.ink,
+                letterSpacing: -0.8,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               _signUp ? 'Create your family account' : 'Welcome back',
               textAlign: TextAlign.center,
@@ -133,17 +153,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             ],
             if (_error != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 _error!,
                 style: const TextStyle(color: AppColors.danger, fontSize: 13),
               ),
             ],
             if (_info != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 _info!,
-                style: const TextStyle(color: AppColors.primary, fontSize: 13),
+                style: const TextStyle(color: AppColors.accentDeep, fontSize: 13),
               ),
             ],
             const SizedBox(height: 24),

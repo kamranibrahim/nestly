@@ -13,7 +13,7 @@ class PrivacyScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Privacy')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 24),
         children: const [
           NestCard(
             padding: EdgeInsets.all(16),

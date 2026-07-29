@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
+import '../widgets/common.dart';
 import 'calendar_screen.dart';
 import 'home_screen.dart';
 import 'more_screen.dart';
@@ -32,50 +33,57 @@ class _AppShellState extends ConsumerState<AppShell> {
     ];
 
     return Scaffold(
+      backgroundColor: AppColors.background,
+      extendBody: true,
       body: IndexedStack(
         index: _index,
         children: pages,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSheet(context),
-        child: const Icon(Icons.add_rounded, size: 30),
+      floatingActionButton: CircleIconButton(
+        icon: Icons.add_rounded,
+        size: 46,
+        onTap: () => _showAddSheet(context),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        color: AppColors.surface,
-        elevation: 8,
-        shadowColor: Colors.black26,
-        surfaceTintColor: Colors.transparent,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        padding: EdgeInsets.zero,
-        child: SizedBox(
-          height: 64,
+      floatingActionButtonLocation: const _FabAboveNav(),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+        child: Container(
+          height: 54,
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.navBar,
+            borderRadius: BorderRadius.circular(999),
+          ),
           child: Row(
             children: [
-              _Tab(
+              _NavItem(
                 icon: Icons.home_rounded,
                 label: 'Home',
                 selected: _index == 0,
                 onTap: () => _go(0),
               ),
-              _Tab(
+              _NavItem(
                 icon: Icons.calendar_month_rounded,
                 label: 'Calendar',
                 selected: _index == 1,
                 onTap: () => _go(1),
               ),
-              const SizedBox(width: 56),
-              _Tab(
+              _NavItem(
                 icon: Icons.checklist_rounded,
                 label: 'Tasks',
                 selected: _index == 2,
                 onTap: () => _go(2),
               ),
-              _Tab(
+              _NavItem(
+                icon: Icons.shopping_bag_rounded,
+                label: 'Shop',
+                selected: _index == 3,
+                onTap: () => _go(3),
+              ),
+              _NavItem(
                 icon: Icons.more_horiz_rounded,
                 label: 'More',
-                selected: _index == 4 || _index == 3,
+                selected: _index == 4,
                 onTap: () => _go(4),
               ),
             ],
@@ -90,38 +98,39 @@ class _AppShellState extends ConsumerState<AppShell> {
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 40,
+                  width: 36,
                   height: 4,
                   decoration: BoxDecoration(
                     color: AppColors.divider,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Add to Nestly',
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 _AddOption(
                   icon: Icons.event_rounded,
-                  color: AppColors.tileBlue,
+                  color: AppColors.accent,
                   label: 'Event',
                   onTap: () {
                     Navigator.pop(context);
@@ -132,7 +141,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ),
                 _AddOption(
                   icon: Icons.check_circle_outline_rounded,
-                  color: AppColors.tileGreen,
+                  color: AppColors.mint,
                   label: 'Task',
                   onTap: () {
                     Navigator.pop(context);
@@ -161,8 +170,19 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 
-class _Tab extends StatelessWidget {
-  const _Tab({
+/// Sits just above the floating pill nav with a tight 6px gap.
+class _FabAboveNav extends StandardFabLocation with FabEndOffsetX {
+  const _FabAboveNav();
+
+  @override
+  double getOffsetY(ScaffoldPrelayoutGeometry scaffoldGeometry, double adjustment) {
+    final double fabHeight = scaffoldGeometry.floatingActionButtonSize.height;
+    return scaffoldGeometry.contentBottom - fabHeight - 6 + adjustment;
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
     required this.icon,
     required this.label,
     required this.selected,
@@ -176,24 +196,47 @@ class _Tab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.inkMuted;
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: color,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: EdgeInsets.symmetric(
+            horizontal: selected ? 8 : 0,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.navPill : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected ? AppColors.ink : const Color(0xFF9A9A9E),
               ),
-            ),
-          ],
+              if (selected) ...[
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -215,20 +258,38 @@ class _AddOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: NestCard(
+        onTap: onTap,
+        color: color,
+        bordered: false,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.ink, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            const Icon(Icons.north_east_rounded, color: AppColors.ink),
+          ],
         ),
-        child: Icon(icon, color: color),
       ),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
     );
   }
 }

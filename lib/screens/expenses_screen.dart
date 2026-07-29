@@ -29,11 +29,11 @@ class ExpensesScreen extends ConsumerWidget {
         child: const Icon(Icons.add_rounded),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
         children: [
           NestCard(
             color: AppColors.primary,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -60,7 +60,7 @@ class ExpensesScreen extends ConsumerWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
@@ -73,7 +73,7 @@ class ExpensesScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 6),
           const SectionLabel('Recent'),
           expensesAsync.when(
             loading: () => const NestCard(
@@ -124,7 +124,7 @@ class ExpensesScreen extends ConsumerWidget {
               );
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 6),
           Row(
             children: [
               const Expanded(child: SectionLabel('Bills')),
@@ -221,7 +221,7 @@ class ExpensesScreen extends ConsumerWidget {
               context: context,
               children: [
                 sheetHandle(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 const Text(
                   'Add expense',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -231,14 +231,14 @@ class ExpensesScreen extends ConsumerWidget {
                   controller: c[0],
                   decoration: const InputDecoration(labelText: 'Title'),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 TextField(
                   controller: c[1],
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'Amount'),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 FilledButton(
                   onPressed: () {
                     final parsed = double.tryParse(c[1].text.trim());
@@ -284,7 +284,7 @@ class ExpensesScreen extends ConsumerWidget {
               context: context,
               children: [
                 sheetHandle(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 const Text(
                   'Add bill',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -294,14 +294,14 @@ class ExpensesScreen extends ConsumerWidget {
                   controller: c[0],
                   decoration: const InputDecoration(labelText: 'Title'),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 TextField(
                   controller: c[1],
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'Amount'),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 FilledButton(
                   onPressed: () {
                     final parsed = double.tryParse(c[1].text.trim());

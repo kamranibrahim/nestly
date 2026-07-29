@@ -50,145 +50,174 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Groceries'),
-      ),
-      body: itemsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            const Center(child: Text('Could not load list. Try again later.')),
-        data: (items) {
-          final categories = <String>[];
-          for (final item in items) {
-            if (!categories.contains(item.category)) {
-              categories.add(item.category);
-            }
-          }
-          final left = items.where((i) => !i.done).length;
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            children: [
-              NestCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 2, 10, 0),
+              child: Text(
+                'Groceries',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                    ),
+              ),
+            ),
+            Expanded(
+              child: itemsAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (error, _) => const Center(
+                  child: Text('Could not load list. Try again later.'),
                 ),
-                child: Row(
-                  children: [
-                    if (members.isEmpty)
-                      const Text(
-                        'Shared list',
-                        style: TextStyle(
-                          color: AppColors.inkMuted,
-                          fontWeight: FontWeight.w600,
+                data: (items) {
+                  final categories = <String>[];
+                  for (final item in items) {
+                    if (!categories.contains(item.category)) {
+                      categories.add(item.category);
+                    }
+                  }
+                  final left = items.where((i) => !i.done).length;
+
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 72),
+                    children: [
+                      NestCard(
+                        color: AppColors.mint,
+                        bordered: false,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
                         ),
-                      )
-                    else
-                      ...members.take(4).map(
-                            (m) => Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: MemberAvatar(
-                                initials: m.initials,
-                                color: Color(m.colorValue),
-                                size: 32,
+                        child: Row(
+                          children: [
+                            if (members.isEmpty)
+                              const Text(
+                                'Shared list',
+                                style: TextStyle(
+                                  color: AppColors.ink,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )
+                            else
+                              ...members.take(4).map(
+                                    (m) => Padding(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: MemberAvatar(
+                                        initials: m.initials,
+                                        color: Color(m.colorValue),
+                                        size: 32,
+                                      ),
+                                    ),
+                                  ),
+                            const Spacer(),
+                            SoftPill(label: '$left left', selected: true),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      NestCard(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 4,
+                        ),
+                        child: TextField(
+                          controller: _addController,
+                          focusNode: _addFocus,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _addItem(),
+                          decoration: InputDecoration(
+                            hintText: 'Add an item',
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            filled: false,
+                            prefixIcon: IconButton(
+                              onPressed: _addItem,
+                              icon: const Icon(
+                                Icons.add_circle_outline_rounded,
+                                color: AppColors.ink,
+                              ),
+                            ),
+                            hintStyle:
+                                const TextStyle(color: AppColors.inkMuted),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      if (items.isEmpty)
+                        NestCard(
+                          color: AppColors.accent,
+                          bordered: false,
+                          child: const Text(
+                            'List is empty. Add milk, eggs, or anything else.',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        )
+                      else
+                        for (final category in categories) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 4,
+                              bottom: 8,
+                              top: 4,
+                            ),
+                            child: Text(
+                              category,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.inkSecondary,
+                                fontSize: 13,
                               ),
                             ),
                           ),
-                    const Spacer(),
-                    Text(
-                      '$left left',
-                      style: const TextStyle(
-                        color: AppColors.inkMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+                          NestCard(
+                            padding: EdgeInsets.zero,
+                            child: Column(
+                              children: [
+                                ...() {
+                                  final categoryItems = items
+                                      .where((i) => i.category == category)
+                                      .toList();
+                                  return [
+                                    for (var i = 0;
+                                        i < categoryItems.length;
+                                        i++) ...[
+                                      _ShopRow(
+                                        item: categoryItems[i],
+                                        onToggle: () async {
+                                          await ref
+                                              .read(shoppingRepositoryProvider)
+                                              .toggleDone(categoryItems[i]);
+                                          try {
+                                            await ref
+                                                .read(syncServiceProvider)
+                                                .syncAll();
+                                          } catch (_) {}
+                                        },
+                                      ),
+                                      if (i != categoryItems.length - 1)
+                                        const Divider(height: 1, indent: 52),
+                                    ],
+                                  ];
+                                }(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                        ],
+                    ],
+                  );
+                },
               ),
-              const SizedBox(height: 12),
-              NestCard(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                child: TextField(
-                  controller: _addController,
-                  focusNode: _addFocus,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _addItem(),
-                  decoration: InputDecoration(
-                    hintText: 'Add an item',
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    filled: false,
-                    prefixIcon: IconButton(
-                      onPressed: _addItem,
-                      icon: const Icon(
-                        Icons.add_circle_outline_rounded,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    hintStyle: const TextStyle(color: AppColors.inkMuted),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (items.isEmpty)
-                const NestCard(
-                  child: Text(
-                    'List is empty. Add milk, eggs, or anything else.',
-                    style: TextStyle(color: AppColors.inkMuted),
-                  ),
-                )
-              else
-                for (final category in categories) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 8, top: 4),
-                    child: Text(
-                      category,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.inkSecondary,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  NestCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        ...() {
-                          final categoryItems = items
-                              .where((i) => i.category == category)
-                              .toList();
-                          return [
-                            for (var i = 0; i < categoryItems.length; i++) ...[
-                              _ShopRow(
-                                item: categoryItems[i],
-                                onToggle: () async {
-                                  await ref
-                                      .read(shoppingRepositoryProvider)
-                                      .toggleDone(categoryItems[i]);
-                                  try {
-                                    await ref
-                                        .read(syncServiceProvider)
-                                        .syncAll();
-                                  } catch (_) {}
-                                },
-                              ),
-                              if (i != categoryItems.length - 1)
-                                const Divider(height: 1, indent: 52),
-                            ],
-                          ];
-                        }(),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -205,14 +234,14 @@ class _ShopRow extends StatelessWidget {
     return InkWell(
       onTap: onToggle,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
             Icon(
               item.done
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
-              color: item.done ? AppColors.primary : AppColors.inkMuted,
+              color: item.done ? AppColors.ink : AppColors.inkMuted,
             ),
             const SizedBox(width: 12),
             Expanded(

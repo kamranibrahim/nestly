@@ -33,7 +33,7 @@ class MealsScreen extends ConsumerWidget {
             const Center(child: Text('Could not load meals.')),
         data: (meals) {
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
             children: [
               const NestCard(
                 child: Text(
@@ -41,13 +41,13 @@ class MealsScreen extends ConsumerWidget {
                   style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
               for (final day in MealRepository.weekdays) ...[
                 SectionLabel(
                   day.$2 + (day.$1 == today ? ' · Today' : ''),
                 ),
                 ..._dayCards(context, ref, day.$1, meals),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
               ],
             ],
           );
@@ -77,7 +77,7 @@ class MealsScreen extends ConsumerWidget {
     return [
       for (final meal in dayMeals)
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 6),
           child: NestCard(
             padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
             child: Row(
@@ -191,7 +191,7 @@ class MealsScreen extends ConsumerWidget {
                   context: context,
                   children: [
                     sheetHandle(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 6),
                     const Text(
                       'Plan a meal',
                       style:
@@ -239,7 +239,7 @@ class MealsScreen extends ConsumerWidget {
                         hintText: 'Ingredients (comma or new line)',
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 6),
                     FilledButton(
                       onPressed: () {
                         final name = c[0].text.trim();

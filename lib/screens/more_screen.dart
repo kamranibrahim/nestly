@@ -27,36 +27,51 @@ class MoreScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Explore'),
-        actions: [
-          IconButton(
-            tooltip: 'Sync',
-            onPressed: () async {
-              try {
-                await ref.read(syncServiceProvider).syncAll();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Synced with nest')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Sync failed: $e')),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.cloud_sync_outlined),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
         children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Explore',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.8,
+                        ),
+                  ),
+                ),
+                CircleIconButton(
+                  icon: Icons.cloud_sync_outlined,
+                  background: AppColors.surfaceMuted,
+                  foreground: AppColors.ink,
+                  size: 38,
+                  onTap: () async {
+                    try {
+                      await ref.read(syncServiceProvider).syncAll();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Synced with nest')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Sync failed: $e')),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
           NestCard(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 if (members.isEmpty)
@@ -100,7 +115,7 @@ class MoreScreen extends ConsumerWidget {
             ),
           ),
           if (nest != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             NestCard(
               onTap: () async {
                 await Clipboard.setData(ClipboardData(text: nest.inviteCode));
@@ -114,7 +129,7 @@ class MoreScreen extends ConsumerWidget {
               },
               child: Row(
                 children: [
-                  const Icon(Icons.vpn_key_rounded, color: AppColors.primary),
+                  Icon(Icons.vpn_key_rounded, color: AppColors.accentDeep),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -139,10 +154,10 @@ class MoreScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Copy',
                     style: TextStyle(
-                      color: AppColors.primary,
+                      color: AppColors.accentDeep,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -150,14 +165,15 @@ class MoreScreen extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.25,
+            mainAxisSpacing: 6,
+            crossAxisSpacing: 6,
+            padding: EdgeInsets.zero,
+            childAspectRatio: 1.55,
             children: [
               FeatureTile(
                 title: 'Lists',
@@ -209,13 +225,13 @@ class MoreScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           const SectionLabel('Family wall'),
           NestCard(
             padding: EdgeInsets.zero,
             child: wall.isEmpty
                 ? const Padding(
-                    padding: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(12),
                     child: Text(
                       'When someone completes a task or uploads a document, it shows up here.',
                       style: TextStyle(color: AppColors.inkMuted),
@@ -226,14 +242,15 @@ class MoreScreen extends ConsumerWidget {
                       for (var i = 0; i < wall.length; i++) ...[
                         Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
+                            horizontal: 12,
+                            vertical: 8,
                           ),
                           child: Row(
                             children: [
                               MemberAvatar(
                                 initials: _initials(wall[i].memberName),
-                                color: AppColors.primary,
+                                color: AppColors.softCardColors[
+                                    i % AppColors.softCardColors.length],
                                 size: 34,
                               ),
                               const SizedBox(width: 10),
@@ -267,14 +284,14 @@ class MoreScreen extends ConsumerWidget {
                     ],
                   ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 6),
           NestCard(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const PrivacyScreen()),
             ),
             child: const Row(
               children: [
-                Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
+                Icon(Icons.privacy_tip_outlined, color: AppColors.accentDeep),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -286,14 +303,14 @@ class MoreScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           NestCard(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const AboutScreen()),
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline_rounded, color: AppColors.primary),
+                Icon(Icons.info_outline_rounded, color: AppColors.accentDeep),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -305,13 +322,14 @@ class MoreScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           TextButton.icon(
             onPressed: () => ref.read(authRepositoryProvider).signOut(),
             icon: const Icon(Icons.logout_rounded),
             label: const Text('Sign out'),
           ),
         ],
+      ),
       ),
     );
   }

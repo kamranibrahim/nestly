@@ -25,7 +25,7 @@ class EmergencyScreen extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 16),
         children: [
           const NestCard(
             color: AppColors.dangerSoft,
@@ -45,7 +45,7 @@ class EmergencyScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 6),
           entries.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Text('$e'),
@@ -137,7 +137,7 @@ class EmergencyScreen extends ConsumerWidget {
               context: context,
               children: [
                 sheetHandle(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 const Text(
                   'Emergency info',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -147,12 +147,12 @@ class EmergencyScreen extends ConsumerWidget {
                   controller: c[0],
                   decoration: const InputDecoration(labelText: 'Label'),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 TextField(
                   controller: c[1],
                   decoration: const InputDecoration(labelText: 'Details'),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 FilledButton(
                   onPressed: () => Navigator.pop(
                     context,

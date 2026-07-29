@@ -114,7 +114,7 @@ class SyncStatusBanner extends ConsumerWidget {
     final nest = ref.watch(nestInfoProvider).valueOrNull;
     if (nest == null) return const SizedBox.shrink();
     return Material(
-      color: AppColors.primarySoft,
+      color: AppColors.mint,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -122,15 +122,15 @@ class SyncStatusBanner extends ConsumerWidget {
           child: Row(
             children: [
               const Icon(Icons.cloud_done_outlined,
-                  size: 16, color: AppColors.primary),
+                  size: 16, color: AppColors.ink),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   '${nest.name} · code ${nest.inviteCode}',
                   style: const TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryDark,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
                   ),
                 ),
               ),

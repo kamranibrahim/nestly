@@ -49,7 +49,7 @@ Widget sheetBody({
 }) {
   final bottom = MediaQuery.viewInsetsOf(context).bottom;
   return Padding(
-    padding: EdgeInsets.fromLTRB(20, 12, 20, bottom + 20),
+    padding: EdgeInsets.fromLTRB(12, 8, 12, bottom + 12),
     child: SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,

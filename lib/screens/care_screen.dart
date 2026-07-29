@@ -43,7 +43,7 @@ class CareScreen extends ConsumerWidget {
               .toList();
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
             children: [
               const NestCard(
                 child: Text(
@@ -51,7 +51,7 @@ class CareScreen extends ConsumerWidget {
                   style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
               if (items.isEmpty)
                 NestCard(
                   onTap: () => _showAdd(context, ref),
@@ -94,7 +94,7 @@ class CareScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 6),
                 ],
                 if (upcoming.isNotEmpty) ...[
                   const SectionLabel('Upcoming'),
@@ -159,7 +159,7 @@ class CareScreen extends ConsumerWidget {
                   context: context,
                   children: [
                     sheetHandle(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 6),
                     const Text(
                       'New care item',
                       style:

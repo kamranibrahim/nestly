@@ -6,30 +6,30 @@ class NestCard extends StatelessWidget {
   const NestCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(10),
     this.onTap,
     this.color,
+    this.borderRadius = 18,
+    this.bordered = true,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
   final Color? color;
+  final double borderRadius;
+  final bool bordered;
 
   @override
   Widget build(BuildContext context) {
+    final bg = color ?? AppColors.surface;
+    final needsBorder = bordered && color == null;
     final card = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color ?? AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1C1F26).withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: bg,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: needsBorder ? Border.all(color: AppColors.border) : null,
       ),
       child: child,
     );
@@ -40,8 +40,92 @@ class NestCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(borderRadius),
         child: card,
+      ),
+    );
+  }
+}
+
+class SoftPill extends StatelessWidget {
+  const SoftPill({
+    super.key,
+    required this.label,
+    this.selected = false,
+    this.onTap,
+    this.background,
+    this.foreground,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+  final Color? background;
+  final Color? foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = background ??
+        (selected ? AppColors.primary : AppColors.surface);
+    final fg = foreground ??
+        (selected ? AppColors.onDark : AppColors.ink);
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: selected
+                ? null
+                : Border.all(color: AppColors.border),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: fg,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CircleIconButton extends StatelessWidget {
+  const CircleIconButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+    this.background = AppColors.primary,
+    this.foreground = AppColors.onDark,
+    this.size = 40,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color background;
+  final Color foreground;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: background,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Icon(icon, color: foreground, size: size * 0.45),
+        ),
       ),
     );
   }
@@ -55,12 +139,13 @@ class SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, top: 4),
+      padding: const EdgeInsets.only(bottom: 6, top: 0),
       child: Text(
         text,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: AppColors.ink,
+          letterSpacing: -0.2,
         ),
       ),
     );
@@ -92,9 +177,9 @@ class MemberAvatar extends StatelessWidget {
       child: Text(
         initials,
         style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: size * 0.36,
+          color: AppColors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: size * 0.34,
         ),
       ),
     );
@@ -121,36 +206,39 @@ class FeatureTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return NestCard(
       onTap: onTap,
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+      color: color,
+      bordered: false,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
+            width: 32,
+            height: 32,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: AppColors.ink, size: 16),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 6),
           Text(
             title,
             style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
               color: AppColors.ink,
+              letterSpacing: -0.2,
             ),
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               subtitle!,
               style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.inkMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.inkSecondary,
               ),
             ),
           ],

@@ -1,39 +1,59 @@
 import 'package:flutter/material.dart';
 
-/// FamilyWall-inspired: bright blue primary, white surfaces, colorful module accents.
+/// Soft pastel productivity system: lime + lavender on white, charcoal contrast.
 abstract final class AppColors {
-  static const Color primary = Color(0xFF4A78DD);
-  static const Color primaryDark = Color(0xFF3A63C2);
-  static const Color primarySoft = Color(0xFFE8EFFC);
-  static const Color primaryWash = Color(0xFFF3F7FE);
+  static const Color primary = Color(0xFF1C1C1E);
+  static const Color primaryDark = Color(0xFF000000);
+  static const Color primarySoft = Color(0xFFF2F2F4);
+  static const Color primaryWash = Color(0xFFFAFAFB);
 
-  static const Color background = Color(0xFFF5F7FB);
+  static const Color accent = Color(0xFFB2B2E6);
+  static const Color accentDeep = Color(0xFF8E8ED4);
+  static const Color mint = Color(0xFFD4E7B3);
+  static const Color mintDeep = Color(0xFFB5CF8A);
+
+  static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color divider = Color(0xFFE6EAF2);
+  static const Color surfaceMuted = Color(0xFFF7F7F8);
+  static const Color divider = Color(0xFFE8E8EC);
+  static const Color border = Color(0xFFE5E5EA);
 
-  static const Color ink = Color(0xFF1C1F26);
-  static const Color inkSecondary = Color(0xFF5C6578);
-  static const Color inkMuted = Color(0xFF9AA3B5);
+  static const Color ink = Color(0xFF1C1C1E);
+  static const Color white = Colors.white;
+  static const Color inkSecondary = Color(0xFF636366);
+  static const Color inkMuted = Color(0xFF8E8E93);
+  static const Color onDark = Color(0xFFFFFFFF);
+
+  static const Color navBar = Color(0xFF2C2C2E);
+  static const Color navPill = Color(0xFFFFFFFF);
 
   static const Color danger = Color(0xFFE05454);
   static const Color dangerSoft = Color(0xFFFDECEC);
 
-  // Module tile accents (FamilyWall-style colorful hubs)
-  static const Color tileBlue = Color(0xFF4A78DD);
-  static const Color tileGreen = Color(0xFF3CB371);
-  static const Color tileOrange = Color(0xFFF29B4A);
-  static const Color tilePink = Color(0xFFE56B9A);
-  static const Color tilePurple = Color(0xFF7B6CDB);
-  static const Color tileTeal = Color(0xFF2EB8B0);
-  static const Color tileYellow = Color(0xFFE8B84A);
-  static const Color tileRed = Color(0xFFE05454);
+  // Module / card accents (pastel)
+  static const Color tileBlue = Color(0xFFB2B2E6);
+  static const Color tileGreen = Color(0xFFD4E7B3);
+  static const Color tileOrange = Color(0xFFFFD8A8);
+  static const Color tilePink = Color(0xFFF5C6D8);
+  static const Color tilePurple = Color(0xFFB2B2E6);
+  static const Color tileTeal = Color(0xFFC5E8E0);
+  static const Color tileYellow = Color(0xFFF5E6A8);
+  static const Color tileRed = Color(0xFFF5C6C6);
 
   static const List<Color> memberColors = [
-    Color(0xFF4A78DD),
-    Color(0xFFE56B9A),
-    Color(0xFF3CB371),
-    Color(0xFFF29B4A),
-    Color(0xFF7B6CDB),
-    Color(0xFF2EB8B0),
+    Color(0xFFB2B2E6),
+    Color(0xFFD4E7B3),
+    Color(0xFFFFD8A8),
+    Color(0xFFF5C6D8),
+    Color(0xFFC5E8E0),
+    Color(0xFFF5E6A8),
+  ];
+
+  static const List<Color> softCardColors = [
+    Color(0xFFD4E7B3),
+    Color(0xFFB2B2E6),
+    Color(0xFFFFD8A8),
+    Color(0xFFF5C6D8),
+    Color(0xFFC5E8E0),
   ];
 }

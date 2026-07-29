@@ -81,15 +81,15 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
         child: const Icon(Icons.upload_file_rounded),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
         children: [
           if (_category == 'All') ...[
             GridView.count(
               crossAxisCount: 3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
               childAspectRatio: 0.92,
               children: [
                 for (final folder in _folders)
@@ -108,7 +108,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
                           ),
                           child: Icon(folder.$1, color: folder.$3),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6),
                         Text(
                           folder.$2,
                           style: const TextStyle(
@@ -121,7 +121,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 6),
             const SectionLabel('Recent files'),
           ] else
             SectionLabel(_category),
@@ -129,7 +129,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
             padding: EdgeInsets.zero,
             child: docs.isEmpty
                 ? const Padding(
-                    padding: EdgeInsets.all(24),
+                    padding: EdgeInsets.all(12),
                     child: Text(
                       'No documents yet. Tap + to add one.',
                       style: TextStyle(color: AppColors.inkMuted),

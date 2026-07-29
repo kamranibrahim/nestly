@@ -112,7 +112,7 @@ class AuthRepository {
         'name': memberName.trim(),
         'role': 'Adult',
         'initials': _initials(memberName),
-        'colorValue': 0xFF4A78DD,
+        'colorValue': 0xFFB2B2E6,
         'userId': user.uid,
         'updatedAt': FieldValue.serverTimestamp(),
       },
@@ -153,11 +153,11 @@ class AuthRepository {
     final nestName = nest.data()?['name'] as String? ?? 'Family';
 
     final colors = [
-      0xFFE56B9A,
-      0xFF3CB371,
-      0xFFF29B4A,
-      0xFF7B6CDB,
-      0xFF2EB8B0,
+      0xFFB2B2E6,
+      0xFFD4E7B3,
+      0xFFFFD8A8,
+      0xFFF5C6D8,
+      0xFFC5E8E0,
     ];
     final color = colors[Random().nextInt(colors.length)];
 

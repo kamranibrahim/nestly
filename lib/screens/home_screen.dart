@@ -23,25 +23,20 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final dateLabel = DateFormat('EEE d MMM').format(now);
     final events = ref.watch(eventsProvider).valueOrNull ?? const [];
     final todayEvents = events.where((e) {
       final d = DateTime(e.startsAt.year, e.startsAt.month, e.startsAt.day);
       return d == today;
     }).toList()
       ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
-    final next = todayEvents.isEmpty
-        ? null
-        : todayEvents.firstWhere(
-            (e) => !e.startsAt.isBefore(now),
-            orElse: () => todayEvents.first,
-          );
     final openTasks = ref.watch(openTaskCountProvider).valueOrNull ?? 0;
     final openShopping = ref.watch(openShoppingCountProvider).valueOrNull ?? 0;
     final vaultCount = ref.watch(vaultCountProvider).valueOrNull ?? 0;
     final careDue = ref.watch(careDueCountProvider).valueOrNull ?? 0;
     final meals = ref.watch(mealsProvider).valueOrNull ?? const [];
     final bills = ref.watch(billsProvider).valueOrNull ?? const [];
+    final tasks = ref.watch(tasksProvider).valueOrNull ?? const [];
+    final openTaskList = tasks.where((t) => !t.done).take(4).toList();
     final timeline = ref.watch(timelineProvider).valueOrNull ?? const [];
     final recent = timeline.take(5).toList();
 
@@ -68,87 +63,198 @@ class HomeScreen extends ConsumerWidget {
       eventsToday: todayEvents.length,
     );
 
+    final nestName =
+        ref.watch(nestInfoProvider).valueOrNull?.name ?? 'Your nest';
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+    final greetingName = members.isNotEmpty
+        ? members.first.name.split(' ').first
+        : nestName;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        bottom: false,
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _FamilyHeader(),
-                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Hello 👋, $greetingName!',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.6,
+                                ),
+                          ),
+                        ),
+                        if (members.isNotEmpty)
+                          MemberAvatar(
+                            initials: members.first.initials,
+                            color: Color(members.first.colorValue),
+                            size: 38,
+                          ),
+                        const SizedBox(width: 8),
+                        CircleIconButton(
+                          icon: Icons.notifications_none_rounded,
+                          background: AppColors.surfaceMuted,
+                          foreground: AppColors.ink,
+                          size: 38,
+                          onTap: () async {
+                            try {
+                              await ref.read(syncServiceProvider).syncAll();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Synced with nest'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Sync failed: $e')),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        SoftPill(
+                          label: 'Open ($openTasks)',
+                          selected: true,
+                          onTap: () => onOpenTab(2),
+                        ),
+                        const SizedBox(width: 8),
+                        SoftPill(
+                          label: 'Shopping ($openShopping)',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ShoppingScreen(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
                     NestCard(
-                      onTap: () => onOpenTab(1),
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: AppColors.primarySoft,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              '${now.day}',
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text.rich(
+                                  TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.ink,
+                                      height: 1.3,
+                                    ),
+                                    children: [
+                                      const TextSpan(text: 'You have '),
+                                      TextSpan(
+                                        text: '${openTasks + todayEvents.length}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          color: AppColors.accentDeep,
+                                        ),
+                                      ),
+                                      const TextSpan(text: ' things for today'),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+                              CircleIconButton(
+                                icon: Icons.ios_share_rounded,
+                                background: AppColors.mint,
+                                foreground: AppColors.ink,
+                                size: 34,
+                                onTap: () => onOpenTab(2),
+                              ),
+                              const SizedBox(width: 8),
+                              CircleIconButton(
+                                icon: Icons.add_rounded,
+                                size: 34,
+                                onTap: () => onOpenTab(2),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  dateLabel,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                    color: AppColors.ink,
-                                  ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  next == null
-                                      ? 'Nothing planned today'
-                                      : '${next.allDay ? 'All day' : DateFormat.jm().format(next.startsAt)} · ${next.title}',
-                                  style: const TextStyle(
-                                    color: AppColors.inkSecondary,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 13,
-                                  ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accent,
+                                  borderRadius: BorderRadius.circular(999),
                                 ),
-                                Text(
-                                  todayEvents.isEmpty
-                                      ? 'Tap to add an event'
-                                      : '${todayEvents.length} event${todayEvents.length == 1 ? '' : 's'} today',
-                                  style: const TextStyle(
-                                    color: AppColors.inkMuted,
+                                child: const Text(
+                                  'High',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
                                     fontSize: 12,
-                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              _HashChip('#family'),
+                              _HashChip('#nest'),
+                              _HashChip('#today'),
+                            ],
                           ),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            color: AppColors.inkMuted,
-                          ),
+                          if (openTaskList.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            for (final task in openTaskList)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.mintDeep,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        task.title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ],
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     const SectionLabel('Today for your nest'),
                     NestCard(
                       padding: EdgeInsets.zero,
@@ -169,14 +275,28 @@ class HomeScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    if (todayEvents.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const SectionLabel('On the calendar'),
+                      for (var i = 0; i < todayEvents.take(3).length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: _TodayEventCard(
+                            event: todayEvents[i],
+                            pastel: AppColors.softCardColors[
+                                i % AppColors.softCardColors.length],
+                          ),
+                        ),
+                    ],
+                    const SizedBox(height: 16),
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
+                      padding: EdgeInsets.zero,
                       physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.25,
+                      mainAxisSpacing: 6,
+                      crossAxisSpacing: 6,
+                      childAspectRatio: 1.55,
                       children: [
                         FeatureTile(
                           title: 'Calendar',
@@ -184,7 +304,7 @@ class HomeScreen extends ConsumerWidget {
                               ? 'Open'
                               : '${todayEvents.length} today',
                           icon: Icons.calendar_month_rounded,
-                          color: AppColors.tileBlue,
+                          color: AppColors.accent,
                           onTap: () => onOpenTab(1),
                         ),
                         FeatureTile(
@@ -202,7 +322,7 @@ class HomeScreen extends ConsumerWidget {
                           title: 'Tasks',
                           subtitle: '$openTasks open',
                           icon: Icons.checklist_rounded,
-                          color: AppColors.tileGreen,
+                          color: AppColors.mint,
                           onTap: () => onOpenTab(2),
                         ),
                         FeatureTile(
@@ -220,7 +340,7 @@ class HomeScreen extends ConsumerWidget {
                           title: 'Vault',
                           subtitle: '$vaultCount docs',
                           icon: Icons.folder_rounded,
-                          color: AppColors.tilePurple,
+                          color: AppColors.tilePink,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const VaultScreen(),
@@ -242,7 +362,7 @@ class HomeScreen extends ConsumerWidget {
                           title: 'Meals',
                           subtitle: dinnerToday ? 'Dinner set' : 'Plan week',
                           icon: Icons.restaurant_rounded,
-                          color: AppColors.tilePink,
+                          color: AppColors.tileTeal,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const MealsScreen(),
@@ -251,9 +371,10 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         FeatureTile(
                           title: 'Care',
-                          subtitle: careDue == 0 ? 'Up to date' : '$careDue due',
+                          subtitle:
+                              careDue == 0 ? 'Up to date' : '$careDue due',
                           icon: Icons.pets_rounded,
-                          color: AppColors.tileTeal,
+                          color: AppColors.mint,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const CareScreen(),
@@ -262,7 +383,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const SectionLabel('Recent activity'),
                     NestCard(
                       padding: const EdgeInsets.symmetric(
@@ -271,7 +392,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       child: recent.isEmpty
                           ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
+                              padding: EdgeInsets.symmetric(vertical: 10),
                               child: Text(
                                 'Activity from your nest will show up here.',
                                 style: TextStyle(color: AppColors.inkMuted),
@@ -280,7 +401,7 @@ class HomeScreen extends ConsumerWidget {
                           : Column(
                               children: [
                                 for (var i = 0; i < recent.length; i++) ...[
-                                  _ActivityRow(event: recent[i]),
+                                  _ActivityRow(event: recent[i], index: i),
                                   if (i != recent.length - 1)
                                     const Divider(
                                       height: 1,
@@ -314,7 +435,6 @@ class HomeScreen extends ConsumerWidget {
         );
       case FamilyNeedKind.bills:
       case FamilyNeedKind.calendar:
-        // Expenses holds bills; calendar is tab 1.
         if (kind == FamilyNeedKind.calendar) {
           onOpenTab(1);
         } else {
@@ -334,6 +454,107 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+class _HashChip extends StatelessWidget {
+  const _HashChip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          color: AppColors.inkSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+class _TodayEventCard extends StatelessWidget {
+  const _TodayEventCard({required this.event, required this.pastel});
+
+  final CalendarEvent event;
+  final Color pastel;
+
+  @override
+  Widget build(BuildContext context) {
+    final time = event.allDay
+        ? 'All day'
+        : DateFormat.jm().format(event.startsAt);
+    return NestCard(
+      color: pastel,
+      bordered: false,
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  DateFormat('d').format(event.startsAt),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  DateFormat('E').format(event.startsAt),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  time,
+                  style: const TextStyle(
+                    color: AppColors.inkSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.more_horiz_rounded, color: AppColors.inkMuted),
+        ],
+      ),
+    );
+  }
+}
+
 class _NeedRow extends StatelessWidget {
   const _NeedRow({required this.need, required this.onTap});
 
@@ -346,7 +567,7 @@ class _NeedRow extends StatelessWidget {
       onTap: onTap,
       title: Text(
         need.title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
       ),
       subtitle: Text(
         need.detail,
@@ -357,87 +578,11 @@ class _NeedRow extends StatelessWidget {
   }
 }
 
-class _FamilyHeader extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nestName =
-        ref.watch(nestInfoProvider).valueOrNull?.name ?? 'Your nest';
-    final members = ref.watch(membersProvider).valueOrNull ?? const [];
-
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                nestName,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
-                ),
-              ),
-              const SizedBox(height: 2),
-              const Text(
-                'Family organizer',
-                style: TextStyle(
-                  color: AppColors.inkMuted,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (members.isNotEmpty)
-          SizedBox(
-            width: 28.0 * (members.length - 1).clamp(0, 8) + 36,
-            height: 36,
-            child: Stack(
-              children: [
-                for (var i = 0; i < members.length; i++)
-                  Positioned(
-                    left: i * 26.0,
-                    child: MemberAvatar(
-                      initials: members[i].initials,
-                      color: Color(members[i].colorValue),
-                      size: 36,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        const SizedBox(width: 8),
-        IconButton(
-          tooltip: 'Sync',
-          onPressed: () async {
-            try {
-              await ref.read(syncServiceProvider).syncAll();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Synced with nest')),
-                );
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Sync failed: $e')),
-                );
-              }
-            }
-          },
-          icon: const Icon(Icons.cloud_sync_outlined),
-          color: AppColors.primary,
-        ),
-      ],
-    );
-  }
-}
-
 class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({required this.event});
+  const _ActivityRow({required this.event, required this.index});
 
   final TimelineEvent event;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
@@ -451,12 +596,13 @@ class _ActivityRow extends StatelessWidget {
             .join()
             .toUpperCase();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           MemberAvatar(
             initials: initials,
-            color: AppColors.primary,
+            color: AppColors.softCardColors[
+                index % AppColors.softCardColors.length],
             size: 34,
           ),
           const SizedBox(width: 10),

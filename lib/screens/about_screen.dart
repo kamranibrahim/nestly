@@ -13,7 +13,7 @@ class AboutScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('About')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 24),
         children: [
           NestCard(
             padding: const EdgeInsets.all(20),
@@ -24,15 +24,15 @@ class AboutScreen extends StatelessWidget {
                   height: 72,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
-                    borderRadius: BorderRadius.circular(20),
+                    color: AppColors.mint,
+                    borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Text(
-                    'n',
+                    'N',
                     style: TextStyle(
                       fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.ink,
                     ),
                   ),
                 ),
@@ -70,7 +70,7 @@ class AboutScreen extends StatelessWidget {
             ),
             child: const Row(
               children: [
-                Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
+                Icon(Icons.privacy_tip_outlined, color: AppColors.accentDeep),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
