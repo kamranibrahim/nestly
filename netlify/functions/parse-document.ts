@@ -129,6 +129,19 @@ Rules:
     return json(200, { draft: parsed });
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI request failed";
+    const lower = message.toLowerCase();
+    if (
+      lower.includes("api key") ||
+      lower.includes("unauthenticated") ||
+      lower.includes("permission") ||
+      lower.includes("credential") ||
+      lower.includes("ai gateway")
+    ) {
+      return json(500, {
+        error:
+          "AI Gateway is not enabled. Open Netlify site settings → AI Gateway, then retry.",
+      });
+    }
     return json(500, { error: message });
   }
 };

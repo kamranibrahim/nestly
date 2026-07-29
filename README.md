@@ -70,7 +70,7 @@ flutter run
 - [x] Model-backed quiet AI (receipts, PDF → event / expense / task)
 - [x] School & activities (sports, pickups, clubs)
 - [x] Grocery suggestions from recurring buys (device-local)
-- [ ] Harden scan AI acceptance UX (dogfood)
+- [x] Harden scan AI acceptance UX
 - [ ] Store closed testing → public listing (manual)
 
 ## Web companion
