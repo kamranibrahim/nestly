@@ -120,13 +120,6 @@ class HomeScreen extends ConsumerWidget {
                           onTap: () async {
                             try {
                               await ref.read(syncServiceProvider).syncAll();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Synced with nest'),
-                                  ),
-                                );
-                              }
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
