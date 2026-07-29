@@ -118,6 +118,14 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
+                      _SuggestionsStrip(
+                        onAdded: () async {
+                          try {
+                            await ref.read(syncServiceProvider).syncAll();
+                          } catch (_) {}
+                        },
+                      ),
+                      const SizedBox(height: 6),
                       NestCard(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -265,6 +273,56 @@ class _ShopRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SuggestionsStrip extends ConsumerWidget {
+  const _SuggestionsStrip({required this.onAdded});
+
+  final VoidCallback onAdded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final suggestions =
+        ref.watch(grocerySuggestionsProvider).valueOrNull ?? const [];
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+            'Often bought — tap to add',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AppColors.inkSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final habit in suggestions) ...[
+                SoftPill(
+                  label: '+ ${habit.name}',
+                  onTap: () async {
+                    await ref
+                        .read(shoppingRepositoryProvider)
+                        .addSuggestion(habit);
+                    onAdded();
+                  },
+                ),
+                const SizedBox(width: 6),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+      ],
     );
   }
 }

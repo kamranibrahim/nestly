@@ -29,6 +29,7 @@ FamilyNeedsSummary buildFamilyNeeds({
   required int schoolDue,
   required bool dinnerPlannedToday,
   required int eventsToday,
+  int grocerySuggestions = 0,
 }) {
   final needs = <FamilyNeed>[];
 
@@ -36,7 +37,7 @@ FamilyNeedsSummary buildFamilyNeeds({
     needs.add(
       FamilyNeed(
         title: '$openTasks open task${openTasks == 1 ? '' : 's'}',
-        detail: 'Keep the household moving',
+        detail: 'Tap to finish what’s due',
         kind: FamilyNeedKind.tasks,
       ),
     );
@@ -45,7 +46,16 @@ FamilyNeedsSummary buildFamilyNeeds({
     needs.add(
       FamilyNeed(
         title: '$openShopping grocery item${openShopping == 1 ? '' : 's'} left',
-        detail: 'Shared list still has unchecked items',
+        detail: 'Open the shared list and check them off',
+        kind: FamilyNeedKind.shopping,
+      ),
+    );
+  } else if (grocerySuggestions > 0) {
+    needs.add(
+      FamilyNeed(
+        title:
+            'Restock $grocerySuggestions usual item${grocerySuggestions == 1 ? '' : 's'}',
+        detail: 'Based on what you buy often',
         kind: FamilyNeedKind.shopping,
       ),
     );
@@ -55,7 +65,7 @@ FamilyNeedsSummary buildFamilyNeeds({
       FamilyNeed(
         title:
             '$unpaidBillsDueSoon bill${unpaidBillsDueSoon == 1 ? '' : 's'} due soon',
-        detail: 'Due within 7 days',
+        detail: 'Mark paid or set a reminder',
         kind: FamilyNeedKind.bills,
       ),
     );
@@ -64,7 +74,7 @@ FamilyNeedsSummary buildFamilyNeeds({
     needs.add(
       FamilyNeed(
         title: '$careDue care item${careDue == 1 ? '' : 's'} due',
-        detail: 'Pet, home, or car upkeep',
+        detail: 'Mark done when finished',
         kind: FamilyNeedKind.care,
       ),
     );
@@ -74,7 +84,7 @@ FamilyNeedsSummary buildFamilyNeeds({
       FamilyNeed(
         title:
             '$schoolDue school / pickup${schoolDue == 1 ? '' : 's'} due',
-        detail: 'Activities and school runs',
+        detail: 'Confirm who’s covering the run',
         kind: FamilyNeedKind.school,
       ),
     );
@@ -83,7 +93,7 @@ FamilyNeedsSummary buildFamilyNeeds({
     needs.add(
       const FamilyNeed(
         title: 'No dinner planned today',
-        detail: 'Add a meal so shopping stays ahead',
+        detail: 'Add a meal — ingredients can go to the list',
         kind: FamilyNeedKind.meals,
       ),
     );
@@ -100,7 +110,7 @@ FamilyNeedsSummary buildFamilyNeeds({
     needs.add(
       FamilyNeed(
         title: '$eventsToday event${eventsToday == 1 ? '' : 's'} today',
-        detail: 'Check the calendar so nobody is surprised',
+        detail: 'Open Calendar so nobody is surprised',
         kind: FamilyNeedKind.calendar,
       ),
     );

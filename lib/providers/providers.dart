@@ -85,6 +85,11 @@ final openShoppingCountProvider = StreamProvider<int>((ref) {
   return ref.watch(shoppingRepositoryProvider).watchOpenCount();
 });
 
+final grocerySuggestionsProvider =
+    StreamProvider<List<GroceryHabit>>((ref) {
+  return ref.watch(shoppingRepositoryProvider).watchSuggestions();
+});
+
 final eventsProvider = StreamProvider<List<CalendarEvent>>((ref) {
   return ref.watch(eventRepositoryProvider).watchAll();
 });

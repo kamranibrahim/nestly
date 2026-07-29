@@ -32,6 +32,7 @@ class NestPrivacyService {
     final meals = await _db.select(_db.mealPlans).get();
     final care = await _db.select(_db.careItems).get();
     final school = await _db.select(_db.schoolActivities).get();
+    final groceryHabits = await _db.select(_db.groceryHabits).get();
 
     return {
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
@@ -62,6 +63,7 @@ class NestPrivacyService {
         'meals': meals.map((e) => e.toJson()).toList(),
         'care': care.map((e) => e.toJson()).toList(),
         'school': school.map((e) => e.toJson()).toList(),
+        'groceryHabits': groceryHabits.map((e) => e.toJson()).toList(),
       },
       'notes':
           'Vault file binaries are not included; only metadata. Re-download from Nestly while signed in if needed.',

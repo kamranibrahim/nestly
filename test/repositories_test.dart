@@ -52,4 +52,38 @@ void main() {
     final names = (await shopping.watchItems().first).map((i) => i.name);
     expect(names, contains('Yogurt'));
   });
+
+  test('checking off items builds grocery habits and suggestions', () async {
+    await shopping.addItem(name: 'Milk', category: 'Dairy');
+    var milk = (await shopping.watchItems().first)
+        .firstWhere((i) => i.name == 'Milk');
+    await shopping.toggleDone(milk);
+
+    await shopping.addItem(name: 'Milk', category: 'Dairy');
+    milk = (await shopping.watchItems().first)
+        .firstWhere((i) => i.name == 'Milk' && !i.done);
+    await shopping.toggleDone(milk);
+
+    final habits = await database.select(database.groceryHabits).get();
+    final milkHabit = habits.firstWhere((h) => h.id == 'milk');
+    expect(milkHabit.buyCount, 2);
+
+    // Make habit stale so it surfaces as a suggestion.
+    await (database.update(database.groceryHabits)
+          ..where((h) => h.id.equals('milk')))
+        .write(
+      GroceryHabitsCompanion(
+        lastBoughtAt: Value(DateTime.now().subtract(const Duration(days: 14))),
+      ),
+    );
+
+    final suggestions = await shopping.watchSuggestions().first;
+    expect(suggestions.any((s) => s.id == 'milk'), isTrue);
+
+    await shopping.addSuggestion(milkHabit);
+    final openNames = (await shopping.watchItems().first)
+        .where((i) => !i.done)
+        .map((i) => i.name);
+    expect(openNames, contains('Milk'));
+  });
 }

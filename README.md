@@ -67,7 +67,11 @@ flutter run
 - [x] Care schedules (home / pet / car) with due + mark done
 - [x] Quiet “Today for your nest” summary on Home (local, no chatbot)
 - [x] Web companion (calendar + tasks + lists)
-- [ ] Model-backed quiet AI (receipts, PDF → event)
+- [x] Model-backed quiet AI (receipts, PDF → event / expense / task)
+- [x] School & activities (sports, pickups, clubs)
+- [x] Grocery suggestions from recurring buys (device-local)
+- [ ] Harden scan AI acceptance UX (dogfood)
+- [ ] Store closed testing → public listing (manual)
 
 ## Web companion
 

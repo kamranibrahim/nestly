@@ -39,4 +39,26 @@ void main() {
     expect(summary.needs.first.kind, FamilyNeedKind.calendar);
     expect(summary.needs.first.title, 'Quiet day');
   });
+
+  test('restock suggestion when list empty but habits due', () {
+    final summary = buildFamilyNeeds(
+      openTasks: 0,
+      openShopping: 0,
+      unpaidBillsDueSoon: 0,
+      careDue: 0,
+      schoolDue: 0,
+      dinnerPlannedToday: true,
+      eventsToday: 0,
+      grocerySuggestions: 3,
+    );
+
+    expect(
+      summary.needs.any((n) => n.kind == FamilyNeedKind.shopping),
+      isTrue,
+    );
+    expect(
+      summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.shopping).title,
+      contains('Restock'),
+    );
+  });
 }

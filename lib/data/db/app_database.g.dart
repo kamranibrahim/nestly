@@ -8369,6 +8369,414 @@ class SchoolActivitiesCompanion extends UpdateCompanion<SchoolActivity> {
   }
 }
 
+class $GroceryHabitsTable extends GroceryHabits
+    with TableInfo<$GroceryHabitsTable, GroceryHabit> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GroceryHabitsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('General'),
+  );
+  static const VerificationMeta _buyCountMeta = const VerificationMeta(
+    'buyCount',
+  );
+  @override
+  late final GeneratedColumn<int> buyCount = GeneratedColumn<int>(
+    'buy_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastBoughtAtMeta = const VerificationMeta(
+    'lastBoughtAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastBoughtAt = GeneratedColumn<DateTime>(
+    'last_bought_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    category,
+    buyCount,
+    lastBoughtAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'grocery_habits';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GroceryHabit> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('buy_count')) {
+      context.handle(
+        _buyCountMeta,
+        buyCount.isAcceptableOrUnknown(data['buy_count']!, _buyCountMeta),
+      );
+    }
+    if (data.containsKey('last_bought_at')) {
+      context.handle(
+        _lastBoughtAtMeta,
+        lastBoughtAt.isAcceptableOrUnknown(
+          data['last_bought_at']!,
+          _lastBoughtAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastBoughtAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GroceryHabit map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GroceryHabit(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      buyCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}buy_count'],
+      )!,
+      lastBoughtAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_bought_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $GroceryHabitsTable createAlias(String alias) {
+    return $GroceryHabitsTable(attachedDatabase, alias);
+  }
+}
+
+class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
+  /// Normalized lowercase name key.
+  final String id;
+  final String name;
+  final String category;
+  final int buyCount;
+  final DateTime lastBoughtAt;
+  final DateTime updatedAt;
+  const GroceryHabit({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.buyCount,
+    required this.lastBoughtAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['category'] = Variable<String>(category);
+    map['buy_count'] = Variable<int>(buyCount);
+    map['last_bought_at'] = Variable<DateTime>(lastBoughtAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  GroceryHabitsCompanion toCompanion(bool nullToAbsent) {
+    return GroceryHabitsCompanion(
+      id: Value(id),
+      name: Value(name),
+      category: Value(category),
+      buyCount: Value(buyCount),
+      lastBoughtAt: Value(lastBoughtAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory GroceryHabit.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GroceryHabit(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      category: serializer.fromJson<String>(json['category']),
+      buyCount: serializer.fromJson<int>(json['buyCount']),
+      lastBoughtAt: serializer.fromJson<DateTime>(json['lastBoughtAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'category': serializer.toJson<String>(category),
+      'buyCount': serializer.toJson<int>(buyCount),
+      'lastBoughtAt': serializer.toJson<DateTime>(lastBoughtAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  GroceryHabit copyWith({
+    String? id,
+    String? name,
+    String? category,
+    int? buyCount,
+    DateTime? lastBoughtAt,
+    DateTime? updatedAt,
+  }) => GroceryHabit(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    category: category ?? this.category,
+    buyCount: buyCount ?? this.buyCount,
+    lastBoughtAt: lastBoughtAt ?? this.lastBoughtAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  GroceryHabit copyWithCompanion(GroceryHabitsCompanion data) {
+    return GroceryHabit(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      category: data.category.present ? data.category.value : this.category,
+      buyCount: data.buyCount.present ? data.buyCount.value : this.buyCount,
+      lastBoughtAt: data.lastBoughtAt.present
+          ? data.lastBoughtAt.value
+          : this.lastBoughtAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroceryHabit(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('category: $category, ')
+          ..write('buyCount: $buyCount, ')
+          ..write('lastBoughtAt: $lastBoughtAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, category, buyCount, lastBoughtAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GroceryHabit &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.category == this.category &&
+          other.buyCount == this.buyCount &&
+          other.lastBoughtAt == this.lastBoughtAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> category;
+  final Value<int> buyCount;
+  final Value<DateTime> lastBoughtAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const GroceryHabitsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.category = const Value.absent(),
+    this.buyCount = const Value.absent(),
+    this.lastBoughtAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GroceryHabitsCompanion.insert({
+    required String id,
+    required String name,
+    this.category = const Value.absent(),
+    this.buyCount = const Value.absent(),
+    required DateTime lastBoughtAt,
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       lastBoughtAt = Value(lastBoughtAt);
+  static Insertable<GroceryHabit> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? category,
+    Expression<int>? buyCount,
+    Expression<DateTime>? lastBoughtAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (category != null) 'category': category,
+      if (buyCount != null) 'buy_count': buyCount,
+      if (lastBoughtAt != null) 'last_bought_at': lastBoughtAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GroceryHabitsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? category,
+    Value<int>? buyCount,
+    Value<DateTime>? lastBoughtAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return GroceryHabitsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      buyCount: buyCount ?? this.buyCount,
+      lastBoughtAt: lastBoughtAt ?? this.lastBoughtAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (buyCount.present) {
+      map['buy_count'] = Variable<int>(buyCount.value);
+    }
+    if (lastBoughtAt.present) {
+      map['last_bought_at'] = Variable<DateTime>(lastBoughtAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroceryHabitsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('category: $category, ')
+          ..write('buyCount: $buyCount, ')
+          ..write('lastBoughtAt: $lastBoughtAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8390,6 +8798,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SchoolActivitiesTable schoolActivities = $SchoolActivitiesTable(
     this,
   );
+  late final $GroceryHabitsTable groceryHabits = $GroceryHabitsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8409,6 +8818,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     mealPlans,
     careItems,
     schoolActivities,
+    groceryHabits,
   ];
 }
 
@@ -12770,6 +13180,227 @@ typedef $$SchoolActivitiesTableProcessedTableManager =
       SchoolActivity,
       PrefetchHooks Function()
     >;
+typedef $$GroceryHabitsTableCreateCompanionBuilder =
+    GroceryHabitsCompanion Function({
+      required String id,
+      required String name,
+      Value<String> category,
+      Value<int> buyCount,
+      required DateTime lastBoughtAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$GroceryHabitsTableUpdateCompanionBuilder =
+    GroceryHabitsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> category,
+      Value<int> buyCount,
+      Value<DateTime> lastBoughtAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$GroceryHabitsTableFilterComposer
+    extends Composer<_$AppDatabase, $GroceryHabitsTable> {
+  $$GroceryHabitsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get buyCount => $composableBuilder(
+    column: $table.buyCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastBoughtAt => $composableBuilder(
+    column: $table.lastBoughtAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GroceryHabitsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GroceryHabitsTable> {
+  $$GroceryHabitsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get buyCount => $composableBuilder(
+    column: $table.buyCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastBoughtAt => $composableBuilder(
+    column: $table.lastBoughtAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GroceryHabitsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GroceryHabitsTable> {
+  $$GroceryHabitsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<int> get buyCount =>
+      $composableBuilder(column: $table.buyCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastBoughtAt => $composableBuilder(
+    column: $table.lastBoughtAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$GroceryHabitsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GroceryHabitsTable,
+          GroceryHabit,
+          $$GroceryHabitsTableFilterComposer,
+          $$GroceryHabitsTableOrderingComposer,
+          $$GroceryHabitsTableAnnotationComposer,
+          $$GroceryHabitsTableCreateCompanionBuilder,
+          $$GroceryHabitsTableUpdateCompanionBuilder,
+          (
+            GroceryHabit,
+            BaseReferences<_$AppDatabase, $GroceryHabitsTable, GroceryHabit>,
+          ),
+          GroceryHabit,
+          PrefetchHooks Function()
+        > {
+  $$GroceryHabitsTableTableManager(_$AppDatabase db, $GroceryHabitsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GroceryHabitsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GroceryHabitsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GroceryHabitsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<int> buyCount = const Value.absent(),
+                Value<DateTime> lastBoughtAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroceryHabitsCompanion(
+                id: id,
+                name: name,
+                category: category,
+                buyCount: buyCount,
+                lastBoughtAt: lastBoughtAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String> category = const Value.absent(),
+                Value<int> buyCount = const Value.absent(),
+                required DateTime lastBoughtAt,
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroceryHabitsCompanion.insert(
+                id: id,
+                name: name,
+                category: category,
+                buyCount: buyCount,
+                lastBoughtAt: lastBoughtAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GroceryHabitsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GroceryHabitsTable,
+      GroceryHabit,
+      $$GroceryHabitsTableFilterComposer,
+      $$GroceryHabitsTableOrderingComposer,
+      $$GroceryHabitsTableAnnotationComposer,
+      $$GroceryHabitsTableCreateCompanionBuilder,
+      $$GroceryHabitsTableUpdateCompanionBuilder,
+      (
+        GroceryHabit,
+        BaseReferences<_$AppDatabase, $GroceryHabitsTable, GroceryHabit>,
+      ),
+      GroceryHabit,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -12802,4 +13433,6 @@ class $AppDatabaseManager {
       $$CareItemsTableTableManager(_db, _db.careItems);
   $$SchoolActivitiesTableTableManager get schoolActivities =>
       $$SchoolActivitiesTableTableManager(_db, _db.schoolActivities);
+  $$GroceryHabitsTableTableManager get groceryHabits =>
+      $$GroceryHabitsTableTableManager(_db, _db.groceryHabits);
 }

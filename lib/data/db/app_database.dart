@@ -233,6 +233,20 @@ class SchoolActivities extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// Local-only recurring grocery memory (device-side; not synced).
+class GroceryHabits extends Table {
+  /// Normalized lowercase name key.
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get category => text().withDefault(const Constant('General'))();
+  IntColumn get buyCount => integer().withDefault(const Constant(0))();
+  DateTimeColumn get lastBoughtAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     NestMembers,
@@ -249,13 +263,14 @@ class SchoolActivities extends Table {
     MealPlans,
     CareItems,
     SchoolActivities,
+    GroceryHabits,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -294,6 +309,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 6) {
             await _createTableIfMissing(m, schoolActivities);
+          }
+          if (from < 7) {
+            await _createTableIfMissing(m, groceryHabits);
           }
         },
       );
@@ -377,6 +395,7 @@ class AppDatabase extends _$AppDatabase {
       b.deleteAll(mealPlans);
       b.deleteAll(careItems);
       b.deleteAll(schoolActivities);
+      b.deleteAll(groceryHabits);
       b.deleteAll(nestMembers);
     });
   }

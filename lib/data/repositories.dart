@@ -85,6 +85,9 @@ class ShoppingRepository {
   static const _uuid = Uuid();
   static const defaultListId = 'list-groceries';
 
+  static String normalizeName(String name) =>
+      name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
   Stream<List<ShoppingItem>> watchItems({String listId = defaultListId}) {
     return (_db.select(_db.shoppingItems)
           ..where(
@@ -109,6 +112,44 @@ class ShoppingRepository {
     return query.watchSingle().map((row) => row.read(countExp) ?? 0);
   }
 
+  /// Habits ready to restock: bought 2+ times, stale enough, not already open.
+  Stream<List<GroceryHabit>> watchSuggestions({
+    String listId = defaultListId,
+  }) {
+    return _db.select(_db.groceryHabits).watch().asyncMap((habits) async {
+      final open = await (_db.select(_db.shoppingItems)
+            ..where(
+              (i) =>
+                  i.listId.equals(listId) &
+                  i.deleted.equals(false) &
+                  i.done.equals(false),
+            ))
+          .get();
+      final openNames = {
+        for (final i in open) normalizeName(i.name),
+      };
+      final now = DateTime.now();
+      final due = habits.where((h) {
+        if (h.buyCount < 2) return false;
+        if (openNames.contains(h.id)) return false;
+        final staleDays = _restockAfterDays(h.buyCount);
+        return now.difference(h.lastBoughtAt).inDays >= staleDays;
+      }).toList()
+        ..sort((a, b) {
+          final byCount = b.buyCount.compareTo(a.buyCount);
+          if (byCount != 0) return byCount;
+          return a.lastBoughtAt.compareTo(b.lastBoughtAt);
+        });
+      return due.take(8).toList();
+    });
+  }
+
+  static int _restockAfterDays(int buyCount) {
+    if (buyCount >= 6) return 5;
+    if (buyCount >= 4) return 7;
+    return 10;
+  }
+
   Future<void> toggleDone(ShoppingItem item) async {
     final markingDone = !item.done;
     await (_db.update(_db.shoppingItems)
@@ -121,9 +162,42 @@ class ShoppingRepository {
       ),
     );
     if (markingDone) {
+      await _recordPurchase(item);
       await TimelineRepository(_db).add(
         message: 'Checked off ${item.name}',
         memberName: 'You',
+      );
+    }
+  }
+
+  Future<void> _recordPurchase(ShoppingItem item) async {
+    final key = normalizeName(item.name);
+    if (key.isEmpty) return;
+    final now = DateTime.now();
+    final existing = await (_db.select(_db.groceryHabits)
+          ..where((h) => h.id.equals(key)))
+        .getSingleOrNull();
+    if (existing == null) {
+      await _db.into(_db.groceryHabits).insert(
+            GroceryHabitsCompanion.insert(
+              id: key,
+              name: item.name.trim(),
+              category: Value(item.category),
+              buyCount: const Value(1),
+              lastBoughtAt: now,
+              updatedAt: Value(now),
+            ),
+          );
+    } else {
+      await (_db.update(_db.groceryHabits)..where((h) => h.id.equals(key)))
+          .write(
+        GroceryHabitsCompanion(
+          name: Value(item.name.trim()),
+          category: Value(item.category),
+          buyCount: Value(existing.buyCount + 1),
+          lastBoughtAt: Value(now),
+          updatedAt: Value(now),
+        ),
       );
     }
   }
@@ -137,6 +211,14 @@ class ShoppingRepository {
   }) async {
     final now = DateTime.now();
     final resolvedNest = nestId ?? await _db.getMeta('nestId');
+    final key = normalizeName(name);
+    final habit = key.isEmpty
+        ? null
+        : await (_db.select(_db.groceryHabits)..where((h) => h.id.equals(key)))
+            .getSingleOrNull();
+    final resolvedCategory =
+        category == 'General' && habit != null ? habit.category : category;
+
     final maxOrder = await (_db.selectOnly(_db.shoppingItems)
           ..addColumns([_db.shoppingItems.sortOrder.max()])
           ..where(_db.shoppingItems.listId.equals(listId)))
@@ -150,7 +232,7 @@ class ShoppingRepository {
             nestId: Value(resolvedNest),
             listId: listId,
             name: name.trim(),
-            category: Value(category),
+            category: Value(resolvedCategory),
             qty: Value(qty),
             sortOrder: Value(nextOrder),
             dirty: const Value(true),
@@ -158,6 +240,10 @@ class ShoppingRepository {
             updatedAt: Value(now),
           ),
         );
+  }
+
+  Future<void> addSuggestion(GroceryHabit habit) {
+    return addItem(name: habit.name, category: habit.category);
   }
 
   Future<void> deleteItem(String id) {

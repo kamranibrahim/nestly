@@ -37,6 +37,8 @@ class HomeScreen extends ConsumerWidget {
     final vaultCount = ref.watch(vaultCountProvider).valueOrNull ?? 0;
     final careDue = ref.watch(careDueCountProvider).valueOrNull ?? 0;
     final schoolDue = ref.watch(schoolDueCountProvider).valueOrNull ?? 0;
+    final grocerySuggestions =
+        ref.watch(grocerySuggestionsProvider).valueOrNull ?? const [];
     final meals = ref.watch(mealsProvider).valueOrNull ?? const [];
     final bills = ref.watch(billsProvider).valueOrNull ?? const [];
     final tasks = ref.watch(tasksProvider).valueOrNull ?? const [];
@@ -66,6 +68,7 @@ class HomeScreen extends ConsumerWidget {
       schoolDue: schoolDue,
       dinnerPlannedToday: dinnerToday,
       eventsToday: todayEvents.length,
+      grocerySuggestions: grocerySuggestions.length,
     );
 
     final nestName =
