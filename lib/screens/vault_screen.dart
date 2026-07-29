@@ -6,6 +6,7 @@ import '../data/db/app_database.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import 'scan_document_flow.dart';
 
 class VaultScreen extends ConsumerStatefulWidget {
   const VaultScreen({super.key, this.initialCategory = 'All'});
@@ -69,6 +70,15 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
       appBar: AppBar(
         title: Text(_category == 'All' ? 'Documents' : _category),
         actions: [
+          IconButton(
+            tooltip: 'Scan to calendar',
+            onPressed: () => startDocumentScanFlow(
+              context,
+              ref,
+              hint: 'This may be a family document or invitation',
+            ),
+            icon: const Icon(Icons.document_scanner_rounded),
+          ),
           if (_category != 'All')
             TextButton(
               onPressed: () => setState(() => _category = 'All'),

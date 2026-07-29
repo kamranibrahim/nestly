@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import '../data/db/app_database.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import '../widgets/common.dart';
+import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -173,11 +175,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         for (var i = 0; i < dayEvents.length; i++)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
-                            child: _PastelEventCard(
+                            child: Appear(
+                              delay: AppMotion.stagger * i,
+                              replayKey: dayEvents[i].id,
+                              child: _PastelEventCard(
                               event: dayEvents[i],
                               member: _memberFor(members, dayEvents[i].memberId),
                               color: AppColors.softCardColors[
                                   i % AppColors.softCardColors.length],
+                            ),
                             ),
                           ),
                       if (allEvents
@@ -264,7 +270,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         Expanded(
           child: GestureDetector(
             onTap: () => setState(() => _selected = day),
-            child: Container(
+            child: AnimatedContainer(
+              duration: AppMotion.fast,
+              curve: AppMotion.standard,
               height: 38,
               alignment: Alignment.center,
               margin: const EdgeInsets.all(2),

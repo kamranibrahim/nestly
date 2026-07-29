@@ -6,7 +6,9 @@ import '../data/db/app_database.dart';
 import '../data/family_needs.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import '../widgets/common.dart';
+import '../widgets/motion.dart';
 import 'care_screen.dart';
 import 'emergency_screen.dart';
 import 'expenses_screen.dart';
@@ -80,8 +82,8 @@ class HomeScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stagger(
+                  step: AppMotion.stagger,
                   children: [
                     Row(
                       children: [
@@ -141,11 +143,7 @@ class HomeScreen extends ConsumerWidget {
                         const SizedBox(width: 8),
                         SoftPill(
                           label: 'Shopping ($openShopping)',
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ShoppingScreen(),
-                            ),
-                          ),
+                          onTap: () => nestPush(context, const ShoppingScreen()),
                         ),
                       ],
                     ),
@@ -288,7 +286,7 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                     ],
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 2),
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
@@ -312,11 +310,7 @@ class HomeScreen extends ConsumerWidget {
                           subtitle: '$openShopping items',
                           icon: Icons.shopping_bag_rounded,
                           color: AppColors.tileOrange,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ShoppingScreen(),
-                            ),
-                          ),
+                          onTap: () => nestPush(context, const ShoppingScreen()),
                         ),
                         FeatureTile(
                           title: 'Tasks',
@@ -330,44 +324,28 @@ class HomeScreen extends ConsumerWidget {
                           subtitle: 'This month',
                           icon: Icons.account_balance_wallet_rounded,
                           color: AppColors.tileYellow,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ExpensesScreen(),
-                            ),
-                          ),
+                          onTap: () => nestPush(context, const ExpensesScreen()),
                         ),
                         FeatureTile(
                           title: 'Vault',
                           subtitle: '$vaultCount docs',
                           icon: Icons.folder_rounded,
                           color: AppColors.tilePink,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const VaultScreen(),
-                            ),
-                          ),
+                          onTap: () => nestPush(context, const VaultScreen()),
                         ),
                         FeatureTile(
                           title: 'Emergency',
                           subtitle: 'Always ready',
                           icon: Icons.health_and_safety_rounded,
                           color: AppColors.tileRed,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const EmergencyScreen(),
-                            ),
-                          ),
+                          onTap: () => nestPush(context, const EmergencyScreen()),
                         ),
                         FeatureTile(
                           title: 'Meals',
                           subtitle: dinnerToday ? 'Dinner set' : 'Plan week',
                           icon: Icons.restaurant_rounded,
                           color: AppColors.tileTeal,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const MealsScreen(),
-                            ),
-                          ),
+                          onTap: () => nestPush(context, const MealsScreen()),
                         ),
                         FeatureTile(
                           title: 'Care',
@@ -375,11 +353,7 @@ class HomeScreen extends ConsumerWidget {
                               careDue == 0 ? 'Up to date' : '$careDue due',
                           icon: Icons.pets_rounded,
                           color: AppColors.mint,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const CareScreen(),
-                            ),
-                          ),
+                          onTap: () => nestPush(context, const CareScreen()),
                         ),
                       ],
                     ),
@@ -401,7 +375,10 @@ class HomeScreen extends ConsumerWidget {
                           : Column(
                               children: [
                                 for (var i = 0; i < recent.length; i++) ...[
-                                  _ActivityRow(event: recent[i], index: i),
+                                  Appear(
+                                    delay: AppMotion.stagger * i,
+                                    child: _ActivityRow(event: recent[i], index: i),
+                                  ),
                                   if (i != recent.length - 1)
                                     const Divider(
                                       height: 1,
@@ -430,26 +407,18 @@ class HomeScreen extends ConsumerWidget {
       case FamilyNeedKind.tasks:
         onOpenTab(2);
       case FamilyNeedKind.shopping:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ShoppingScreen()),
-        );
+        nestPush(context, const ShoppingScreen());
       case FamilyNeedKind.bills:
       case FamilyNeedKind.calendar:
         if (kind == FamilyNeedKind.calendar) {
           onOpenTab(1);
         } else {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ExpensesScreen()),
-          );
+          nestPush(context, const ExpensesScreen());
         }
       case FamilyNeedKind.care:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const CareScreen()),
-        );
+        nestPush(context, const CareScreen());
       case FamilyNeedKind.meals:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const MealsScreen()),
-        );
+        nestPush(context, const MealsScreen());
     }
   }
 }

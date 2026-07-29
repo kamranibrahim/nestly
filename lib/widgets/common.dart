@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
+import 'motion.dart';
 
 class NestCard extends StatelessWidget {
   const NestCard({
@@ -24,7 +26,9 @@ class NestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = color ?? AppColors.surface;
     final needsBorder = bordered && color == null;
-    final card = Container(
+    final card = AnimatedContainer(
+      duration: AppMotion.fast,
+      curve: AppMotion.standard,
       padding: padding,
       decoration: BoxDecoration(
         color: bg,
@@ -36,13 +40,10 @@ class NestCard extends StatelessWidget {
 
     if (onTap == null) return card;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: card,
-      ),
+    return Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: card,
     );
   }
 }
@@ -69,31 +70,31 @@ class SoftPill extends StatelessWidget {
         (selected ? AppColors.primary : AppColors.surface);
     final fg = foreground ??
         (selected ? AppColors.onDark : AppColors.ink);
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
+    final pill = AnimatedContainer(
+      duration: AppMotion.fast,
+      curve: AppMotion.standard,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
         borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: selected
-                ? null
-                : Border.all(color: AppColors.border),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: fg,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
+        border: selected || background != null
+            ? null
+            : Border.all(color: AppColors.border),
+      ),
+      child: AnimatedDefaultTextStyle(
+        duration: AppMotion.fast,
+        curve: AppMotion.standard,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
         ),
+        child: Text(label),
       ),
     );
+
+    if (onTap == null) return pill;
+    return Pressable(onTap: onTap, child: pill);
   }
 }
 
@@ -115,17 +116,18 @@ class CircleIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: background,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Icon(icon, color: foreground, size: size * 0.45),
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppMotion.fast,
+        curve: AppMotion.standard,
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: background,
+          shape: BoxShape.circle,
         ),
+        child: Icon(icon, color: foreground, size: size * 0.45),
       ),
     );
   }
@@ -139,7 +141,7 @@ class SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6, top: 0),
+      padding: const EdgeInsets.only(bottom: 4, top: 0),
       child: Text(
         text,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -166,7 +168,9 @@ class MemberAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: AppMotion.fast,
+      curve: AppMotion.standard,
       width: size,
       height: size,
       alignment: Alignment.center,
@@ -208,40 +212,48 @@ class FeatureTile extends StatelessWidget {
       onTap: onTap,
       color: color,
       bordered: false,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppColors.ink, size: 16),
+            child: Icon(icon, color: AppColors.ink, size: 15),
           ),
           const SizedBox(height: 6),
           Text(
             title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 13,
               color: AppColors.ink,
               letterSpacing: -0.2,
+              height: 1.1,
             ),
           ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 1),
+          if (subtitle != null)...[
+            const SizedBox(height: 6),
             Text(
               subtitle!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: AppColors.inkSecondary,
+                height: 1.15,
               ),
             ),
-          ],
+          ]
         ],
       ),
     );

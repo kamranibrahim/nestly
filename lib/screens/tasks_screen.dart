@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/db/app_database.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import '../widgets/common.dart';
+import '../widgets/motion.dart';
 
 class TasksScreen extends ConsumerWidget {
   const TasksScreen({super.key});
@@ -66,7 +68,8 @@ class TasksScreen extends ConsumerWidget {
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(10, 6, 10, 72),
                     children: [
-                      Row(
+                      Appear(
+                        child: Row(
                         children: [
                           SoftPill(
                             label: 'Open (${open.length})',
@@ -75,6 +78,7 @@ class TasksScreen extends ConsumerWidget {
                           const SizedBox(width: 8),
                           SoftPill(label: 'Done (${done.length})'),
                         ],
+                      ),
                       ),
                       const SizedBox(height: 6),
                       if (members.isNotEmpty)
@@ -110,44 +114,52 @@ class TasksScreen extends ConsumerWidget {
                         for (var i = 0; i < open.length; i++)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
-                            child: _PastelTaskCard(
-                              task: open[i],
-                              members: members,
-                              color: AppColors.softCardColors[
-                                  i % AppColors.softCardColors.length],
-                              onToggle: () async {
-                                await ref
-                                    .read(taskRepositoryProvider)
-                                    .toggleDone(open[i]);
-                                try {
-                                  await ref
-                                      .read(syncServiceProvider)
-                                      .syncAll();
-                                } catch (_) {}
-                              },
-                            ),
-                          ),
-                        if (done.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          const SectionLabel('Completed'),
-                          for (final task in done)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
+                            child: Appear(
+                              delay: AppMotion.stagger * i.clamp(0, 8),
+                              replayKey: open[i].id,
                               child: _PastelTaskCard(
-                                task: task,
+                                task: open[i],
                                 members: members,
-                                color: AppColors.surfaceMuted,
-                                bordered: true,
+                                color: AppColors.softCardColors[
+                                    i % AppColors.softCardColors.length],
                                 onToggle: () async {
                                   await ref
                                       .read(taskRepositoryProvider)
-                                      .toggleDone(task);
+                                      .toggleDone(open[i]);
                                   try {
                                     await ref
                                         .read(syncServiceProvider)
                                         .syncAll();
                                   } catch (_) {}
                                 },
+                              ),
+                            ),
+                          ),
+                        if (done.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          const SectionLabel('Completed'),
+                          for (var i = 0; i < done.length; i++)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Appear(
+                                delay: AppMotion.stagger * i.clamp(0, 6),
+                                replayKey: done[i].id,
+                                child: _PastelTaskCard(
+                                  task: done[i],
+                                  members: members,
+                                  color: AppColors.surfaceMuted,
+                                  bordered: true,
+                                  onToggle: () async {
+                                    await ref
+                                        .read(taskRepositoryProvider)
+                                        .toggleDone(done[i]);
+                                    try {
+                                      await ref
+                                          .read(syncServiceProvider)
+                                          .syncAll();
+                                    } catch (_) {}
+                                  },
+                                ),
                               ),
                             ),
                         ],

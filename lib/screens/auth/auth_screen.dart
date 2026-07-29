@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/auth_errors.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_motion.dart';
+import '../../widgets/motion.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -82,7 +84,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 28, 16, 16),
           children: [
-            Center(
+            Appear(
+              duration: AppMotion.slow,
+              curve: AppMotion.springy,
+              child: Center(
               child: Container(
                 width: 72,
                 height: 72,
@@ -101,8 +106,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
               ),
             ),
+            ),
             const SizedBox(height: 16),
-            const Text(
+            const Appear(
+              delay: Duration(milliseconds: 60),
+              child: Text(
               'nestly',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -112,8 +120,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 letterSpacing: -0.8,
               ),
             ),
+            ),
             const SizedBox(height: 6),
-            Text(
+            Appear(
+              delay: const Duration(milliseconds: 100),
+              child: Text(
               _signUp ? 'Create your family account' : 'Welcome back',
               textAlign: TextAlign.center,
               style: const TextStyle(
@@ -122,7 +133,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 color: AppColors.inkSecondary,
               ),
             ),
+            ),
             const SizedBox(height: 32),
+            Appear(
+              delay: const Duration(milliseconds: 140),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
             if (_signUp) ...[
               TextField(
                 controller: _name,
@@ -197,6 +214,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 _signUp
                     ? 'Already have an account? Log in'
                     : 'Need an account? Sign up',
+              ),
+            ),
+                ],
               ),
             ),
           ],

@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import '../widgets/common.dart';
+import '../widgets/motion.dart';
 import 'calendar_screen.dart';
 import 'home_screen.dart';
 import 'more_screen.dart';
+import 'scan_document_flow.dart';
 import 'shopping_screen.dart';
 import 'tasks_screen.dart';
 
@@ -20,7 +23,10 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
 
-  void _go(int index) => setState(() => _index = index);
+  void _go(int index) {
+    if (index == _index) return;
+    setState(() => _index = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,58 +41,68 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBody: true,
-      body: IndexedStack(
+      body: AnimatedTabBody(
         index: _index,
         children: pages,
       ),
-      floatingActionButton: CircleIconButton(
-        icon: Icons.add_rounded,
-        size: 46,
-        onTap: () => _showAddSheet(context),
+      floatingActionButton: Appear(
+        duration: AppMotion.slow,
+        offset: const Offset(0, 0.2),
+        curve: AppMotion.springy,
+        child: CircleIconButton(
+          icon: Icons.add_rounded,
+          size: 46,
+          onTap: () => _showAddSheet(context),
+        ),
       ),
       floatingActionButtonLocation: const _FabAboveNav(),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(10, 0, 10, 4),
-        child: Container(
-          height: 54,
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.navBar,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            children: [
-              _NavItem(
-                icon: Icons.home_rounded,
-                label: 'Home',
-                selected: _index == 0,
-                onTap: () => _go(0),
-              ),
-              _NavItem(
-                icon: Icons.calendar_month_rounded,
-                label: 'Calendar',
-                selected: _index == 1,
-                onTap: () => _go(1),
-              ),
-              _NavItem(
-                icon: Icons.checklist_rounded,
-                label: 'Tasks',
-                selected: _index == 2,
-                onTap: () => _go(2),
-              ),
-              _NavItem(
-                icon: Icons.shopping_bag_rounded,
-                label: 'Shop',
-                selected: _index == 3,
-                onTap: () => _go(3),
-              ),
+      bottomNavigationBar: Appear(
+        delay: AppMotion.fast,
+        duration: AppMotion.slow,
+        offset: const Offset(0, 0.35),
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+          child: Container(
+            height: 54,
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.navBar,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              children: [
+                _NavItem(
+                  icon: Icons.home_rounded,
+                  label: 'Home',
+                  selected: _index == 0,
+                  onTap: () => _go(0),
+                ),
+                _NavItem(
+                  icon: Icons.calendar_month_rounded,
+                  label: 'Calendar',
+                  selected: _index == 1,
+                  onTap: () => _go(1),
+                ),
+                _NavItem(
+                  icon: Icons.checklist_rounded,
+                  label: 'Tasks',
+                  selected: _index == 2,
+                  onTap: () => _go(2),
+                ),
+                _NavItem(
+                  icon: Icons.shopping_bag_rounded,
+                  label: 'Shop',
+                  selected: _index == 3,
+                  onTap: () => _go(3),
+                ),
               _NavItem(
                 icon: Icons.more_horiz_rounded,
-                label: 'More',
+                label: 'Nest',
                 selected: _index == 4,
                 onTap: () => _go(4),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -97,6 +113,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.surface,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -104,15 +121,17 @@ class _AppShellState extends ConsumerState<AppShell> {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: Stagger(
+              step: const Duration(milliseconds: 35),
               children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(4),
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.divider,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -161,6 +180,15 @@ class _AppShellState extends ConsumerState<AppShell> {
                         PendingAdd.shopping;
                   },
                 ),
+                _AddOption(
+                  icon: Icons.document_scanner_rounded,
+                  color: AppColors.tilePink,
+                  label: 'Scan receipt / invite',
+                  onTap: () {
+                    Navigator.pop(context);
+                    startDocumentScanFlow(context, ref);
+                  },
+                ),
               ],
             ),
           ),
@@ -170,12 +198,14 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 
-/// Sits just above the floating pill nav with a tight 6px gap.
 class _FabAboveNav extends StandardFabLocation with FabEndOffsetX {
   const _FabAboveNav();
 
   @override
-  double getOffsetY(ScaffoldPrelayoutGeometry scaffoldGeometry, double adjustment) {
+  double getOffsetY(
+    ScaffoldPrelayoutGeometry scaffoldGeometry,
+    double adjustment,
+  ) {
     final double fabHeight = scaffoldGeometry.floatingActionButtonSize.height;
     return scaffoldGeometry.contentBottom - fabHeight - 6 + adjustment;
   }
@@ -197,45 +227,32 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: GestureDetector(
+      child: Pressable(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          padding: EdgeInsets.symmetric(
-            horizontal: selected ? 8 : 0,
-            vertical: 8,
-          ),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.navPill : Colors.transparent,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: selected ? AppColors.ink : const Color(0xFF9A9A9E),
+        child: Tooltip(
+          message: label,
+          child: Center(
+            child: AnimatedContainer(
+              duration: AppMotion.medium,
+              curve: AppMotion.standard,
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: selected ? AppColors.navPill : Colors.transparent,
+                shape: BoxShape.circle,
               ),
-              if (selected) ...[
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.ink,
-                    ),
-                  ),
+              child: AnimatedScale(
+                scale: selected ? 1.08 : 1,
+                duration: AppMotion.fast,
+                curve: AppMotion.standard,
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: selected ? AppColors.ink : const Color(0xFF9A9A9E),
                 ),
-              ],
-            ],
+              ),
+            ),
           ),
         ),
       ),

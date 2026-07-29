@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
+import '../widgets/motion.dart';
 
 abstract final class AppTheme {
   static ThemeData light() {
@@ -21,6 +22,12 @@ abstract final class AppTheme {
         outline: AppColors.border,
       ),
       scaffoldBackgroundColor: AppColors.background,
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: const NestPageTransitionsBuilder(),
+        },
+      ),
     );
 
     final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(

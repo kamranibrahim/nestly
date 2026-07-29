@@ -206,6 +206,7 @@ class EventRepository {
     String category = 'Family',
     String? location,
     bool allDay = false,
+    DateTime? endsAt,
     String? nestId,
   }) async {
     final now = DateTime.now();
@@ -219,6 +220,7 @@ class EventRepository {
             category: Value(category),
             location: Value(location),
             startsAt: startsAt,
+            endsAt: Value(endsAt),
             allDay: Value(allDay),
             dirty: const Value(true),
             createdAt: Value(now),
