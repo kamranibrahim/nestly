@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 import 'app_shell.dart';
 import 'auth/auth_screen.dart';
 import 'auth/nest_setup_screen.dart';
+import 'onboarding/onboarding_screen.dart';
 
 class AuthGate extends ConsumerWidget {
   const AuthGate({super.key});
@@ -23,9 +24,27 @@ class AuthGate extends ConsumerWidget {
         body: Center(child: Text('Auth error: $e')),
       ),
       data: (user) {
-        if (user == null) return const AuthScreen();
+        if (user == null) return const _PreAuthGate();
         return const _NestGate();
       },
+    );
+  }
+}
+
+class _PreAuthGate extends ConsumerWidget {
+  const _PreAuthGate();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final seen = ref.watch(onboardingSeenProvider);
+
+    return seen.when(
+      loading: () => const Scaffold(
+        backgroundColor: Color(0xFFFBF6F0),
+        body: NestLoadingSkeleton(itemCount: 2),
+      ),
+      error: (_, _) => const AuthScreen(),
+      data: (done) => done ? const AuthScreen() : const OnboardingScreen(),
     );
   }
 }
