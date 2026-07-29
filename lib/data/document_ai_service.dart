@@ -79,11 +79,18 @@ class DocumentAiException implements Exception {
   String toString() => message;
 }
 
-/// Quiet document scan via **Firebase AI Logic** (Gemini) — no Netlify required.
+/// Quiet document scan via **Firebase AI Logic → Vertex AI Gemini**.
+///
+/// Requires a Blaze Firebase project with Vertex AI Gemini enabled.
 class DocumentAiService {
-  DocumentAiService({FirebaseAuth? auth}) : _auth = auth ?? FirebaseAuth.instance;
+  DocumentAiService({
+    FirebaseAuth? auth,
+    String location = 'us-central1',
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _location = location;
 
   final FirebaseAuth _auth;
+  final String _location;
 
   /// Always available when Firebase is configured; user must be signed in to call.
   bool get isConfigured => true;
@@ -138,7 +145,7 @@ Rules:
 ''';
 
     try {
-      final model = FirebaseAI.googleAI().generativeModel(
+      final model = FirebaseAI.vertexAI(location: _location).generativeModel(
         model: 'gemini-flash-latest',
         generationConfig: GenerationConfig(
           temperature: 0.2,
@@ -189,14 +196,22 @@ Rules:
   static String _friendlyFirebaseError(Object e) {
     final text = '$e';
     final lower = text.toLowerCase();
+    if (lower.contains('billing') ||
+        lower.contains('blaze') ||
+        lower.contains('payment') ||
+        lower.contains('enable billing')) {
+      return 'Vertex AI needs the Firebase Blaze plan. Upgrade billing in '
+          'Firebase Console, enable Vertex AI, then try again.';
+    }
     if (lower.contains('permission') ||
         lower.contains('permission_denied') ||
         lower.contains('not enabled') ||
         lower.contains('ai logic') ||
         lower.contains('api key') ||
-        lower.contains('unauthenticated')) {
-      return 'Firebase AI Logic is not enabled yet. In Firebase Console → '
-          'Build → AI → enable Gemini Developer API, then try again.';
+        lower.contains('unauthenticated') ||
+        lower.contains('vertex')) {
+      return 'Vertex AI Gemini is not ready. In Firebase Console enable '
+          'AI Logic with the Vertex AI Gemini API (Blaze), then try again.';
     }
     if (lower.contains('timeout')) {
       return 'Scan timed out. Try a clearer photo or a smaller file.';
@@ -204,12 +219,11 @@ Rules:
     if (lower.contains('network') ||
         lower.contains('socket') ||
         lower.contains('unavailable')) {
-      return 'Could not reach Gemini. Check your connection and try again.';
+      return 'Could not reach Vertex AI. Check your connection and try again.';
     }
     if (lower.contains('quota') || lower.contains('resource exhausted')) {
       return 'AI quota reached for today. Try again later.';
     }
-    // Strip noisy prefixes for snackbars.
     return text
         .replaceFirst(RegExp(r'^\[firebase_ai[^\]]*\]\s*'), '')
         .replaceFirst(RegExp(r'^Exception:\s*'), '')
