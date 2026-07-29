@@ -193,19 +193,6 @@ class HomeScreen extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              CircleIconButton(
-                                icon: Icons.ios_share_rounded,
-                                background: AppColors.mint,
-                                foreground: AppColors.ink,
-                                size: 34,
-                                onTap: () => onOpenTab(2),
-                              ),
-                              const SizedBox(width: 8),
-                              CircleIconButton(
-                                icon: Icons.add_rounded,
-                                size: 34,
-                                onTap: () => onOpenTab(2),
-                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -233,6 +220,33 @@ class HomeScreen extends ConsumerWidget {
                               _HashChip('#family'),
                               _HashChip('#nest'),
                               _HashChip('#today'),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _showTodayReminders(
+                                    context,
+                                    ref,
+                                    careDue: careDue,
+                                    schoolDue: schoolDue,
+                                    billsDueSoon: billsDueSoon,
+                                    openTasks: openTasks,
+                                  ),
+                                  icon: const Icon(Icons.notifications_none_rounded),
+                                  label: const Text('Reminders'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: () => onOpenTab(2),
+                                  icon: const Icon(Icons.checklist_rounded),
+                                  label: const Text('Open tasks'),
+                                ),
+                              ),
                             ],
                           ),
                           if (openTaskList.isNotEmpty) ...[
@@ -284,6 +298,40 @@ class HomeScreen extends ConsumerWidget {
                           ],
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    const SectionLabel('Today snapshot'),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _TodayMiniStat(
+                          label: 'Calendar',
+                          value: todayEvents.isEmpty ? 'Quiet' : '${todayEvents.length} today',
+                          icon: Icons.calendar_month_rounded,
+                          tone: AppColors.accent,
+                        ),
+                        _TodayMiniStat(
+                          label: 'Bills',
+                          value: billsDueSoon == 0 ? 'Clear' : '$billsDueSoon due',
+                          icon: Icons.receipt_long_rounded,
+                          tone: AppColors.tileYellow,
+                        ),
+                        _TodayMiniStat(
+                          label: 'Care',
+                          value: careDue == 0 ? 'Good' : '$careDue due',
+                          icon: Icons.favorite_rounded,
+                          tone: AppColors.mint,
+                        ),
+                        _TodayMiniStat(
+                          label: 'Dinner',
+                          value: dinnerMeal?.title.trim().isNotEmpty == true
+                              ? dinnerMeal!.title.trim()
+                              : 'Not planned',
+                          icon: Icons.restaurant_rounded,
+                          tone: AppColors.tileTeal,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     const SectionLabel('Today for your nest'),
@@ -745,6 +793,75 @@ class HomeScreen extends ConsumerWidget {
       case FamilyNeedKind.vault:
         nestPush(context, const VaultScreen());
     }
+  }
+}
+
+class _TodayMiniStat extends StatelessWidget {
+  const _TodayMiniStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.tone,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = (MediaQuery.sizeOf(context).width - 36) / 2;
+    return SizedBox(
+      width: width,
+      child: NestCard(
+        color: tone.withValues(alpha: 0.5),
+        bordered: false,
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 18, color: AppColors.ink),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.inkSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
