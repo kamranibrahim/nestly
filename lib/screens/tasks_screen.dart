@@ -154,103 +154,141 @@ class TasksScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final controller = TextEditingController();
     final members = ref.read(membersProvider).valueOrNull ?? const [];
-    String assigneeId = members.isNotEmpty ? members.first.id : '';
+    final initialAssignee =
+        members.isNotEmpty ? members.first.id : '';
 
-    final created = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<({String title, String assigneeId})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                12,
-                20,
-                MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.divider,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'New task',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    textInputAction: TextInputAction.done,
-                    decoration: const InputDecoration(
-                      hintText: 'What needs doing?',
-                    ),
-                    onSubmitted: (_) => Navigator.pop(context, true),
-                  ),
-                  if (members.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        for (final member in members)
-                          ChoiceChip(
-                            label: Text(member.name),
-                            selected: assigneeId == member.id,
-                            selectedColor: AppColors.primary,
-                            labelStyle: TextStyle(
-                              color: assigneeId == member.id
-                                  ? Colors.white
-                                  : AppColors.ink,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            onSelected: (_) {
-                              setModalState(() => assigneeId = member.id);
-                            },
-                          ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Add task'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => _AddTaskSheet(
+        members: members,
+        initialAssigneeId: initialAssignee,
+      ),
     );
 
-    final title = controller.text.trim();
-    controller.dispose();
-    if (created == true && title.isNotEmpty) {
+    if (result != null && result.title.isNotEmpty) {
       await ref.read(taskRepositoryProvider).addTask(
-            title: title,
-            assigneeId: assigneeId,
+            title: result.title,
+            assigneeId: result.assigneeId,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
       } catch (_) {}
     }
+  }
+}
+
+class _AddTaskSheet extends StatefulWidget {
+  const _AddTaskSheet({
+    required this.members,
+    required this.initialAssigneeId,
+  });
+
+  final List<NestMember> members;
+  final String initialAssigneeId;
+
+  @override
+  State<_AddTaskSheet> createState() => _AddTaskSheetState();
+}
+
+class _AddTaskSheetState extends State<_AddTaskSheet> {
+  late final TextEditingController _controller;
+  late String _assigneeId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _assigneeId = widget.initialAssigneeId;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final title = _controller.text.trim();
+    if (title.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(context, (title: title, assigneeId: _assigneeId));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + 20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'New task',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                hintText: 'What needs doing?',
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+            if (widget.members.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final member in widget.members)
+                    ChoiceChip(
+                      label: Text(member.name),
+                      selected: _assigneeId == member.id,
+                      selectedColor: AppColors.primary,
+                      labelStyle: TextStyle(
+                        color: _assigneeId == member.id
+                            ? Colors.white
+                            : AppColors.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      onSelected: (_) {
+                        setState(() => _assigneeId = member.id);
+                      },
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _submit,
+              child: const Text('Add task'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
