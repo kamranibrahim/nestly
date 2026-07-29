@@ -109,15 +109,15 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  void _showAddSheet(BuildContext context) {
+  void _showAddSheet(BuildContext shellContext) {
     showModalBottomSheet<void>(
-      context: context,
+      context: shellContext,
       backgroundColor: AppColors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
@@ -152,7 +152,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   color: AppColors.accent,
                   label: 'Event',
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                     _go(1);
                     ref.read(pendingAddProvider.notifier).state =
                         PendingAdd.event;
@@ -163,7 +163,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   color: AppColors.mint,
                   label: 'Task',
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                     _go(2);
                     ref.read(pendingAddProvider.notifier).state =
                         PendingAdd.task;
@@ -174,7 +174,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   color: AppColors.tileOrange,
                   label: 'Shopping item',
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                     _go(3);
                     ref.read(pendingAddProvider.notifier).state =
                         PendingAdd.shopping;
@@ -185,8 +185,12 @@ class _AppShellState extends ConsumerState<AppShell> {
                   color: AppColors.tilePink,
                   label: 'Scan receipt / invite',
                   onTap: () {
-                    Navigator.pop(context);
-                    startDocumentScanFlow(context, ref);
+                    Navigator.pop(sheetContext);
+                    // Sheet context is disposed after pop — use the shell.
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      startDocumentScanFlow(shellContext, ref);
+                    });
                   },
                 ),
               ],

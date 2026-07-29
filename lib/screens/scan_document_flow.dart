@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -21,26 +23,13 @@ Future<void> startDocumentScanFlow(
   WidgetRef ref, {
   String? hint,
 }) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+
   final user = ref.read(authStateProvider).valueOrNull;
   if (user == null) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to scan documents.')),
-      );
-    }
-    return;
-  }
-
-  if (!ref.read(documentAiServiceProvider).isConfigured) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Scan is not available. Enable Firebase AI Logic in the console.',
-          ),
-        ),
-      );
-    }
+    messenger?.showSnackBar(
+      const SnackBar(content: Text('Sign in to scan documents.')),
+    );
     return;
   }
 
@@ -48,41 +37,52 @@ Future<void> startDocumentScanFlow(
   if (!context.mounted) return;
   if (resolvedHint == null) return;
 
-  final picked = await FilePicker.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'heic', 'pdf'],
-    withData: true,
-  );
+  late final FilePickerResult? picked;
+  try {
+    picked = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'heic', 'pdf'],
+      withData: true,
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Could not open the file picker: ${_friendlyError(e)}')),
+    );
+    return;
+  }
+  if (!context.mounted) return;
   if (picked == null || picked.files.isEmpty) return;
 
   final file = picked.files.first;
-  final bytes = file.bytes;
+  final bytes = await _bytesFromPickedFile(file);
+  if (!context.mounted) return;
   if (bytes == null || bytes.isEmpty) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not read that file')),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Could not read that file. Try a smaller JPEG/PNG or PDF.',
+        ),
+      ),
+    );
     return;
   }
 
   if (bytes.length > 4 * 1024 * 1024) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('File is too large — keep photos/PDFs under ~4 MB.'),
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('File is too large — keep photos/PDFs under ~4 MB.'),
+      ),
+    );
     return;
   }
 
   final mime = _mimeFor(file.extension, file.name);
-  if (!context.mounted) return;
 
   showDialog<void>(
     context: context,
     barrierDismissible: false,
+    useRootNavigator: true,
     builder: (_) => const Center(
       child: Card(
         child: Padding(
@@ -108,7 +108,7 @@ Future<void> startDocumentScanFlow(
 
   try {
     final draft = await ref.read(documentAiServiceProvider).parseDocument(
-          bytes: Uint8List.fromList(bytes),
+          bytes: bytes,
           mimeType: mime,
           hint: resolvedHint.isEmpty ? null : resolvedHint,
         );
@@ -125,6 +125,20 @@ Future<void> startDocumentScanFlow(
       ),
     );
   }
+}
+
+Future<Uint8List?> _bytesFromPickedFile(PlatformFile file) async {
+  if (file.bytes != null && file.bytes!.isNotEmpty) {
+    return Uint8List.fromList(file.bytes!);
+  }
+  if (!kIsWeb && file.path != null && file.path!.isNotEmpty) {
+    try {
+      return await File(file.path!).readAsBytes();
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
 }
 
 Future<String?> _pickScanHint(BuildContext context) {

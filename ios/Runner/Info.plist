@@ -67,7 +67,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Nestly needs photo access so you can save family documents to the vault.</string>
+	<string>Nestly needs photo access so you can scan receipts and save family documents.</string>
 	<key>UISupportsDocumentBrowser</key>
 	<true/>
 </dict>
