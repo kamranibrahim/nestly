@@ -33,6 +33,7 @@ FamilyNeedsSummary buildFamilyNeeds({
   required bool dinnerPlannedToday,
   required int eventsToday,
   int grocerySuggestions = 0,
+  String? dinnerTitle,
 }) {
   final needs = <FamilyNeed>[];
 
@@ -73,7 +74,7 @@ FamilyNeedsSummary buildFamilyNeeds({
             '$unpaidBillsDueSoon bill${unpaidBillsDueSoon == 1 ? '' : 's'} due soon',
         detail: 'Mark paid when you’ve settled them',
         kind: FamilyNeedKind.bills,
-        actionLabel: 'Review',
+        actionLabel: 'Paid',
       ),
     );
   }
@@ -105,6 +106,15 @@ FamilyNeedsSummary buildFamilyNeeds({
         detail: 'Add a meal — ingredients can go to the list',
         kind: FamilyNeedKind.meals,
         actionLabel: 'Plan',
+      ),
+    );
+  } else if (dinnerTitle != null && dinnerTitle.trim().isNotEmpty) {
+    needs.add(
+      FamilyNeed(
+        title: 'Dinner: ${dinnerTitle.trim()}',
+        detail: 'Push ingredients to the grocery list',
+        kind: FamilyNeedKind.meals,
+        actionLabel: 'Shop',
       ),
     );
   }

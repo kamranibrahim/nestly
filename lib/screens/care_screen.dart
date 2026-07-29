@@ -143,6 +143,11 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                               try {
                                 await ref.read(syncServiceProvider).syncAll();
                               } catch (_) {}
+                              try {
+                                await ref
+                                    .read(notificationServiceProvider)
+                                    .rescheduleReminders();
+                              } catch (_) {}
                             },
                             onDelete: () async {
                               await ref
@@ -179,6 +184,11 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                                   .markDone(upcoming[i]);
                               try {
                                 await ref.read(syncServiceProvider).syncAll();
+                              } catch (_) {}
+                              try {
+                                await ref
+                                    .read(notificationServiceProvider)
+                                    .rescheduleReminders();
                               } catch (_) {}
                             },
                             onDelete: () async {
@@ -424,6 +434,9 @@ class _CareScreenState extends ConsumerState<CareScreen> {
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
+      } catch (_) {}
+      try {
+        await ref.read(notificationServiceProvider).rescheduleReminders();
       } catch (_) {}
     }
   }

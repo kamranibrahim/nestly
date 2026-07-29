@@ -51,19 +51,25 @@ class HomeScreen extends ConsumerWidget {
     final recent = timeline.take(5).toList();
 
     final weekAhead = today.add(const Duration(days: 7));
-    final billsDueSoon = bills
+    final billsDueSoonList = bills
         .where(
           (b) =>
               !b.paid &&
               !b.dueAt.isBefore(today) &&
               !b.dueAt.isAfter(weekAhead),
         )
-        .length;
-    final dinnerToday = meals.any(
-      (m) =>
-          m.weekday == now.weekday &&
-          m.mealType.toLowerCase() == 'dinner',
-    );
+        .toList()
+      ..sort((a, b) => a.dueAt.compareTo(b.dueAt));
+    final billsDueSoon = billsDueSoonList.length;
+    MealPlan? dinnerMeal;
+    for (final m in meals) {
+      if (m.weekday == now.weekday &&
+          m.mealType.toLowerCase() == 'dinner') {
+        dinnerMeal = m;
+        break;
+      }
+    }
+    final dinnerToday = dinnerMeal != null;
     final needs = buildFamilyNeeds(
       openTasks: openTasks,
       openShopping: openShopping,
@@ -73,6 +79,7 @@ class HomeScreen extends ConsumerWidget {
       dinnerPlannedToday: dinnerToday,
       eventsToday: todayEvents.length,
       grocerySuggestions: grocerySuggestions.length,
+      dinnerTitle: dinnerMeal?.title,
     );
 
     final nestName =
@@ -290,6 +297,9 @@ class HomeScreen extends ConsumerWidget {
                                 firstCareDue: careDueItems.isEmpty
                                     ? null
                                     : careDueItems.first,
+                                firstBillDue: billsDueSoonList.isEmpty
+                                    ? null
+                                    : billsDueSoonList.first,
                               ),
                               onOpen: () => _openNeed(
                                 context,
@@ -307,6 +317,10 @@ class HomeScreen extends ConsumerWidget {
                                 firstCareDue: careDueItems.isEmpty
                                     ? null
                                     : careDueItems.first,
+                                firstBillDue: billsDueSoonList.isEmpty
+                                    ? null
+                                    : billsDueSoonList.first,
+                                dinnerMeal: dinnerMeal,
                               ),
                             ),
                             if (i != needs.needs.length - 1)
@@ -454,6 +468,7 @@ class HomeScreen extends ConsumerWidget {
     FamilyNeedKind kind, {
     Task? firstOpenTask,
     CareItem? firstCareDue,
+    Bill? firstBillDue,
   }) {
     switch (kind) {
       case FamilyNeedKind.tasks:
@@ -462,6 +477,10 @@ class HomeScreen extends ConsumerWidget {
             : 'Next: ${firstOpenTask.title}';
       case FamilyNeedKind.care:
         return firstCareDue == null ? null : 'Next: ${firstCareDue.title}';
+      case FamilyNeedKind.bills:
+        return firstBillDue == null
+            ? null
+            : 'Next: ${firstBillDue.title} · \$${firstBillDue.amount.toStringAsFixed(0)}';
       default:
         return null;
     }
@@ -474,6 +493,8 @@ class HomeScreen extends ConsumerWidget {
     FamilyNeedKind kind, {
     Task? firstOpenTask,
     CareItem? firstCareDue,
+    Bill? firstBillDue,
+    MealPlan? dinnerMeal,
   }) async {
     switch (kind) {
       case FamilyNeedKind.tasks:
@@ -499,11 +520,80 @@ class HomeScreen extends ConsumerWidget {
         try {
           await ref.read(syncServiceProvider).syncAll();
         } catch (_) {}
+        try {
+          await ref.read(notificationServiceProvider).rescheduleReminders();
+        } catch (_) {}
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Done: ${firstCareDue.title}')),
           );
         }
+      case FamilyNeedKind.bills:
+        if (firstBillDue == null) {
+          nestPush(context, const ExpensesScreen());
+          return;
+        }
+        await ref.read(billRepositoryProvider).togglePaid(firstBillDue);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        try {
+          await ref.read(notificationServiceProvider).rescheduleReminders();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Paid: ${firstBillDue.title}')),
+          );
+        }
+      case FamilyNeedKind.meals:
+        if (dinnerMeal == null || dinnerMeal.ingredients.trim().isEmpty) {
+          nestPush(context, const MealsScreen());
+          return;
+        }
+        final added = await ref
+            .read(mealRepositoryProvider)
+            .addIngredientsToShopping(dinnerMeal);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                added == 0
+                    ? 'Ingredients already on the list'
+                    : 'Added $added item${added == 1 ? '' : 's'} to groceries',
+              ),
+            ),
+          );
+          if (added > 0) onOpenTab(3);
+        }
+      case FamilyNeedKind.shopping:
+        final openCount =
+            ref.read(openShoppingCountProvider).valueOrNull ?? 0;
+        if (openCount == 0) {
+          final suggestions =
+              ref.read(grocerySuggestionsProvider).valueOrNull ?? const [];
+          if (suggestions.isNotEmpty) {
+            for (final habit in suggestions.take(5)) {
+              await ref.read(shoppingRepositoryProvider).addSuggestion(habit);
+            }
+            try {
+              await ref.read(syncServiceProvider).syncAll();
+            } catch (_) {}
+            if (context.mounted) {
+              final n = suggestions.take(5).length;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Added $n restock item${n == 1 ? '' : 's'}',
+                  ),
+                ),
+              );
+            }
+          }
+        }
+        onOpenTab(3);
       default:
         _openNeed(context, onOpenTab, kind);
     }
