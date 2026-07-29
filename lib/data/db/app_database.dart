@@ -192,7 +192,7 @@ class MealPlans extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// Recurring household care (pet, home, car).
+/// Recurring household care (pet, home, car, elder).
 class CareItems extends Table {
   TextColumn get id => text()();
   TextColumn get nestId => text().nullable()();
@@ -201,6 +201,28 @@ class CareItems extends Table {
   IntColumn get cadenceDays => integer().withDefault(const Constant(7))();
   DateTimeColumn get lastDoneAt => dateTime().nullable()();
   DateTimeColumn get nextDueAt => dateTime()();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  /// Optional link to a nest member (elder care routines).
+  TextColumn get memberId => text().withDefault(const Constant(''))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Shared elder / care-recipient profile (medications, doctor, mobility).
+class CareProfiles extends Table {
+  /// Same as memberId — one profile per nest member.
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get memberId => text()();
+  TextColumn get medications => text().withDefault(const Constant(''))();
+  TextColumn get allergies => text().withDefault(const Constant(''))();
+  TextColumn get mobilityNotes => text().withDefault(const Constant(''))();
+  TextColumn get primaryDoctor => text().withDefault(const Constant(''))();
   TextColumn get notes => text().withDefault(const Constant(''))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -264,6 +286,7 @@ class GroceryHabits extends Table {
     TimelineEvents,
     MealPlans,
     CareItems,
+    CareProfiles,
     SchoolActivities,
     GroceryHabits,
   ],
@@ -272,7 +295,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -321,6 +344,10 @@ class AppDatabase extends _$AppDatabase {
               groceryHabits,
               groceryHabits.cadenceDays,
             );
+          }
+          if (from < 9) {
+            await _createTableIfMissing(m, careProfiles);
+            await _addColumnIfMissing(m, careItems, careItems.memberId);
           }
         },
       );
@@ -403,6 +430,7 @@ class AppDatabase extends _$AppDatabase {
       b.deleteAll(timelineEvents);
       b.deleteAll(mealPlans);
       b.deleteAll(careItems);
+      b.deleteAll(careProfiles);
       b.deleteAll(schoolActivities);
       b.deleteAll(groceryHabits);
       b.deleteAll(nestMembers);

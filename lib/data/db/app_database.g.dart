@@ -6968,6 +6968,18 @@ class $CareItemsTable extends CareItems
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<String> memberId = GeneratedColumn<String>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
   late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
@@ -7030,6 +7042,7 @@ class $CareItemsTable extends CareItems
     lastDoneAt,
     nextDueAt,
     notes,
+    memberId,
     dirty,
     deleted,
     createdAt,
@@ -7104,6 +7117,12 @@ class $CareItemsTable extends CareItems
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    }
     if (data.containsKey('dirty')) {
       context.handle(
         _dirtyMeta,
@@ -7169,6 +7188,10 @@ class $CareItemsTable extends CareItems
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}member_id'],
+      )!,
       dirty: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
@@ -7203,6 +7226,9 @@ class CareItem extends DataClass implements Insertable<CareItem> {
   final DateTime? lastDoneAt;
   final DateTime nextDueAt;
   final String notes;
+
+  /// Optional link to a nest member (elder care routines).
+  final String memberId;
   final bool dirty;
   final bool deleted;
   final DateTime createdAt;
@@ -7216,6 +7242,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
     this.lastDoneAt,
     required this.nextDueAt,
     required this.notes,
+    required this.memberId,
     required this.dirty,
     required this.deleted,
     required this.createdAt,
@@ -7236,6 +7263,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
     }
     map['next_due_at'] = Variable<DateTime>(nextDueAt);
     map['notes'] = Variable<String>(notes);
+    map['member_id'] = Variable<String>(memberId);
     map['dirty'] = Variable<bool>(dirty);
     map['deleted'] = Variable<bool>(deleted);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -7257,6 +7285,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
           : Value(lastDoneAt),
       nextDueAt: Value(nextDueAt),
       notes: Value(notes),
+      memberId: Value(memberId),
       dirty: Value(dirty),
       deleted: Value(deleted),
       createdAt: Value(createdAt),
@@ -7278,6 +7307,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
       lastDoneAt: serializer.fromJson<DateTime?>(json['lastDoneAt']),
       nextDueAt: serializer.fromJson<DateTime>(json['nextDueAt']),
       notes: serializer.fromJson<String>(json['notes']),
+      memberId: serializer.fromJson<String>(json['memberId']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deleted: serializer.fromJson<bool>(json['deleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -7296,6 +7326,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
       'lastDoneAt': serializer.toJson<DateTime?>(lastDoneAt),
       'nextDueAt': serializer.toJson<DateTime>(nextDueAt),
       'notes': serializer.toJson<String>(notes),
+      'memberId': serializer.toJson<String>(memberId),
       'dirty': serializer.toJson<bool>(dirty),
       'deleted': serializer.toJson<bool>(deleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -7312,6 +7343,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
     Value<DateTime?> lastDoneAt = const Value.absent(),
     DateTime? nextDueAt,
     String? notes,
+    String? memberId,
     bool? dirty,
     bool? deleted,
     DateTime? createdAt,
@@ -7325,6 +7357,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
     lastDoneAt: lastDoneAt.present ? lastDoneAt.value : this.lastDoneAt,
     nextDueAt: nextDueAt ?? this.nextDueAt,
     notes: notes ?? this.notes,
+    memberId: memberId ?? this.memberId,
     dirty: dirty ?? this.dirty,
     deleted: deleted ?? this.deleted,
     createdAt: createdAt ?? this.createdAt,
@@ -7344,6 +7377,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
           : this.lastDoneAt,
       nextDueAt: data.nextDueAt.present ? data.nextDueAt.value : this.nextDueAt,
       notes: data.notes.present ? data.notes.value : this.notes,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -7362,6 +7396,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
           ..write('lastDoneAt: $lastDoneAt, ')
           ..write('nextDueAt: $nextDueAt, ')
           ..write('notes: $notes, ')
+          ..write('memberId: $memberId, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -7380,6 +7415,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
     lastDoneAt,
     nextDueAt,
     notes,
+    memberId,
     dirty,
     deleted,
     createdAt,
@@ -7397,6 +7433,7 @@ class CareItem extends DataClass implements Insertable<CareItem> {
           other.lastDoneAt == this.lastDoneAt &&
           other.nextDueAt == this.nextDueAt &&
           other.notes == this.notes &&
+          other.memberId == this.memberId &&
           other.dirty == this.dirty &&
           other.deleted == this.deleted &&
           other.createdAt == this.createdAt &&
@@ -7412,6 +7449,7 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
   final Value<DateTime?> lastDoneAt;
   final Value<DateTime> nextDueAt;
   final Value<String> notes;
+  final Value<String> memberId;
   final Value<bool> dirty;
   final Value<bool> deleted;
   final Value<DateTime> createdAt;
@@ -7426,6 +7464,7 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
     this.lastDoneAt = const Value.absent(),
     this.nextDueAt = const Value.absent(),
     this.notes = const Value.absent(),
+    this.memberId = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -7441,6 +7480,7 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
     this.lastDoneAt = const Value.absent(),
     required DateTime nextDueAt,
     this.notes = const Value.absent(),
+    this.memberId = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -7458,6 +7498,7 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
     Expression<DateTime>? lastDoneAt,
     Expression<DateTime>? nextDueAt,
     Expression<String>? notes,
+    Expression<String>? memberId,
     Expression<bool>? dirty,
     Expression<bool>? deleted,
     Expression<DateTime>? createdAt,
@@ -7473,6 +7514,7 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
       if (lastDoneAt != null) 'last_done_at': lastDoneAt,
       if (nextDueAt != null) 'next_due_at': nextDueAt,
       if (notes != null) 'notes': notes,
+      if (memberId != null) 'member_id': memberId,
       if (dirty != null) 'dirty': dirty,
       if (deleted != null) 'deleted': deleted,
       if (createdAt != null) 'created_at': createdAt,
@@ -7490,6 +7532,7 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
     Value<DateTime?>? lastDoneAt,
     Value<DateTime>? nextDueAt,
     Value<String>? notes,
+    Value<String>? memberId,
     Value<bool>? dirty,
     Value<bool>? deleted,
     Value<DateTime>? createdAt,
@@ -7505,6 +7548,7 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
       lastDoneAt: lastDoneAt ?? this.lastDoneAt,
       nextDueAt: nextDueAt ?? this.nextDueAt,
       notes: notes ?? this.notes,
+      memberId: memberId ?? this.memberId,
       dirty: dirty ?? this.dirty,
       deleted: deleted ?? this.deleted,
       createdAt: createdAt ?? this.createdAt,
@@ -7540,6 +7584,9 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (memberId.present) {
+      map['member_id'] = Variable<String>(memberId.value);
+    }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
@@ -7568,6 +7615,710 @@ class CareItemsCompanion extends UpdateCompanion<CareItem> {
           ..write('cadenceDays: $cadenceDays, ')
           ..write('lastDoneAt: $lastDoneAt, ')
           ..write('nextDueAt: $nextDueAt, ')
+          ..write('notes: $notes, ')
+          ..write('memberId: $memberId, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CareProfilesTable extends CareProfiles
+    with TableInfo<$CareProfilesTable, CareProfile> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CareProfilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<String> memberId = GeneratedColumn<String>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _medicationsMeta = const VerificationMeta(
+    'medications',
+  );
+  @override
+  late final GeneratedColumn<String> medications = GeneratedColumn<String>(
+    'medications',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _allergiesMeta = const VerificationMeta(
+    'allergies',
+  );
+  @override
+  late final GeneratedColumn<String> allergies = GeneratedColumn<String>(
+    'allergies',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _mobilityNotesMeta = const VerificationMeta(
+    'mobilityNotes',
+  );
+  @override
+  late final GeneratedColumn<String> mobilityNotes = GeneratedColumn<String>(
+    'mobility_notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _primaryDoctorMeta = const VerificationMeta(
+    'primaryDoctor',
+  );
+  @override
+  late final GeneratedColumn<String> primaryDoctor = GeneratedColumn<String>(
+    'primary_doctor',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    memberId,
+    medications,
+    allergies,
+    mobilityNotes,
+    primaryDoctor,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'care_profiles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CareProfile> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('medications')) {
+      context.handle(
+        _medicationsMeta,
+        medications.isAcceptableOrUnknown(
+          data['medications']!,
+          _medicationsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('allergies')) {
+      context.handle(
+        _allergiesMeta,
+        allergies.isAcceptableOrUnknown(data['allergies']!, _allergiesMeta),
+      );
+    }
+    if (data.containsKey('mobility_notes')) {
+      context.handle(
+        _mobilityNotesMeta,
+        mobilityNotes.isAcceptableOrUnknown(
+          data['mobility_notes']!,
+          _mobilityNotesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('primary_doctor')) {
+      context.handle(
+        _primaryDoctorMeta,
+        primaryDoctor.isAcceptableOrUnknown(
+          data['primary_doctor']!,
+          _primaryDoctorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CareProfile map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CareProfile(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}member_id'],
+      )!,
+      medications: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}medications'],
+      )!,
+      allergies: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}allergies'],
+      )!,
+      mobilityNotes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mobility_notes'],
+      )!,
+      primaryDoctor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}primary_doctor'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CareProfilesTable createAlias(String alias) {
+    return $CareProfilesTable(attachedDatabase, alias);
+  }
+}
+
+class CareProfile extends DataClass implements Insertable<CareProfile> {
+  /// Same as memberId — one profile per nest member.
+  final String id;
+  final String? nestId;
+  final String memberId;
+  final String medications;
+  final String allergies;
+  final String mobilityNotes;
+  final String primaryDoctor;
+  final String notes;
+  final bool dirty;
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CareProfile({
+    required this.id,
+    this.nestId,
+    required this.memberId,
+    required this.medications,
+    required this.allergies,
+    required this.mobilityNotes,
+    required this.primaryDoctor,
+    required this.notes,
+    required this.dirty,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
+    map['member_id'] = Variable<String>(memberId);
+    map['medications'] = Variable<String>(medications);
+    map['allergies'] = Variable<String>(allergies);
+    map['mobility_notes'] = Variable<String>(mobilityNotes);
+    map['primary_doctor'] = Variable<String>(primaryDoctor);
+    map['notes'] = Variable<String>(notes);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CareProfilesCompanion toCompanion(bool nullToAbsent) {
+    return CareProfilesCompanion(
+      id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
+      memberId: Value(memberId),
+      medications: Value(medications),
+      allergies: Value(allergies),
+      mobilityNotes: Value(mobilityNotes),
+      primaryDoctor: Value(primaryDoctor),
+      notes: Value(notes),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CareProfile.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CareProfile(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
+      memberId: serializer.fromJson<String>(json['memberId']),
+      medications: serializer.fromJson<String>(json['medications']),
+      allergies: serializer.fromJson<String>(json['allergies']),
+      mobilityNotes: serializer.fromJson<String>(json['mobilityNotes']),
+      primaryDoctor: serializer.fromJson<String>(json['primaryDoctor']),
+      notes: serializer.fromJson<String>(json['notes']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
+      'memberId': serializer.toJson<String>(memberId),
+      'medications': serializer.toJson<String>(medications),
+      'allergies': serializer.toJson<String>(allergies),
+      'mobilityNotes': serializer.toJson<String>(mobilityNotes),
+      'primaryDoctor': serializer.toJson<String>(primaryDoctor),
+      'notes': serializer.toJson<String>(notes),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CareProfile copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    String? memberId,
+    String? medications,
+    String? allergies,
+    String? mobilityNotes,
+    String? primaryDoctor,
+    String? notes,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CareProfile(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    memberId: memberId ?? this.memberId,
+    medications: medications ?? this.medications,
+    allergies: allergies ?? this.allergies,
+    mobilityNotes: mobilityNotes ?? this.mobilityNotes,
+    primaryDoctor: primaryDoctor ?? this.primaryDoctor,
+    notes: notes ?? this.notes,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CareProfile copyWithCompanion(CareProfilesCompanion data) {
+    return CareProfile(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      medications: data.medications.present
+          ? data.medications.value
+          : this.medications,
+      allergies: data.allergies.present ? data.allergies.value : this.allergies,
+      mobilityNotes: data.mobilityNotes.present
+          ? data.mobilityNotes.value
+          : this.mobilityNotes,
+      primaryDoctor: data.primaryDoctor.present
+          ? data.primaryDoctor.value
+          : this.primaryDoctor,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CareProfile(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('memberId: $memberId, ')
+          ..write('medications: $medications, ')
+          ..write('allergies: $allergies, ')
+          ..write('mobilityNotes: $mobilityNotes, ')
+          ..write('primaryDoctor: $primaryDoctor, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    memberId,
+    medications,
+    allergies,
+    mobilityNotes,
+    primaryDoctor,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CareProfile &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.memberId == this.memberId &&
+          other.medications == this.medications &&
+          other.allergies == this.allergies &&
+          other.mobilityNotes == this.mobilityNotes &&
+          other.primaryDoctor == this.primaryDoctor &&
+          other.notes == this.notes &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CareProfilesCompanion extends UpdateCompanion<CareProfile> {
+  final Value<String> id;
+  final Value<String?> nestId;
+  final Value<String> memberId;
+  final Value<String> medications;
+  final Value<String> allergies;
+  final Value<String> mobilityNotes;
+  final Value<String> primaryDoctor;
+  final Value<String> notes;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CareProfilesCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.medications = const Value.absent(),
+    this.allergies = const Value.absent(),
+    this.mobilityNotes = const Value.absent(),
+    this.primaryDoctor = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CareProfilesCompanion.insert({
+    required String id,
+    this.nestId = const Value.absent(),
+    required String memberId,
+    this.medications = const Value.absent(),
+    this.allergies = const Value.absent(),
+    this.mobilityNotes = const Value.absent(),
+    this.primaryDoctor = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       memberId = Value(memberId);
+  static Insertable<CareProfile> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<String>? memberId,
+    Expression<String>? medications,
+    Expression<String>? allergies,
+    Expression<String>? mobilityNotes,
+    Expression<String>? primaryDoctor,
+    Expression<String>? notes,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (memberId != null) 'member_id': memberId,
+      if (medications != null) 'medications': medications,
+      if (allergies != null) 'allergies': allergies,
+      if (mobilityNotes != null) 'mobility_notes': mobilityNotes,
+      if (primaryDoctor != null) 'primary_doctor': primaryDoctor,
+      if (notes != null) 'notes': notes,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CareProfilesCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? nestId,
+    Value<String>? memberId,
+    Value<String>? medications,
+    Value<String>? allergies,
+    Value<String>? mobilityNotes,
+    Value<String>? primaryDoctor,
+    Value<String>? notes,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CareProfilesCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      memberId: memberId ?? this.memberId,
+      medications: medications ?? this.medications,
+      allergies: allergies ?? this.allergies,
+      mobilityNotes: mobilityNotes ?? this.mobilityNotes,
+      primaryDoctor: primaryDoctor ?? this.primaryDoctor,
+      notes: notes ?? this.notes,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<String>(memberId.value);
+    }
+    if (medications.present) {
+      map['medications'] = Variable<String>(medications.value);
+    }
+    if (allergies.present) {
+      map['allergies'] = Variable<String>(allergies.value);
+    }
+    if (mobilityNotes.present) {
+      map['mobility_notes'] = Variable<String>(mobilityNotes.value);
+    }
+    if (primaryDoctor.present) {
+      map['primary_doctor'] = Variable<String>(primaryDoctor.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CareProfilesCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('memberId: $memberId, ')
+          ..write('medications: $medications, ')
+          ..write('allergies: $allergies, ')
+          ..write('mobilityNotes: $mobilityNotes, ')
+          ..write('primaryDoctor: $primaryDoctor, ')
           ..write('notes: $notes, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
@@ -8854,6 +9605,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TimelineEventsTable timelineEvents = $TimelineEventsTable(this);
   late final $MealPlansTable mealPlans = $MealPlansTable(this);
   late final $CareItemsTable careItems = $CareItemsTable(this);
+  late final $CareProfilesTable careProfiles = $CareProfilesTable(this);
   late final $SchoolActivitiesTable schoolActivities = $SchoolActivitiesTable(
     this,
   );
@@ -8876,6 +9628,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     timelineEvents,
     mealPlans,
     careItems,
+    careProfiles,
     schoolActivities,
     groceryHabits,
   ];
@@ -12537,6 +13290,7 @@ typedef $$CareItemsTableCreateCompanionBuilder =
       Value<DateTime?> lastDoneAt,
       required DateTime nextDueAt,
       Value<String> notes,
+      Value<String> memberId,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -12553,6 +13307,7 @@ typedef $$CareItemsTableUpdateCompanionBuilder =
       Value<DateTime?> lastDoneAt,
       Value<DateTime> nextDueAt,
       Value<String> notes,
+      Value<String> memberId,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -12606,6 +13361,11 @@ class $$CareItemsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memberId => $composableBuilder(
+    column: $table.memberId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12679,6 +13439,11 @@ class $$CareItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get dirty => $composableBuilder(
     column: $table.dirty,
     builder: (column) => ColumnOrderings(column),
@@ -12737,6 +13502,9 @@ class $$CareItemsTableAnnotationComposer
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
+  GeneratedColumn<String> get memberId =>
+      $composableBuilder(column: $table.memberId, builder: (column) => column);
+
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
@@ -12786,6 +13554,7 @@ class $$CareItemsTableTableManager
                 Value<DateTime?> lastDoneAt = const Value.absent(),
                 Value<DateTime> nextDueAt = const Value.absent(),
                 Value<String> notes = const Value.absent(),
+                Value<String> memberId = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -12800,6 +13569,7 @@ class $$CareItemsTableTableManager
                 lastDoneAt: lastDoneAt,
                 nextDueAt: nextDueAt,
                 notes: notes,
+                memberId: memberId,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,
@@ -12816,6 +13586,7 @@ class $$CareItemsTableTableManager
                 Value<DateTime?> lastDoneAt = const Value.absent(),
                 required DateTime nextDueAt,
                 Value<String> notes = const Value.absent(),
+                Value<String> memberId = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -12830,6 +13601,7 @@ class $$CareItemsTableTableManager
                 lastDoneAt: lastDoneAt,
                 nextDueAt: nextDueAt,
                 notes: notes,
+                memberId: memberId,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,
@@ -12856,6 +13628,345 @@ typedef $$CareItemsTableProcessedTableManager =
       $$CareItemsTableUpdateCompanionBuilder,
       (CareItem, BaseReferences<_$AppDatabase, $CareItemsTable, CareItem>),
       CareItem,
+      PrefetchHooks Function()
+    >;
+typedef $$CareProfilesTableCreateCompanionBuilder =
+    CareProfilesCompanion Function({
+      required String id,
+      Value<String?> nestId,
+      required String memberId,
+      Value<String> medications,
+      Value<String> allergies,
+      Value<String> mobilityNotes,
+      Value<String> primaryDoctor,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CareProfilesTableUpdateCompanionBuilder =
+    CareProfilesCompanion Function({
+      Value<String> id,
+      Value<String?> nestId,
+      Value<String> memberId,
+      Value<String> medications,
+      Value<String> allergies,
+      Value<String> mobilityNotes,
+      Value<String> primaryDoctor,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CareProfilesTableFilterComposer
+    extends Composer<_$AppDatabase, $CareProfilesTable> {
+  $$CareProfilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get medications => $composableBuilder(
+    column: $table.medications,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get allergies => $composableBuilder(
+    column: $table.allergies,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mobilityNotes => $composableBuilder(
+    column: $table.mobilityNotes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get primaryDoctor => $composableBuilder(
+    column: $table.primaryDoctor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CareProfilesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CareProfilesTable> {
+  $$CareProfilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get medications => $composableBuilder(
+    column: $table.medications,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get allergies => $composableBuilder(
+    column: $table.allergies,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mobilityNotes => $composableBuilder(
+    column: $table.mobilityNotes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get primaryDoctor => $composableBuilder(
+    column: $table.primaryDoctor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CareProfilesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CareProfilesTable> {
+  $$CareProfilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<String> get memberId =>
+      $composableBuilder(column: $table.memberId, builder: (column) => column);
+
+  GeneratedColumn<String> get medications => $composableBuilder(
+    column: $table.medications,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get allergies =>
+      $composableBuilder(column: $table.allergies, builder: (column) => column);
+
+  GeneratedColumn<String> get mobilityNotes => $composableBuilder(
+    column: $table.mobilityNotes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get primaryDoctor => $composableBuilder(
+    column: $table.primaryDoctor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CareProfilesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CareProfilesTable,
+          CareProfile,
+          $$CareProfilesTableFilterComposer,
+          $$CareProfilesTableOrderingComposer,
+          $$CareProfilesTableAnnotationComposer,
+          $$CareProfilesTableCreateCompanionBuilder,
+          $$CareProfilesTableUpdateCompanionBuilder,
+          (
+            CareProfile,
+            BaseReferences<_$AppDatabase, $CareProfilesTable, CareProfile>,
+          ),
+          CareProfile,
+          PrefetchHooks Function()
+        > {
+  $$CareProfilesTableTableManager(_$AppDatabase db, $CareProfilesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CareProfilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CareProfilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CareProfilesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
+                Value<String> memberId = const Value.absent(),
+                Value<String> medications = const Value.absent(),
+                Value<String> allergies = const Value.absent(),
+                Value<String> mobilityNotes = const Value.absent(),
+                Value<String> primaryDoctor = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CareProfilesCompanion(
+                id: id,
+                nestId: nestId,
+                memberId: memberId,
+                medications: medications,
+                allergies: allergies,
+                mobilityNotes: mobilityNotes,
+                primaryDoctor: primaryDoctor,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> nestId = const Value.absent(),
+                required String memberId,
+                Value<String> medications = const Value.absent(),
+                Value<String> allergies = const Value.absent(),
+                Value<String> mobilityNotes = const Value.absent(),
+                Value<String> primaryDoctor = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CareProfilesCompanion.insert(
+                id: id,
+                nestId: nestId,
+                memberId: memberId,
+                medications: medications,
+                allergies: allergies,
+                mobilityNotes: mobilityNotes,
+                primaryDoctor: primaryDoctor,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CareProfilesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CareProfilesTable,
+      CareProfile,
+      $$CareProfilesTableFilterComposer,
+      $$CareProfilesTableOrderingComposer,
+      $$CareProfilesTableAnnotationComposer,
+      $$CareProfilesTableCreateCompanionBuilder,
+      $$CareProfilesTableUpdateCompanionBuilder,
+      (
+        CareProfile,
+        BaseReferences<_$AppDatabase, $CareProfilesTable, CareProfile>,
+      ),
+      CareProfile,
       PrefetchHooks Function()
     >;
 typedef $$SchoolActivitiesTableCreateCompanionBuilder =
@@ -13511,6 +14622,8 @@ class $AppDatabaseManager {
       $$MealPlansTableTableManager(_db, _db.mealPlans);
   $$CareItemsTableTableManager get careItems =>
       $$CareItemsTableTableManager(_db, _db.careItems);
+  $$CareProfilesTableTableManager get careProfiles =>
+      $$CareProfilesTableTableManager(_db, _db.careProfiles);
   $$SchoolActivitiesTableTableManager get schoolActivities =>
       $$SchoolActivitiesTableTableManager(_db, _db.schoolActivities);
   $$GroceryHabitsTableTableManager get groceryHabits =>

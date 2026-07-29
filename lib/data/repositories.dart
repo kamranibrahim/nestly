@@ -751,6 +751,7 @@ class CareRepository {
     String category = 'Home',
     int cadenceDays = 7,
     String notes = '',
+    String memberId = '',
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
@@ -765,6 +766,7 @@ class CareRepository {
             cadenceDays: Value(cadenceDays),
             nextDueAt: due,
             notes: Value(notes.trim()),
+            memberId: Value(memberId),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -799,6 +801,66 @@ class CareRepository {
         updatedAt: Value(DateTime.now()),
       ),
     );
+  }
+
+  Stream<List<CareProfile>> watchProfiles() {
+    return (_db.select(_db.careProfiles)
+          ..where((p) => p.deleted.equals(false))
+          ..orderBy([(p) => OrderingTerm(expression: p.updatedAt)]))
+        .watch();
+  }
+
+  Future<CareProfile?> profileForMember(String memberId) {
+    return (_db.select(_db.careProfiles)
+          ..where((p) => p.id.equals(memberId) & p.deleted.equals(false)))
+        .getSingleOrNull();
+  }
+
+  Future<void> upsertProfile({
+    required String memberId,
+    String medications = '',
+    String allergies = '',
+    String mobilityNotes = '',
+    String primaryDoctor = '',
+    String notes = '',
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final existing = await (_db.select(_db.careProfiles)
+          ..where((p) => p.id.equals(memberId)))
+        .getSingleOrNull();
+    if (existing == null) {
+      await _db.into(_db.careProfiles).insert(
+            CareProfilesCompanion.insert(
+              id: memberId,
+              nestId: Value(nestId),
+              memberId: memberId,
+              medications: Value(medications.trim()),
+              allergies: Value(allergies.trim()),
+              mobilityNotes: Value(mobilityNotes.trim()),
+              primaryDoctor: Value(primaryDoctor.trim()),
+              notes: Value(notes.trim()),
+              dirty: const Value(true),
+              createdAt: Value(now),
+              updatedAt: Value(now),
+            ),
+          );
+    } else {
+      await (_db.update(_db.careProfiles)..where((p) => p.id.equals(memberId)))
+          .write(
+        CareProfilesCompanion(
+          nestId: Value(nestId),
+          medications: Value(medications.trim()),
+          allergies: Value(allergies.trim()),
+          mobilityNotes: Value(mobilityNotes.trim()),
+          primaryDoctor: Value(primaryDoctor.trim()),
+          notes: Value(notes.trim()),
+          deleted: const Value(false),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+    }
   }
 }
 

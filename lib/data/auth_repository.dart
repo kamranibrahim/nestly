@@ -327,6 +327,8 @@ class SyncService {
       await _pullMeals(nestId);
       await _pushCare(nestId);
       await _pullCare(nestId);
+      await _pushCareProfiles(nestId);
+      await _pullCareProfiles(nestId);
       await _pushSchool(nestId);
       await _pullSchool(nestId);
       await _pushMembers(nestId);
@@ -981,6 +983,7 @@ class SyncService {
               : Timestamp.fromDate(item.lastDoneAt!),
           'nextDueAt': Timestamp.fromDate(item.nextDueAt),
           'notes': item.notes,
+          'memberId': item.memberId,
           'updatedAt': Timestamp.fromDate(item.updatedAt),
           'createdAt': Timestamp.fromDate(item.createdAt),
         });
@@ -1019,6 +1022,73 @@ class SyncService {
               ),
               nextDueAt: (data['nextDueAt'] as Timestamp?)?.toDate() ??
                   DateTime.now(),
+              notes: Value(data['notes'] as String? ?? ''),
+              memberId: Value(data['memberId'] as String? ?? ''),
+              dirty: const Value(false),
+              createdAt: Value(
+                (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushCareProfiles(String nestId) async {
+    final dirty = await (_db.select(_db.careProfiles)
+          ..where((t) => t.dirty.equals(true)))
+        .get();
+    for (final profile in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('careProfiles')
+          .doc(profile.id);
+      if (profile.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'memberId': profile.memberId,
+          'medications': profile.medications,
+          'allergies': profile.allergies,
+          'mobilityNotes': profile.mobilityNotes,
+          'primaryDoctor': profile.primaryDoctor,
+          'notes': profile.notes,
+          'updatedAt': Timestamp.fromDate(profile.updatedAt),
+          'createdAt': Timestamp.fromDate(profile.createdAt),
+        });
+      }
+      await (_db.update(_db.careProfiles)..where((t) => t.id.equals(profile.id)))
+          .write(const CareProfilesCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullCareProfiles(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('careProfiles')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(_db.careProfiles)
+            ..where((t) => t.id.equals(doc.id)))
+          .getSingleOrNull();
+      if (local != null &&
+          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+        continue;
+      }
+      await _db.into(_db.careProfiles).insertOnConflictUpdate(
+            CareProfilesCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              memberId: data['memberId'] as String? ?? doc.id,
+              medications: Value(data['medications'] as String? ?? ''),
+              allergies: Value(data['allergies'] as String? ?? ''),
+              mobilityNotes: Value(data['mobilityNotes'] as String? ?? ''),
+              primaryDoctor: Value(data['primaryDoctor'] as String? ?? ''),
               notes: Value(data['notes'] as String? ?? ''),
               dirty: const Value(false),
               createdAt: Value(

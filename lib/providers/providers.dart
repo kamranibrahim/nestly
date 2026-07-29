@@ -151,6 +151,10 @@ final careItemsProvider = StreamProvider<List<CareItem>>((ref) {
   return ref.watch(careRepositoryProvider).watchAll();
 });
 
+final careProfilesProvider = StreamProvider<List<CareProfile>>((ref) {
+  return ref.watch(careRepositoryProvider).watchProfiles();
+});
+
 final careDueCountProvider = StreamProvider<int>((ref) {
   return ref.watch(careRepositoryProvider).watchDueCount();
 });
