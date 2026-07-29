@@ -94,6 +94,54 @@ class SyncMeta extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
+class Expenses extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get title => text()();
+  TextColumn get category => text().withDefault(const Constant('General'))();
+  RealColumn get amount => real()();
+  TextColumn get paidBy => text().withDefault(const Constant(''))();
+  DateTimeColumn get spentAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class Bills extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get title => text()();
+  RealColumn get amount => real()();
+  DateTimeColumn get dueAt => dateTime()();
+  BoolColumn get paid => boolean().withDefault(const Constant(false))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class EmergencyEntries extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get label => text()();
+  TextColumn get value => text()();
+  TextColumn get iconName => text().withDefault(const Constant('info'))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     NestMembers,
@@ -102,13 +150,16 @@ class SyncMeta extends Table {
     ShoppingItems,
     CalendarEvents,
     SyncMeta,
+    Expenses,
+    Bills,
+    EmergencyEntries,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -130,6 +181,11 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(shoppingItems, shoppingItems.nestId);
             await m.addColumn(shoppingItems, shoppingItems.dirty);
             await m.addColumn(shoppingItems, shoppingItems.deleted);
+          }
+          if (from < 3) {
+            await m.createTable(expenses);
+            await m.createTable(bills);
+            await m.createTable(emergencyEntries);
           }
         },
       );
@@ -161,15 +217,22 @@ class AppDatabase extends _$AppDatabase {
     final listCount = await (select(shoppingLists)..limit(1)).get();
     final memberCount = await (select(nestMembers)..limit(1)).get();
     final eventCount = await (select(calendarEvents)..limit(1)).get();
+    final expenseCount = await (select(expenses)..limit(1)).get();
+    final emergencyCount = await (select(emergencyEntries)..limit(1)).get();
+
     if (taskCount.isNotEmpty || listCount.isNotEmpty) {
       if (memberCount.isEmpty) await _seedMembers();
       if (eventCount.isEmpty) await _seedEvents();
+      if (expenseCount.isEmpty) await _seedMoney();
+      if (emergencyCount.isEmpty) await _seedEmergency();
       return;
     }
 
     final now = DateTime.now();
     await _seedMembers();
     await _seedEvents();
+    await _seedMoney();
+    await _seedEmergency();
 
     await batch((b) {
       b.insertAll(tasks, [
@@ -411,6 +474,140 @@ class AppDatabase extends _$AppDatabase {
           allDay: const Value(true),
           dirty: const Value(false),
           createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      ]);
+    });
+  }
+
+  Future<void> _seedMoney() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    await batch((b) {
+      b.insertAll(expenses, [
+        ExpensesCompanion.insert(
+          id: 'exp-1',
+          title: 'Weekly groceries',
+          category: const Value('Groceries'),
+          amount: 86.40,
+          paidBy: const Value('Kamran'),
+          spentAt: Value(today),
+          dirty: const Value(false),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+        ExpensesCompanion.insert(
+          id: 'exp-2',
+          title: 'Fuel',
+          category: const Value('Transport'),
+          amount: 42,
+          paidBy: const Value('Sara'),
+          spentAt: Value(today.subtract(const Duration(days: 1))),
+          dirty: const Value(false),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+        ExpensesCompanion.insert(
+          id: 'exp-3',
+          title: 'School supplies',
+          category: const Value('Kids'),
+          amount: 28.50,
+          paidBy: const Value('Sara'),
+          spentAt: Value(today.subtract(const Duration(days: 3))),
+          dirty: const Value(false),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      ]);
+      b.insertAll(bills, [
+        BillsCompanion.insert(
+          id: 'bill-1',
+          title: 'Electricity',
+          amount: 64.20,
+          dueAt: today.add(const Duration(days: 3)),
+          dirty: const Value(false),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+        BillsCompanion.insert(
+          id: 'bill-2',
+          title: 'Internet',
+          amount: 49.99,
+          dueAt: today.add(const Duration(days: 5)),
+          dirty: const Value(false),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+        BillsCompanion.insert(
+          id: 'bill-3',
+          title: 'Water',
+          amount: 22.50,
+          dueAt: today.subtract(const Duration(days: 2)),
+          paid: const Value(true),
+          dirty: const Value(false),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      ]);
+    });
+  }
+
+  Future<void> _seedEmergency() async {
+    final now = DateTime.now();
+    await batch((b) {
+      b.insertAll(emergencyEntries, [
+        EmergencyEntriesCompanion.insert(
+          id: 'em-1',
+          label: 'Emergency contact',
+          value: 'Omar Ibrahim · +1 555 0142',
+          iconName: const Value('phone'),
+          sortOrder: const Value(0),
+          dirty: const Value(false),
+          updatedAt: Value(now),
+        ),
+        EmergencyEntriesCompanion.insert(
+          id: 'em-2',
+          label: 'Family doctor',
+          value: 'Dr. Patel · City Care',
+          iconName: const Value('doctor'),
+          sortOrder: const Value(1),
+          dirty: const Value(false),
+          updatedAt: Value(now),
+        ),
+        EmergencyEntriesCompanion.insert(
+          id: 'em-3',
+          label: 'Nearest hospital',
+          value: 'Riverside General · 8 min',
+          iconName: const Value('hospital'),
+          sortOrder: const Value(2),
+          dirty: const Value(false),
+          updatedAt: Value(now),
+        ),
+        EmergencyEntriesCompanion.insert(
+          id: 'em-4',
+          label: 'Allergies',
+          value: 'Ayaan — peanuts · Noor — none',
+          iconName: const Value('warning'),
+          sortOrder: const Value(3),
+          dirty: const Value(false),
+          updatedAt: Value(now),
+        ),
+        EmergencyEntriesCompanion.insert(
+          id: 'em-5',
+          label: 'Blood groups',
+          value: 'K O+ · S A+ · A B+ · N O+',
+          iconName: const Value('blood'),
+          sortOrder: const Value(4),
+          dirty: const Value(false),
+          updatedAt: Value(now),
+        ),
+        EmergencyEntriesCompanion.insert(
+          id: 'em-6',
+          label: 'Insurance',
+          value: 'HealthPlus Family · #HP-88241',
+          iconName: const Value('shield'),
+          sortOrder: const Value(5),
+          dirty: const Value(false),
           updatedAt: Value(now),
         ),
       ]);

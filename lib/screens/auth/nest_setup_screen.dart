@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_colors.dart';
 
+/// Fast onboarding: one screen, sensible defaults, under ~30 seconds.
 class NestSetupScreen extends ConsumerStatefulWidget {
   const NestSetupScreen({super.key});
 
@@ -13,7 +14,7 @@ class NestSetupScreen extends ConsumerStatefulWidget {
 }
 
 class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
-  final _nestName = TextEditingController(text: 'The Ibrahims');
+  final _nestName = TextEditingController(text: 'Our Nest');
   final _memberName = TextEditingController();
   final _inviteCode = TextEditingController();
   bool _joining = false;
@@ -27,6 +28,14 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
       final user = ref.read(authRepositoryProvider).currentUser;
       if (_memberName.text.isEmpty && (user?.displayName?.isNotEmpty ?? false)) {
         _memberName.text = user!.displayName!;
+      }
+      final email = user?.email;
+      if (_nestName.text == 'Our Nest' && email != null && email.contains('@')) {
+        final local = email.split('@').first;
+        if (local.isNotEmpty) {
+          _nestName.text =
+              "${local[0].toUpperCase()}${local.substring(1)}'s Nest";
+        }
       }
     });
   }
@@ -47,20 +56,26 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
     try {
       final auth = ref.read(authRepositoryProvider);
       final sync = ref.read(syncServiceProvider);
+      final name = _memberName.text.trim().isEmpty
+          ? 'Parent'
+          : _memberName.text.trim();
       final nest = _joining
           ? await auth.joinNest(
               inviteCode: _inviteCode.text,
-              memberName: _memberName.text,
+              memberName: name,
             )
           : await auth.createNest(
-              nestName: _nestName.text,
-              memberName: _memberName.text,
+              nestName: _nestName.text.trim().isEmpty
+                  ? 'Our Nest'
+                  : _nestName.text.trim(),
+              memberName: name,
             );
       await sync.bindNest(nest.id);
       await sync.pullMembers(nest.id);
       try {
         await sync.syncAll();
       } catch (_) {}
+      await ref.read(notificationServiceProvider).init();
       ref.invalidate(nestInfoProvider);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -74,7 +89,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(_joining ? 'Join a nest' : 'Create your nest'),
+        title: Text(_joining ? 'Join nest' : 'Set up in under a minute'),
         actions: [
           TextButton(
             onPressed: () => ref.read(authRepositoryProvider).signOut(),
@@ -87,8 +102,8 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
         children: [
           Text(
             _joining
-                ? 'Enter the invite code from your family.'
-                : 'Your nest is the shared home for calendars, lists, and tasks.',
+                ? 'Enter the 6-character code from your family.'
+                : 'Create your household nest — calendars, lists, and tasks stay in sync.',
             style: const TextStyle(
               color: AppColors.inkSecondary,
               fontWeight: FontWeight.w500,
@@ -98,7 +113,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
           TextField(
             controller: _memberName,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Your name in the nest'),
+            decoration: const InputDecoration(labelText: 'Your name'),
           ),
           const SizedBox(height: 12),
           if (_joining)
@@ -115,7 +130,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
             TextField(
               controller: _nestName,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Family nest name'),
+              decoration: const InputDecoration(labelText: 'Nest name'),
             ),
           if (_error != null) ...[
             const SizedBox(height: 12),
@@ -140,7 +155,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
                       color: Colors.white,
                     ),
                   )
-                : Text(_joining ? 'Join nest' : 'Create nest'),
+                : Text(_joining ? 'Join nest' : 'Start nest'),
           ),
           TextButton(
             onPressed: _busy
@@ -151,8 +166,8 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
                     }),
             child: Text(
               _joining
-                  ? 'Want to start a new nest instead?'
-                  : 'Have an invite code? Join a nest',
+                  ? 'Create a new nest instead'
+                  : 'Have an invite code?',
             ),
           ),
         ],

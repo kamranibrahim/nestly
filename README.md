@@ -27,11 +27,18 @@ dart run build_runner build
 flutter run
 ```
 
-## Year 1 Q1 status
+## Year 1 status
 
+### Q1
 - [x] Firebase project + Android/iOS apps
 - [x] Email auth screens + nest create/join (invite code)
 - [x] Drift schema for tasks, shopping, calendar, members
 - [x] Drift ↔ Firestore last-write-wins sync
 - [ ] Enable Email/Password in Firebase Console (manual)
 - [ ] Apple / Google sign-in providers
+
+### Q2
+- [x] Expenses + bills (offline + sync)
+- [x] Emergency center (offline-first + sync)
+- [x] FCM token registration + local bill reminders
+- [x] Faster nest onboarding

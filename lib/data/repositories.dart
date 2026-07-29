@@ -234,3 +234,147 @@ class MemberRepository {
         .getSingleOrNull();
   }
 }
+
+class ExpenseRepository {
+  ExpenseRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+  static const monthBudget = 1800.0;
+
+  Stream<List<Expense>> watchAll() {
+    return (_db.select(_db.expenses)
+          ..where((e) => e.deleted.equals(false))
+          ..orderBy([(e) => OrderingTerm.desc(e.spentAt)]))
+        .watch();
+  }
+
+  Stream<double> watchMonthTotal() {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, 1);
+    final end = DateTime(now.year, now.month + 1, 1);
+    final sum = _db.expenses.amount.sum();
+    final query = _db.selectOnly(_db.expenses)
+      ..addColumns([sum])
+      ..where(
+        _db.expenses.deleted.equals(false) &
+            _db.expenses.spentAt.isBiggerOrEqualValue(start) &
+            _db.expenses.spentAt.isSmallerThanValue(end),
+      );
+    return query.watchSingle().map((row) => row.read(sum) ?? 0);
+  }
+
+  Future<void> addExpense({
+    required String title,
+    required double amount,
+    String category = 'General',
+    String paidBy = '',
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    await _db.into(_db.expenses).insert(
+          ExpensesCompanion.insert(
+            id: _uuid.v4(),
+            nestId: Value(nestId),
+            title: title.trim(),
+            category: Value(category),
+            amount: amount,
+            paidBy: Value(paidBy),
+            spentAt: Value(now),
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+}
+
+class BillRepository {
+  BillRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+
+  Stream<List<Bill>> watchAll() {
+    return (_db.select(_db.bills)
+          ..where((b) => b.deleted.equals(false))
+          ..orderBy([
+            (b) => OrderingTerm(expression: b.paid),
+            (b) => OrderingTerm(expression: b.dueAt),
+          ]))
+        .watch();
+  }
+
+  Future<List<Bill>> getUnpaidUpcoming() {
+    return (_db.select(_db.bills)
+          ..where((b) => b.deleted.equals(false) & b.paid.equals(false)))
+        .get();
+  }
+
+  Future<void> togglePaid(Bill bill) {
+    return (_db.update(_db.bills)..where((b) => b.id.equals(bill.id))).write(
+      BillsCompanion(
+        paid: Value(!bill.paid),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> addBill({
+    required String title,
+    required double amount,
+    required DateTime dueAt,
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    await _db.into(_db.bills).insert(
+          BillsCompanion.insert(
+            id: _uuid.v4(),
+            nestId: Value(nestId),
+            title: title.trim(),
+            amount: amount,
+            dueAt: dueAt,
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+}
+
+class EmergencyRepository {
+  EmergencyRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+
+  Stream<List<EmergencyEntry>> watchAll() {
+    return (_db.select(_db.emergencyEntries)
+          ..where((e) => e.deleted.equals(false))
+          ..orderBy([(e) => OrderingTerm(expression: e.sortOrder)]))
+        .watch();
+  }
+
+  Future<void> upsert({
+    String? id,
+    required String label,
+    required String value,
+    String iconName = 'info',
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final entryId = id ?? _uuid.v4();
+    await _db.into(_db.emergencyEntries).insertOnConflictUpdate(
+          EmergencyEntriesCompanion.insert(
+            id: entryId,
+            nestId: Value(nestId),
+            label: label.trim(),
+            value: value.trim(),
+            iconName: Value(iconName),
+            dirty: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+}

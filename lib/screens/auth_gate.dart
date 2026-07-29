@@ -95,6 +95,9 @@ class _SyncedShellState extends ConsumerState<_SyncedShell> {
     } catch (_) {
       // Offline is fine — local Drift data remains usable.
     }
+    try {
+      await ref.read(notificationServiceProvider).init();
+    } catch (_) {}
   }
 
   @override

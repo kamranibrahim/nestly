@@ -209,6 +209,11 @@ class SyncService {
         .write(ShoppingItemsCompanion(nestId: Value(nestId)));
     await (_db.update(_db.calendarEvents))
         .write(CalendarEventsCompanion(nestId: Value(nestId)));
+    await (_db.update(_db.expenses))
+        .write(ExpensesCompanion(nestId: Value(nestId)));
+    await (_db.update(_db.bills)).write(BillsCompanion(nestId: Value(nestId)));
+    await (_db.update(_db.emergencyEntries))
+        .write(EmergencyEntriesCompanion(nestId: Value(nestId)));
   }
 
   Future<void> pullMembers(String nestId) async {
@@ -249,6 +254,12 @@ class SyncService {
       await _pullShopping(nestId);
       await _pushEvents(nestId);
       await _pullEvents(nestId);
+      await _pushExpenses(nestId);
+      await _pullExpenses(nestId);
+      await _pushBills(nestId);
+      await _pullBills(nestId);
+      await _pushEmergency(nestId);
+      await _pullEmergency(nestId);
       await pullMembers(nestId);
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
     } catch (e, st) {
@@ -500,6 +511,193 @@ class SyncService {
               createdAt: Value(
                 (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
               ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushExpenses(String nestId) async {
+    final dirty = await (_db.select(_db.expenses)
+          ..where((t) => t.dirty.equals(true)))
+        .get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('expenses')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'title': item.title,
+          'category': item.category,
+          'amount': item.amount,
+          'paidBy': item.paidBy,
+          'spentAt': Timestamp.fromDate(item.spentAt),
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
+          'createdAt': Timestamp.fromDate(item.createdAt),
+        });
+      }
+      await (_db.update(_db.expenses)..where((t) => t.id.equals(item.id)))
+          .write(const ExpensesCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullExpenses(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('expenses')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(_db.expenses)
+            ..where((t) => t.id.equals(doc.id)))
+          .getSingleOrNull();
+      if (local != null &&
+          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+        continue;
+      }
+      await _db.into(_db.expenses).insertOnConflictUpdate(
+            ExpensesCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              title: data['title'] as String? ?? '',
+              category: Value(data['category'] as String? ?? 'General'),
+              amount: (data['amount'] as num?)?.toDouble() ?? 0,
+              paidBy: Value(data['paidBy'] as String? ?? ''),
+              spentAt: Value(
+                (data['spentAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              ),
+              dirty: const Value(false),
+              createdAt: Value(
+                (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushBills(String nestId) async {
+    final dirty = await (_db.select(_db.bills)
+          ..where((t) => t.dirty.equals(true)))
+        .get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('bills')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'title': item.title,
+          'amount': item.amount,
+          'dueAt': Timestamp.fromDate(item.dueAt),
+          'paid': item.paid,
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
+          'createdAt': Timestamp.fromDate(item.createdAt),
+        });
+      }
+      await (_db.update(_db.bills)..where((t) => t.id.equals(item.id)))
+          .write(const BillsCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullBills(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('bills')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(_db.bills)
+            ..where((t) => t.id.equals(doc.id)))
+          .getSingleOrNull();
+      if (local != null &&
+          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+        continue;
+      }
+      await _db.into(_db.bills).insertOnConflictUpdate(
+            BillsCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              title: data['title'] as String? ?? '',
+              amount: (data['amount'] as num?)?.toDouble() ?? 0,
+              dueAt: (data['dueAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              paid: Value(data['paid'] as bool? ?? false),
+              dirty: const Value(false),
+              createdAt: Value(
+                (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushEmergency(String nestId) async {
+    final dirty = await (_db.select(_db.emergencyEntries)
+          ..where((t) => t.dirty.equals(true)))
+        .get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('emergency')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'label': item.label,
+          'value': item.value,
+          'iconName': item.iconName,
+          'sortOrder': item.sortOrder,
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
+        });
+      }
+      await (_db.update(_db.emergencyEntries)
+            ..where((t) => t.id.equals(item.id)))
+          .write(const EmergencyEntriesCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullEmergency(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('emergency')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(_db.emergencyEntries)
+            ..where((t) => t.id.equals(doc.id)))
+          .getSingleOrNull();
+      if (local != null &&
+          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+        continue;
+      }
+      await _db.into(_db.emergencyEntries).insertOnConflictUpdate(
+            EmergencyEntriesCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              label: data['label'] as String? ?? '',
+              value: data['value'] as String? ?? '',
+              iconName: Value(data['iconName'] as String? ?? 'info'),
+              sortOrder: Value(data['sortOrder'] as int? ?? 0),
+              dirty: const Value(false),
               updatedAt: Value(remoteUpdated),
             ),
           );

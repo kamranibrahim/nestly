@@ -44,6 +44,18 @@ service cloud.firestore {
       match /events/{eventId} {
         allow read, write: if nestMember(nestId);
       }
+
+      match /expenses/{expenseId} {
+        allow read, write: if nestMember(nestId);
+      }
+
+      match /bills/{billId} {
+        allow read, write: if nestMember(nestId);
+      }
+
+      match /emergency/{entryId} {
+        allow read, write: if nestMember(nestId);
+      }
     }
   }
 }
