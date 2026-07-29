@@ -136,6 +136,32 @@ void main() {
     expect(dinners.where((m) => m.weekday == 3), isEmpty);
   });
 
+  test('adding week meal ingredients dedupes groceries', () async {
+    await meals.upsert(
+      weekday: 1,
+      title: 'Tacos',
+      ingredients: 'Tortillas, Avocado\nLime',
+    );
+    await meals.upsert(
+      weekday: 2,
+      title: 'Bowls',
+      ingredients: 'Avocado, Rice',
+    );
+
+    final plannedMeals = await meals.watchAll().first;
+    final added = await meals.addMealsIngredientsToShopping(
+      plannedMeals.where((m) => m.mealType == 'Dinner'),
+      label: 'this week',
+    );
+
+    expect(added, 4);
+
+    final openNames = (await shopping.watchItems().first)
+        .where((i) => !i.done)
+        .map((i) => i.name);
+    expect(openNames, containsAll(['Tortillas', 'Avocado', 'Lime', 'Rice']));
+  });
+
   test('vault expiry meta is listed as expiring soon', () async {
     final vault = VaultRepository(database);
     final doc = await vault.addLocalMeta(

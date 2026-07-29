@@ -883,10 +883,15 @@ class MealRepository {
 
   /// Parses ingredients (comma or newline) and adds missing ones to groceries.
   Future<int> addIngredientsToShopping(MealPlan meal) async {
-    final raw = meal.ingredients
-        .split(RegExp(r'[\n,]'))
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
+    return addMealsIngredientsToShopping([meal], label: meal.title);
+  }
+
+  Future<int> addMealsIngredientsToShopping(
+    Iterable<MealPlan> meals, {
+    String? label,
+  }) async {
+    final raw = meals
+        .expand((meal) => _parseIngredients(meal.ingredients))
         .toList();
     if (raw.isEmpty) return 0;
 
@@ -905,12 +910,21 @@ class MealRepository {
       added++;
     }
     if (added > 0) {
+      final target = label ?? 'meal plan';
       await TimelineRepository(_db).add(
-        message: 'Added $added ingredient${added == 1 ? '' : 's'} for ${meal.title}',
+        message: 'Added $added ingredient${added == 1 ? '' : 's'} for $target',
         memberName: 'You',
       );
     }
     return added;
+  }
+
+  List<String> _parseIngredients(String ingredients) {
+    return ingredients
+        .split(RegExp(r'[\n,]'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
   }
 }
 

@@ -23,6 +23,11 @@ class MealsScreen extends ConsumerWidget {
         title: const Text('Meals'),
         actions: [
           IconButton(
+            tooltip: 'Shop this week',
+            onPressed: () => _shopWeek(context, ref, mealsAsync.valueOrNull ?? const []),
+            icon: const Icon(Icons.shopping_cart_outlined),
+          ),
+          IconButton(
             tooltip: 'Plan dinner week',
             onPressed: () => _showPlanWeek(context, ref, mealsAsync.valueOrNull ?? const []),
             icon: const Icon(Icons.calendar_view_week_rounded),
@@ -85,6 +90,7 @@ class MealsScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: NestCard(
+            onTap: () => _showEditMeal(context, ref, meal),
             padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,8 +184,30 @@ class MealsScreen extends ConsumerWidget {
     WidgetRef ref, {
     required int weekday,
   }) async {
+    await _showMealSheet(context, ref, weekday: weekday);
+  }
+
+  Future<void> _showEditMeal(
+    BuildContext context,
+    WidgetRef ref,
+    MealPlan meal,
+  ) async {
+    await _showMealSheet(
+      context,
+      ref,
+      weekday: meal.weekday,
+      existing: meal,
+    );
+  }
+
+  Future<void> _showMealSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    required int weekday,
+    MealPlan? existing,
+  }) async {
     final result = await showModalBottomSheet<
-        ({String title, String mealType, String ingredients})>(
+        ({String title, String mealType, String ingredients, bool deleteMeal})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -187,10 +215,16 @@ class MealsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        var mealType = 'Dinner';
+        var mealType = existing?.mealType ?? 'Dinner';
         return OwnedControllers(
           count: 2,
           builder: (context, c) {
+            if (c[0].text.isEmpty && existing != null) {
+              c[0].text = existing.title;
+            }
+            if (c[1].text.isEmpty && existing != null) {
+              c[1].text = existing.ingredients;
+            }
             return StatefulBuilder(
               builder: (context, setModal) {
                 return sheetBody(
@@ -198,8 +232,8 @@ class MealsScreen extends ConsumerWidget {
                   children: [
                     sheetHandle(),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Plan a meal',
+                    Text(
+                      existing == null ? 'Plan a meal' : 'Edit meal',
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
@@ -259,11 +293,27 @@ class MealsScreen extends ConsumerWidget {
                             title: name,
                             mealType: mealType,
                             ingredients: c[1].text.trim(),
+                            deleteMeal: false,
                           ),
                         );
                       },
-                      child: const Text('Save meal'),
+                      child: Text(existing == null ? 'Save meal' : 'Save changes'),
                     ),
+                    if (existing != null) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(
+                          context,
+                          (
+                            title: existing.title,
+                            mealType: existing.mealType,
+                            ingredients: existing.ingredients,
+                            deleteMeal: true,
+                          ),
+                        ),
+                        child: const Text('Delete meal'),
+                      ),
+                    ],
                   ],
                 );
               },
@@ -274,12 +324,17 @@ class MealsScreen extends ConsumerWidget {
     );
 
     if (result != null) {
-      await ref.read(mealRepositoryProvider).upsert(
-            weekday: weekday,
-            title: result.title,
-            mealType: result.mealType,
-            ingredients: result.ingredients,
-          );
+      if (result.deleteMeal && existing != null) {
+        await ref.read(mealRepositoryProvider).delete(existing.id);
+      } else {
+        await ref.read(mealRepositoryProvider).upsert(
+              id: existing?.id,
+              weekday: weekday,
+              title: result.title,
+              mealType: result.mealType,
+              ingredients: result.ingredients,
+            );
+      }
       try {
         await ref.read(syncServiceProvider).syncAll();
       } catch (_) {}
@@ -309,6 +364,32 @@ class MealsScreen extends ConsumerWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Dinner week updated')),
+    );
+  }
+
+  Future<void> _shopWeek(
+    BuildContext context,
+    WidgetRef ref,
+    List<MealPlan> meals,
+  ) async {
+    final dinners = meals
+        .where((meal) => meal.mealType.toLowerCase() == 'dinner')
+        .toList();
+    final added = await ref
+        .read(mealRepositoryProvider)
+        .addMealsIngredientsToShopping(dinners, label: 'this week');
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          added == 0
+              ? 'No new dinner ingredients to add'
+              : 'Added $added item${added == 1 ? '' : 's'} from this week',
+        ),
+      ),
     );
   }
 }
