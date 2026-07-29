@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -213,7 +214,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             Expanded(
               child: eventsAsync.when(
                 loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                    const NestLoadingSkeleton(itemCount: 3),
                 error: (e, _) => Center(child: Text('$e')),
                 data: (allEvents) {
                   final members = membersAsync.valueOrNull ?? [];

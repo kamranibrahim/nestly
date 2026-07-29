@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
@@ -33,7 +34,7 @@ class MealsScreen extends ConsumerWidget {
         ],
       ),
       body: mealsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const NestLoadingSkeleton(itemCount: 5),
         error: (_, _) =>
             const Center(child: Text('Could not load meals.')),
         data: (meals) {

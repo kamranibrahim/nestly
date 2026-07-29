@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -76,9 +77,7 @@ class ExpensesScreen extends ConsumerWidget {
           const SizedBox(height: 6),
           const SectionLabel('Recent'),
           expensesAsync.when(
-            loading: () => const NestCard(
-              child: Center(child: CircularProgressIndicator()),
-            ),
+            loading: () => const NestLoadingSkeleton(itemCount: 2),
             error: (e, _) => NestCard(child: Text('$e')),
             data: (items) {
               if (items.isEmpty) {

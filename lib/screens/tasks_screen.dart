@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
@@ -58,7 +59,7 @@ class TasksScreen extends ConsumerWidget {
             Expanded(
               child: tasksAsync.when(
                 loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                    const NestLoadingSkeleton(itemCount: 5, hasTitle: true),
                 error: (error, _) => const Center(
                   child: Text('Could not load tasks. Pull to retry.'),
                 ),

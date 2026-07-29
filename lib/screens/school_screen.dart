@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -38,7 +39,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
         ],
       ),
       body: itemsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const NestLoadingSkeleton(itemCount: 3, hasTitle: true),
         error: (_, _) =>
             const Center(child: Text('Could not load activities.')),
         data: (all) {

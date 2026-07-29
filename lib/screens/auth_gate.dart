@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
@@ -16,7 +17,7 @@ class AuthGate extends ConsumerWidget {
 
     return auth.when(
       loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: NestLoadingSkeleton(itemCount: 3),
       ),
       error: (e, _) => Scaffold(
         body: Center(child: Text('Auth error: $e')),
@@ -38,7 +39,7 @@ class _NestGate extends ConsumerWidget {
 
     return nest.when(
       loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: NestLoadingSkeleton(itemCount: 3),
       ),
       error: (e, _) => Scaffold(
         body: Center(

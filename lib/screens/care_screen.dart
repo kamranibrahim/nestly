@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -47,7 +48,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
         ],
       ),
       body: itemsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const NestLoadingSkeleton(itemCount: 3),
         error: (_, _) =>
             const Center(child: Text('Could not load care items.')),
         data: (all) {

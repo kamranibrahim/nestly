@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -89,7 +90,7 @@ class EmergencyScreen extends ConsumerWidget {
           const SizedBox(height: 10),
           const SectionLabel('Contacts & notes'),
           entries.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const NestLoadingSkeleton(itemCount: 3),
             error: (e, _) => Text('$e'),
             data: (items) {
               if (items.isEmpty) {
