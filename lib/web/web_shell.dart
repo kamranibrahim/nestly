@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../theme/app_colors.dart';
+import '../widgets/shimmer.dart';
 import 'web_app.dart';
 
 class WebShell extends ConsumerStatefulWidget {
@@ -200,7 +201,7 @@ class _CalendarPane extends ConsumerWidget {
           subtitle: 'Upcoming from your shared nest',
           child: snap.connectionState == ConnectionState.waiting &&
                   !snap.hasData
-              ? const Center(child: CircularProgressIndicator())
+              ? const NestLoadingSkeleton(itemCount: 5)
               : upcoming.isEmpty
                   ? const _Empty('No upcoming events. Add them on mobile.')
                   : ListView.separated(
@@ -304,7 +305,7 @@ class _TasksPaneState extends ConsumerState<_TasksPane> {
           ),
           child: snap.connectionState == ConnectionState.waiting &&
                   !snap.hasData
-              ? const Center(child: CircularProgressIndicator())
+              ? const NestLoadingSkeleton(itemCount: 6)
               : tasks.isEmpty
                   ? const _Empty('No tasks yet.')
                   : ListView.separated(
@@ -395,7 +396,7 @@ class _ShoppingPaneState extends ConsumerState<_ShoppingPane> {
           ),
           child: snap.connectionState == ConnectionState.waiting &&
                   !snap.hasData
-              ? const Center(child: CircularProgressIndicator())
+              ? const NestLoadingSkeleton(itemCount: 6)
               : items.isEmpty
                   ? const _Empty('List is empty.')
                   : ListView.separated(

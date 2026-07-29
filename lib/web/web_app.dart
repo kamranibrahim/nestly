@@ -5,6 +5,7 @@ import '../data/auth_errors.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/shimmer.dart';
 import 'companion_store.dart';
 import 'web_shell.dart';
 
@@ -34,7 +35,7 @@ class _WebGate extends ConsumerWidget {
     final auth = ref.watch(authStateProvider);
     return auth.when(
       loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: NestShimmerCircle(size: 22)),
       ),
       error: (e, _) => Scaffold(body: Center(child: Text('$e'))),
       data: (user) {
@@ -74,7 +75,7 @@ class _WebNestGateState extends ConsumerState<_WebNestGate> {
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: NestShimmerCircle(size: 22)),
           );
         }
         final nest = snap.data;
@@ -179,7 +180,7 @@ class _WebAuthScreenState extends ConsumerState<_WebAuthScreen> {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: NestShimmerCircle(size: 20),
                           )
                         : const Text('Log in'),
                   ),

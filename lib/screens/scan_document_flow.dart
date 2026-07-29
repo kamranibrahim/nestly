@@ -12,6 +12,7 @@ import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/shimmer.dart';
 import '../widgets/sheet_form.dart';
 
 final documentAiServiceProvider = Provider<DocumentAiService>((ref) {
@@ -94,7 +95,7 @@ Future<void> startDocumentScanFlow(
               SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.4),
+                child: NestShimmerCircle(size: 22),
               ),
               SizedBox(width: 14),
               Flexible(
@@ -674,10 +675,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
+                  child: NestShimmerCircle(size: 20),
                 )
               : Text(switch (_kind) {
                   'expense' => 'Add expense',

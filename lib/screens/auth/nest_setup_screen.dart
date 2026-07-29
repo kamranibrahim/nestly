@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/auth_errors.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/shimmer.dart';
 
 /// Fast onboarding: one screen, sensible defaults, under ~30 seconds.
 class NestSetupScreen extends ConsumerStatefulWidget {
@@ -151,10 +152,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
                 ? const SizedBox(
                     width: 22,
                     height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
+                    child: NestShimmerCircle(size: 22),
                   )
                 : Text(_joining ? 'Join nest' : 'Start nest'),
           ),

@@ -5,6 +5,7 @@ import '../../data/auth_errors.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_motion.dart';
+import '../../widgets/shimmer.dart';
 import '../../widgets/motion.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -194,10 +195,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ? const SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
+                      child: NestShimmerCircle(size: 22),
                     )
                   : Text(_signUp ? 'Sign up' : 'Log in'),
             ),

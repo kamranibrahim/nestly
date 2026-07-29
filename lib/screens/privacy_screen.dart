@@ -5,6 +5,7 @@ import '../data/db/app_database.dart';
 import '../data/nest_privacy_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/shimmer.dart';
 
 final nestPrivacyServiceProvider = Provider<NestPrivacyService>((ref) {
   return NestPrivacyService(ref.watch(databaseProvider));
@@ -213,7 +214,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                   const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: NestShimmerCircle(size: 18),
                   )
                 else
                   const Icon(

@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+
+/// Small inline shimmer used inside buttons/actions.
+class NestShimmerCircle extends StatelessWidget {
+  const NestShimmerCircle({
+    super.key,
+    this.size = 18,
+  });
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerBox(width: size, height: size, borderRadius: 999);
+  }
+}
 /// A gentle shimmer effect for loading states.
 class ShimmerBox extends StatefulWidget {
   const ShimmerBox({
