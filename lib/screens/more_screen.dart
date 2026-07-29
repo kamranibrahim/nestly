@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../data/db/app_database.dart';
 import '../data/member_roles.dart';
+import '../data/showcase_seed.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -13,6 +16,57 @@ import 'privacy_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
+
+  Future<void> _loadShowcase(BuildContext context, WidgetRef ref) async {
+    final nest = await ref.read(nestInfoProvider.future);
+    final user = FirebaseAuth.instance.currentUser;
+    if (nest == null || user == null) return;
+    if (!context.mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Load showcase data?'),
+        content: const Text(
+          'Replaces nest content with polished App Store sample data '
+          '(family, calendar, tasks, shopping, vault, and more), then syncs.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Load'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Loading showcase data…')),
+    );
+
+    try {
+      await ShowcaseSeedService(ref.read(databaseProvider)).seed(
+        nestId: nest.id,
+        ownerMemberId: user.uid,
+      );
+      await ref.read(syncServiceProvider).syncAll();
+      ref.invalidate(nestInfoProvider);
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Showcase data ready — open Home to review')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not load showcase: $e')),
+      );
+    }
+  }
 
   Future<void> _editRole(
     BuildContext context,
@@ -289,6 +343,47 @@ class MoreScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 12),
             const SectionLabel('Settings'),
+            if (nest != null) ...[
+              Appear(
+                delay: const Duration(milliseconds: 90),
+                child: NestCard(
+                  onTap: () => _loadShowcase(context, ref),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        color: AppColors.accentDeep,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Load App Store showcase',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Fill Home, Calendar, Tasks, Vault & more',
+                              style: TextStyle(
+                                color: AppColors.inkMuted,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.inkMuted,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
             Appear(
               delay: const Duration(milliseconds: 100),
               child: NestCard(
@@ -355,6 +450,14 @@ class MoreScreen extends ConsumerWidget {
               onPressed: () => ref.read(authRepositoryProvider).signOut(),
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sign out'),
+            ),
+            TextButton.icon(
+              onPressed: () => confirmAndDeleteAccount(context, ref),
+              icon: const Icon(Icons.delete_forever_rounded, color: AppColors.danger),
+              label: const Text(
+                'Delete account',
+                style: TextStyle(color: AppColors.danger),
+              ),
             ),
           ],
         ),

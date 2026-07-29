@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/auth_errors.dart';
 import '../data/db/app_database.dart';
 import '../data/nest_privacy_service.dart';
 import '../theme/app_colors.dart';
@@ -10,6 +12,119 @@ import '../widgets/shimmer.dart';
 final nestPrivacyServiceProvider = Provider<NestPrivacyService>((ref) {
   return NestPrivacyService(ref.watch(databaseProvider));
 });
+
+/// Confirms deletion with password, then removes the Firebase account + local data.
+Future<void> confirmAndDeleteAccount(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('You need to be signed in.')),
+    );
+    return;
+  }
+
+  final password = await showDialog<String>(
+    context: context,
+    builder: (context) => const _DeleteAccountDialog(),
+  );
+  if (password == null || !context.mounted) return;
+
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.showSnackBar(
+    const SnackBar(content: Text('Deleting account…')),
+  );
+
+  try {
+    await ref.read(nestPrivacyServiceProvider).deleteAccount(password: password);
+    messenger.hideCurrentSnackBar();
+  } catch (e) {
+    messenger.hideCurrentSnackBar();
+    if (!context.mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(friendlyAuthError(e))),
+    );
+  }
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _password = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final email = FirebaseAuth.instance.currentUser?.email ?? 'your account';
+
+    return AlertDialog(
+      title: const Text('Delete account?'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This removes $email from your nest, deletes your Nestly '
+              'account, and clears data on this device. Other family members '
+              'keep the nest. This cannot be undone.',
+              style: const TextStyle(height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _password,
+              obscureText: _obscure,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _confirm(),
+              decoration: InputDecoration(
+                labelText: 'Confirm with password',
+                suffixIcon: IconButton(
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                  icon: Icon(
+                    _obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _confirm,
+          style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+          child: const Text('Delete forever'),
+        ),
+      ],
+    );
+  }
+
+  void _confirm() {
+    final password = _password.text;
+    if (password.isEmpty) return;
+    Navigator.pop(context, password);
+  }
+}
 
 /// In-app privacy summary for store closed testing / review.
 class PrivacyScreen extends ConsumerStatefulWidget {
@@ -41,42 +156,9 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   }
 
   Future<void> _deleteAccount() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'This removes you from your nest, deletes your Nestly account, '
-          'and clears data on this device. Other family members keep the nest. '
-          'This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
     setState(() => _busy = true);
     try {
-      await ref.read(nestPrivacyServiceProvider).deleteAccount();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account deleted')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e')),
-      );
+      await confirmAndDeleteAccount(context, ref);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -187,7 +269,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'Questions: privacy@nestly.app (placeholder for store listing).',
+                  'Questions: privacy@nestly.app — or open '
+                  'https://glowing-strudel-442ff8.netlify.app/privacy',
                   style: TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,
@@ -232,12 +315,26 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 Icon(Icons.delete_forever_rounded, color: AppColors.danger),
                 SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Delete account',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.danger,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Delete account',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.danger,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Requires your password. Cannot be undone.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.inkMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

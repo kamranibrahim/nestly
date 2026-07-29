@@ -70,6 +70,20 @@ class AuthRepository {
 
   Future<void> signOut() => _auth.signOut();
 
+  /// Required before sensitive ops like account deletion when the session is stale.
+  Future<void> reauthenticateWithPassword(String password) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null || email.isEmpty) {
+      throw StateError('Not signed in');
+    }
+    final credential = EmailAuthProvider.credential(
+      email: email,
+      password: password,
+    );
+    await user.reauthenticateWithCredential(credential);
+  }
+
   Future<NestInfo?> currentNest() async {
     final user = _auth.currentUser;
     if (user == null) return null;

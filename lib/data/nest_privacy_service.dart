@@ -92,12 +92,20 @@ class NestPrivacyService {
     );
   }
 
-  /// Leaves the nest, wipes local SQLite, deletes the Firebase user.
-  Future<void> deleteAccount() async {
+  /// Leaves the nest, deletes Firestore user profile + Auth user, then wipes local DB.
+  ///
+  /// Pass [password] so Nestly can reauthenticate when Firebase requires a
+  /// recent login (common for account deletion).
+  Future<void> deleteAccount({required String password}) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw StateError('Not signed in');
     }
+    if (password.trim().isEmpty) {
+      throw StateError('Enter your password to delete your account.');
+    }
+
+    await _authRepo.reauthenticateWithPassword(password.trim());
 
     final userDoc =
         await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
@@ -118,9 +126,6 @@ class NestPrivacyService {
       await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
     } catch (_) {}
 
-    await _db.clearHouseholdData();
-    await _db.delete(_db.syncMeta).go();
-
     try {
       await user.delete();
     } on FirebaseAuthException catch (e) {
@@ -131,5 +136,8 @@ class NestPrivacyService {
       }
       rethrow;
     }
+
+    await _db.clearHouseholdData();
+    await _db.delete(_db.syncMeta).go();
   }
 }

@@ -7,7 +7,7 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 - [ ] Enable Email/Password in Firebase Auth console
 - [x] Deploy rules: `firebase deploy --only firestore:rules,storage` (auth-only)
 - [x] Enable Firebase Storage in console + deploy storage rules
-- [ ] Confirm `com.nestly.nestly` matches store listing package / bundle ID
+- [ ] Confirm `app.nestly.family` matches store listing package / bundle ID
 - [ ] Build release: `flutter build appbundle` / `flutter build ipa`
 - [ ] Privacy policy URL live (in-app: Nest → Privacy — includes export + delete)
 - [ ] Store listing screenshots of Home, Calendar, Tasks, Vault, Nest/Privacy
@@ -38,4 +38,4 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 - Apple / Google social sign-in not enabled yet
 - **No Nestly Plus paywall** — free soft launch by design
 - Enable Firebase Storage in console before vault cloud upload
-- Account delete may require a fresh sign-in (`requires-recent-login`)
+- Account delete asks for your password (reauth) under Nest → Privacy or Nest → Delete account

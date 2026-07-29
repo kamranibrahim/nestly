@@ -21,11 +21,16 @@ String friendlyAuthError(Object error) {
         return 'No network. Check your connection and try again.';
       case 'operation-not-allowed':
         return 'Email sign-in is not enabled yet for this project.';
+      case 'requires-recent-login':
+        return 'For security, enter your password again to delete your account.';
       default:
         return error.message ?? 'Something went wrong. Please try again.';
     }
   }
   final text = error.toString();
+  if (text.startsWith('Bad state: ')) {
+    return text.substring('Bad state: '.length);
+  }
   if (text.contains('Invite code not found')) {
     return 'That invite code was not found.';
   }
