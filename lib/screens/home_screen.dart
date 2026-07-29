@@ -42,6 +42,11 @@ class HomeScreen extends ConsumerWidget {
     final bills = ref.watch(billsProvider).valueOrNull ?? const [];
     final tasks = ref.watch(tasksProvider).valueOrNull ?? const [];
     final openTaskList = tasks.where((t) => !t.done).take(4).toList();
+    final careItems = ref.watch(careItemsProvider).valueOrNull ?? const [];
+    final endToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final careDueItems = careItems
+        .where((c) => !c.nextDueAt.isAfter(endToday))
+        .toList();
     final timeline = ref.watch(timelineProvider).valueOrNull ?? const [];
     final recent = timeline.take(5).toList();
 
@@ -223,27 +228,45 @@ class HomeScreen extends ConsumerWidget {
                             for (final task in openTaskList)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 6),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () async {
+                                    await ref
+                                        .read(taskRepositoryProvider)
+                                        .toggleDone(task);
+                                    try {
+                                      await ref
+                                          .read(syncServiceProvider)
+                                          .syncAll();
+                                    } catch (_) {}
+                                  },
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.radio_button_unchecked_rounded,
+                                        size: 20,
                                         color: AppColors.mintDeep,
-                                        shape: BoxShape.circle,
                                       ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        task.title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          task.title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      const Text(
+                                        'Done',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                           ],
@@ -259,10 +282,31 @@ class HomeScreen extends ConsumerWidget {
                           for (var i = 0; i < needs.needs.length; i++) ...[
                             _NeedRow(
                               need: needs.needs[i],
-                              onTap: () => _openNeed(
+                              detailOverride: _needDetailOverride(
+                                needs.needs[i].kind,
+                                firstOpenTask: openTaskList.isEmpty
+                                    ? null
+                                    : openTaskList.first,
+                                firstCareDue: careDueItems.isEmpty
+                                    ? null
+                                    : careDueItems.first,
+                              ),
+                              onOpen: () => _openNeed(
                                 context,
                                 onOpenTab,
                                 needs.needs[i].kind,
+                              ),
+                              onAction: () => _runNeedAction(
+                                context,
+                                ref,
+                                onOpenTab,
+                                needs.needs[i].kind,
+                                firstOpenTask: openTaskList.isEmpty
+                                    ? null
+                                    : openTaskList.first,
+                                firstCareDue: careDueItems.isEmpty
+                                    ? null
+                                    : careDueItems.first,
                               ),
                             ),
                             if (i != needs.needs.length - 1)
@@ -406,6 +450,65 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  String? _needDetailOverride(
+    FamilyNeedKind kind, {
+    Task? firstOpenTask,
+    CareItem? firstCareDue,
+  }) {
+    switch (kind) {
+      case FamilyNeedKind.tasks:
+        return firstOpenTask == null
+            ? null
+            : 'Next: ${firstOpenTask.title}';
+      case FamilyNeedKind.care:
+        return firstCareDue == null ? null : 'Next: ${firstCareDue.title}';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _runNeedAction(
+    BuildContext context,
+    WidgetRef ref,
+    ValueChanged<int> onOpenTab,
+    FamilyNeedKind kind, {
+    Task? firstOpenTask,
+    CareItem? firstCareDue,
+  }) async {
+    switch (kind) {
+      case FamilyNeedKind.tasks:
+        if (firstOpenTask == null) {
+          onOpenTab(2);
+          return;
+        }
+        await ref.read(taskRepositoryProvider).toggleDone(firstOpenTask);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Done: ${firstOpenTask.title}')),
+          );
+        }
+      case FamilyNeedKind.care:
+        if (firstCareDue == null) {
+          nestPush(context, const CareScreen());
+          return;
+        }
+        await ref.read(careRepositoryProvider).markDone(firstCareDue);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Done: ${firstCareDue.title}')),
+          );
+        }
+      default:
+        _openNeed(context, onOpenTab, kind);
+    }
+  }
+
   void _openNeed(
     BuildContext context,
     ValueChanged<int> onOpenTab,
@@ -535,24 +638,43 @@ class _TodayEventCard extends StatelessWidget {
 }
 
 class _NeedRow extends StatelessWidget {
-  const _NeedRow({required this.need, required this.onTap});
+  const _NeedRow({
+    required this.need,
+    required this.onOpen,
+    required this.onAction,
+    this.detailOverride,
+  });
 
   final FamilyNeed need;
-  final VoidCallback onTap;
+  final VoidCallback onOpen;
+  final VoidCallback onAction;
+  final String? detailOverride;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: onTap,
+      onTap: onOpen,
       title: Text(
         need.title,
         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
       ),
       subtitle: Text(
-        need.detail,
+        detailOverride ?? need.detail,
         style: const TextStyle(color: AppColors.inkMuted, fontSize: 12.5),
       ),
-      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SoftPill(
+            label: need.actionLabel,
+            selected: need.kind == FamilyNeedKind.tasks ||
+                need.kind == FamilyNeedKind.care,
+            onTap: onAction,
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
+        ],
+      ),
     );
   }
 }

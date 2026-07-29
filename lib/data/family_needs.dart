@@ -4,11 +4,14 @@ class FamilyNeed {
     required this.title,
     required this.detail,
     required this.kind,
+    this.actionLabel = 'Open',
   });
 
   final String title;
   final String detail;
   final FamilyNeedKind kind;
+  /// Short CTA shown on Home (e.g. Done, Open list).
+  final String actionLabel;
 }
 
 enum FamilyNeedKind { tasks, shopping, bills, care, school, meals, calendar }
@@ -37,8 +40,9 @@ FamilyNeedsSummary buildFamilyNeeds({
     needs.add(
       FamilyNeed(
         title: '$openTasks open task${openTasks == 1 ? '' : 's'}',
-        detail: 'Tap to finish what’s due',
+        detail: 'Finish one now or open the list',
         kind: FamilyNeedKind.tasks,
+        actionLabel: 'Done',
       ),
     );
   }
@@ -46,8 +50,9 @@ FamilyNeedsSummary buildFamilyNeeds({
     needs.add(
       FamilyNeed(
         title: '$openShopping grocery item${openShopping == 1 ? '' : 's'} left',
-        detail: 'Open the shared list and check them off',
+        detail: 'Check them off on the shared list',
         kind: FamilyNeedKind.shopping,
+        actionLabel: 'Open list',
       ),
     );
   } else if (grocerySuggestions > 0) {
@@ -57,6 +62,7 @@ FamilyNeedsSummary buildFamilyNeeds({
             'Restock $grocerySuggestions usual item${grocerySuggestions == 1 ? '' : 's'}',
         detail: 'Based on what you buy often',
         kind: FamilyNeedKind.shopping,
+        actionLabel: 'Restock',
       ),
     );
   }
@@ -65,8 +71,9 @@ FamilyNeedsSummary buildFamilyNeeds({
       FamilyNeed(
         title:
             '$unpaidBillsDueSoon bill${unpaidBillsDueSoon == 1 ? '' : 's'} due soon',
-        detail: 'Mark paid or set a reminder',
+        detail: 'Mark paid when you’ve settled them',
         kind: FamilyNeedKind.bills,
+        actionLabel: 'Review',
       ),
     );
   }
@@ -76,6 +83,7 @@ FamilyNeedsSummary buildFamilyNeeds({
         title: '$careDue care item${careDue == 1 ? '' : 's'} due',
         detail: 'Mark done when finished',
         kind: FamilyNeedKind.care,
+        actionLabel: 'Done',
       ),
     );
   }
@@ -86,6 +94,7 @@ FamilyNeedsSummary buildFamilyNeeds({
             '$schoolDue school / pickup${schoolDue == 1 ? '' : 's'} due',
         detail: 'Confirm who’s covering the run',
         kind: FamilyNeedKind.school,
+        actionLabel: 'Open',
       ),
     );
   }
@@ -95,6 +104,7 @@ FamilyNeedsSummary buildFamilyNeeds({
         title: 'No dinner planned today',
         detail: 'Add a meal — ingredients can go to the list',
         kind: FamilyNeedKind.meals,
+        actionLabel: 'Plan',
       ),
     );
   }
@@ -104,6 +114,7 @@ FamilyNeedsSummary buildFamilyNeeds({
         title: 'Quiet day',
         detail: 'Nothing urgent — a good time to plan ahead',
         kind: FamilyNeedKind.calendar,
+        actionLabel: 'Calendar',
       ),
     );
   } else if (eventsToday > 0) {
@@ -112,6 +123,7 @@ FamilyNeedsSummary buildFamilyNeeds({
         title: '$eventsToday event${eventsToday == 1 ? '' : 's'} today',
         detail: 'Open Calendar so nobody is surprised',
         kind: FamilyNeedKind.calendar,
+        actionLabel: 'View',
       ),
     );
   }
