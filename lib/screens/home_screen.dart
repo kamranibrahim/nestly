@@ -215,9 +215,13 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _FamilyHeader extends StatelessWidget {
+class _FamilyHeader extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nestName =
+        ref.watch(nestInfoProvider).valueOrNull?.name ?? MockData.familyName;
+    final members = ref.watch(membersProvider).valueOrNull;
+
     return Row(
       children: [
         Expanded(
@@ -225,7 +229,7 @@ class _FamilyHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                MockData.familyName,
+                nestName,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppColors.ink,
@@ -244,25 +248,42 @@ class _FamilyHeader extends StatelessWidget {
           ),
         ),
         SizedBox(
-          width: 28.0 * (MockData.members.length - 1) + 36,
+          width: 28.0 *
+                  ((members?.length ?? MockData.members.length) - 1).clamp(0, 8) +
+              36,
           height: 36,
           child: Stack(
             children: [
-              for (var i = 0; i < MockData.members.length; i++)
-                Positioned(
-                  left: i * 26.0,
-                  child: MemberAvatar(
-                    initials: MockData.members[i].initials,
-                    color: MockData.members[i].color,
-                    size: 36,
+              if (members == null || members.isEmpty)
+                for (var i = 0; i < MockData.members.length; i++)
+                  Positioned(
+                    left: i * 26.0,
+                    child: MemberAvatar(
+                      initials: MockData.members[i].initials,
+                      color: MockData.members[i].color,
+                      size: 36,
+                    ),
+                  )
+              else
+                for (var i = 0; i < members.length; i++)
+                  Positioned(
+                    left: i * 26.0,
+                    child: MemberAvatar(
+                      initials: members[i].initials,
+                      color: Color(members[i].colorValue),
+                      size: 36,
+                    ),
                   ),
-                ),
             ],
           ),
         ),
         const SizedBox(width: 8),
         IconButton(
-          onPressed: () {},
+          onPressed: () async {
+            try {
+              await ref.read(syncServiceProvider).syncAll();
+            } catch (_) {}
+          },
           icon: const Icon(Icons.notifications_none_rounded),
           color: AppColors.primary,
         ),

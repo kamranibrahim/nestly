@@ -3,6 +3,509 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
+class $NestMembersTable extends NestMembers
+    with TableInfo<$NestMembersTable, NestMember> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NestMembersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('member'),
+  );
+  static const VerificationMeta _initialsMeta = const VerificationMeta(
+    'initials',
+  );
+  @override
+  late final GeneratedColumn<String> initials = GeneratedColumn<String>(
+    'initials',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorValueMeta = const VerificationMeta(
+    'colorValue',
+  );
+  @override
+  late final GeneratedColumn<int> colorValue = GeneratedColumn<int>(
+    'color_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    name,
+    role,
+    initials,
+    colorValue,
+    dirty,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'nest_members';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NestMember> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nestIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    }
+    if (data.containsKey('initials')) {
+      context.handle(
+        _initialsMeta,
+        initials.isAcceptableOrUnknown(data['initials']!, _initialsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_initialsMeta);
+    }
+    if (data.containsKey('color_value')) {
+      context.handle(
+        _colorValueMeta,
+        colorValue.isAcceptableOrUnknown(data['color_value']!, _colorValueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorValueMeta);
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  NestMember map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NestMember(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      initials: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}initials'],
+      )!,
+      colorValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color_value'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $NestMembersTable createAlias(String alias) {
+    return $NestMembersTable(attachedDatabase, alias);
+  }
+}
+
+class NestMember extends DataClass implements Insertable<NestMember> {
+  final String id;
+  final String nestId;
+  final String name;
+  final String role;
+  final String initials;
+  final int colorValue;
+  final bool dirty;
+  final DateTime updatedAt;
+  const NestMember({
+    required this.id,
+    required this.nestId,
+    required this.name,
+    required this.role,
+    required this.initials,
+    required this.colorValue,
+    required this.dirty,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['nest_id'] = Variable<String>(nestId);
+    map['name'] = Variable<String>(name);
+    map['role'] = Variable<String>(role);
+    map['initials'] = Variable<String>(initials);
+    map['color_value'] = Variable<int>(colorValue);
+    map['dirty'] = Variable<bool>(dirty);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  NestMembersCompanion toCompanion(bool nullToAbsent) {
+    return NestMembersCompanion(
+      id: Value(id),
+      nestId: Value(nestId),
+      name: Value(name),
+      role: Value(role),
+      initials: Value(initials),
+      colorValue: Value(colorValue),
+      dirty: Value(dirty),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory NestMember.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NestMember(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String>(json['nestId']),
+      name: serializer.fromJson<String>(json['name']),
+      role: serializer.fromJson<String>(json['role']),
+      initials: serializer.fromJson<String>(json['initials']),
+      colorValue: serializer.fromJson<int>(json['colorValue']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String>(nestId),
+      'name': serializer.toJson<String>(name),
+      'role': serializer.toJson<String>(role),
+      'initials': serializer.toJson<String>(initials),
+      'colorValue': serializer.toJson<int>(colorValue),
+      'dirty': serializer.toJson<bool>(dirty),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  NestMember copyWith({
+    String? id,
+    String? nestId,
+    String? name,
+    String? role,
+    String? initials,
+    int? colorValue,
+    bool? dirty,
+    DateTime? updatedAt,
+  }) => NestMember(
+    id: id ?? this.id,
+    nestId: nestId ?? this.nestId,
+    name: name ?? this.name,
+    role: role ?? this.role,
+    initials: initials ?? this.initials,
+    colorValue: colorValue ?? this.colorValue,
+    dirty: dirty ?? this.dirty,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  NestMember copyWithCompanion(NestMembersCompanion data) {
+    return NestMember(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      name: data.name.present ? data.name.value : this.name,
+      role: data.role.present ? data.role.value : this.role,
+      initials: data.initials.present ? data.initials.value : this.initials,
+      colorValue: data.colorValue.present
+          ? data.colorValue.value
+          : this.colorValue,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NestMember(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('name: $name, ')
+          ..write('role: $role, ')
+          ..write('initials: $initials, ')
+          ..write('colorValue: $colorValue, ')
+          ..write('dirty: $dirty, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    name,
+    role,
+    initials,
+    colorValue,
+    dirty,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NestMember &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.name == this.name &&
+          other.role == this.role &&
+          other.initials == this.initials &&
+          other.colorValue == this.colorValue &&
+          other.dirty == this.dirty &&
+          other.updatedAt == this.updatedAt);
+}
+
+class NestMembersCompanion extends UpdateCompanion<NestMember> {
+  final Value<String> id;
+  final Value<String> nestId;
+  final Value<String> name;
+  final Value<String> role;
+  final Value<String> initials;
+  final Value<int> colorValue;
+  final Value<bool> dirty;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const NestMembersCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.role = const Value.absent(),
+    this.initials = const Value.absent(),
+    this.colorValue = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NestMembersCompanion.insert({
+    required String id,
+    required String nestId,
+    required String name,
+    this.role = const Value.absent(),
+    required String initials,
+    required int colorValue,
+    this.dirty = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       nestId = Value(nestId),
+       name = Value(name),
+       initials = Value(initials),
+       colorValue = Value(colorValue);
+  static Insertable<NestMember> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<String>? name,
+    Expression<String>? role,
+    Expression<String>? initials,
+    Expression<int>? colorValue,
+    Expression<bool>? dirty,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (name != null) 'name': name,
+      if (role != null) 'role': role,
+      if (initials != null) 'initials': initials,
+      if (colorValue != null) 'color_value': colorValue,
+      if (dirty != null) 'dirty': dirty,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NestMembersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? nestId,
+    Value<String>? name,
+    Value<String>? role,
+    Value<String>? initials,
+    Value<int>? colorValue,
+    Value<bool>? dirty,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return NestMembersCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      name: name ?? this.name,
+      role: role ?? this.role,
+      initials: initials ?? this.initials,
+      colorValue: colorValue ?? this.colorValue,
+      dirty: dirty ?? this.dirty,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (initials.present) {
+      map['initials'] = Variable<String>(initials.value);
+    }
+    if (colorValue.present) {
+      map['color_value'] = Variable<int>(colorValue.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NestMembersCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('name: $name, ')
+          ..write('role: $role, ')
+          ..write('initials: $initials, ')
+          ..write('colorValue: $colorValue, ')
+          ..write('dirty: $dirty, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -16,6 +519,15 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
@@ -78,6 +590,34 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -105,11 +645,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    nestId,
     title,
     assigneeId,
     dueLabel,
     done,
     recurring,
+    dirty,
+    deleted,
     createdAt,
     updatedAt,
   ];
@@ -129,6 +672,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
     }
     if (data.containsKey('title')) {
       context.handle(
@@ -162,6 +711,18 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         recurring.isAcceptableOrUnknown(data['recurring']!, _recurringMeta),
       );
     }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -187,6 +748,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -207,6 +772,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.bool,
         data['${effectivePrefix}recurring'],
       )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -226,20 +799,26 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
 
 class Task extends DataClass implements Insertable<Task> {
   final String id;
+  final String? nestId;
   final String title;
   final String assigneeId;
   final String dueLabel;
   final bool done;
   final bool recurring;
+  final bool dirty;
+  final bool deleted;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Task({
     required this.id,
+    this.nestId,
     required this.title,
     required this.assigneeId,
     required this.dueLabel,
     required this.done,
     required this.recurring,
+    required this.dirty,
+    required this.deleted,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -247,11 +826,16 @@ class Task extends DataClass implements Insertable<Task> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
     map['title'] = Variable<String>(title);
     map['assignee_id'] = Variable<String>(assigneeId);
     map['due_label'] = Variable<String>(dueLabel);
     map['done'] = Variable<bool>(done);
     map['recurring'] = Variable<bool>(recurring);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -260,11 +844,16 @@ class Task extends DataClass implements Insertable<Task> {
   TasksCompanion toCompanion(bool nullToAbsent) {
     return TasksCompanion(
       id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
       title: Value(title),
       assigneeId: Value(assigneeId),
       dueLabel: Value(dueLabel),
       done: Value(done),
       recurring: Value(recurring),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -277,11 +866,14 @@ class Task extends DataClass implements Insertable<Task> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Task(
       id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
       title: serializer.fromJson<String>(json['title']),
       assigneeId: serializer.fromJson<String>(json['assigneeId']),
       dueLabel: serializer.fromJson<String>(json['dueLabel']),
       done: serializer.fromJson<bool>(json['done']),
       recurring: serializer.fromJson<bool>(json['recurring']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -291,11 +883,14 @@ class Task extends DataClass implements Insertable<Task> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
       'title': serializer.toJson<String>(title),
       'assigneeId': serializer.toJson<String>(assigneeId),
       'dueLabel': serializer.toJson<String>(dueLabel),
       'done': serializer.toJson<bool>(done),
       'recurring': serializer.toJson<bool>(recurring),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -303,26 +898,33 @@ class Task extends DataClass implements Insertable<Task> {
 
   Task copyWith({
     String? id,
+    Value<String?> nestId = const Value.absent(),
     String? title,
     String? assigneeId,
     String? dueLabel,
     bool? done,
     bool? recurring,
+    bool? dirty,
+    bool? deleted,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Task(
     id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
     title: title ?? this.title,
     assigneeId: assigneeId ?? this.assigneeId,
     dueLabel: dueLabel ?? this.dueLabel,
     done: done ?? this.done,
     recurring: recurring ?? this.recurring,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   Task copyWithCompanion(TasksCompanion data) {
     return Task(
       id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
       title: data.title.present ? data.title.value : this.title,
       assigneeId: data.assigneeId.present
           ? data.assigneeId.value
@@ -330,6 +932,8 @@ class Task extends DataClass implements Insertable<Task> {
       dueLabel: data.dueLabel.present ? data.dueLabel.value : this.dueLabel,
       done: data.done.present ? data.done.value : this.done,
       recurring: data.recurring.present ? data.recurring.value : this.recurring,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -339,11 +943,14 @@ class Task extends DataClass implements Insertable<Task> {
   String toString() {
     return (StringBuffer('Task(')
           ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
           ..write('title: $title, ')
           ..write('assigneeId: $assigneeId, ')
           ..write('dueLabel: $dueLabel, ')
           ..write('done: $done, ')
           ..write('recurring: $recurring, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -353,11 +960,14 @@ class Task extends DataClass implements Insertable<Task> {
   @override
   int get hashCode => Object.hash(
     id,
+    nestId,
     title,
     assigneeId,
     dueLabel,
     done,
     recurring,
+    dirty,
+    deleted,
     createdAt,
     updatedAt,
   );
@@ -366,43 +976,55 @@ class Task extends DataClass implements Insertable<Task> {
       identical(this, other) ||
       (other is Task &&
           other.id == this.id &&
+          other.nestId == this.nestId &&
           other.title == this.title &&
           other.assigneeId == this.assigneeId &&
           other.dueLabel == this.dueLabel &&
           other.done == this.done &&
           other.recurring == this.recurring &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
 
 class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> id;
+  final Value<String?> nestId;
   final Value<String> title;
   final Value<String> assigneeId;
   final Value<String> dueLabel;
   final Value<bool> done;
   final Value<bool> recurring;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const TasksCompanion({
     this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
     this.title = const Value.absent(),
     this.assigneeId = const Value.absent(),
     this.dueLabel = const Value.absent(),
     this.done = const Value.absent(),
     this.recurring = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TasksCompanion.insert({
     required String id,
+    this.nestId = const Value.absent(),
     required String title,
     this.assigneeId = const Value.absent(),
     this.dueLabel = const Value.absent(),
     this.done = const Value.absent(),
     this.recurring = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -410,22 +1032,28 @@ class TasksCompanion extends UpdateCompanion<Task> {
        title = Value(title);
   static Insertable<Task> custom({
     Expression<String>? id,
+    Expression<String>? nestId,
     Expression<String>? title,
     Expression<String>? assigneeId,
     Expression<String>? dueLabel,
     Expression<bool>? done,
     Expression<bool>? recurring,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
       if (title != null) 'title': title,
       if (assigneeId != null) 'assignee_id': assigneeId,
       if (dueLabel != null) 'due_label': dueLabel,
       if (done != null) 'done': done,
       if (recurring != null) 'recurring': recurring,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -434,22 +1062,28 @@ class TasksCompanion extends UpdateCompanion<Task> {
 
   TasksCompanion copyWith({
     Value<String>? id,
+    Value<String?>? nestId,
     Value<String>? title,
     Value<String>? assigneeId,
     Value<String>? dueLabel,
     Value<bool>? done,
     Value<bool>? recurring,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
   }) {
     return TasksCompanion(
       id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
       title: title ?? this.title,
       assigneeId: assigneeId ?? this.assigneeId,
       dueLabel: dueLabel ?? this.dueLabel,
       done: done ?? this.done,
       recurring: recurring ?? this.recurring,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -461,6 +1095,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -476,6 +1113,12 @@ class TasksCompanion extends UpdateCompanion<Task> {
     }
     if (recurring.present) {
       map['recurring'] = Variable<bool>(recurring.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -493,11 +1136,14 @@ class TasksCompanion extends UpdateCompanion<Task> {
   String toString() {
     return (StringBuffer('TasksCompanion(')
           ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
           ..write('title: $title, ')
           ..write('assigneeId: $assigneeId, ')
           ..write('dueLabel: $dueLabel, ')
           ..write('done: $done, ')
           ..write('recurring: $recurring, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -521,6 +1167,15 @@ class $ShoppingListsTable extends ShoppingLists
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -529,6 +1184,34 @@ class $ShoppingListsTable extends ShoppingLists
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -542,8 +1225,28 @@ class $ShoppingListsTable extends ShoppingLists
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, createdAt];
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    name,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -561,6 +1264,12 @@ class $ShoppingListsTable extends ShoppingLists
     } else if (isInserting) {
       context.missing(_idMeta);
     }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -569,10 +1278,28 @@ class $ShoppingListsTable extends ShoppingLists
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
     return context;
@@ -588,13 +1315,29 @@ class $ShoppingListsTable extends ShoppingLists
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
       )!,
     );
   }
@@ -607,27 +1350,47 @@ class $ShoppingListsTable extends ShoppingLists
 
 class ShoppingList extends DataClass implements Insertable<ShoppingList> {
   final String id;
+  final String? nestId;
   final String name;
+  final bool dirty;
+  final bool deleted;
   final DateTime createdAt;
+  final DateTime updatedAt;
   const ShoppingList({
     required this.id,
+    this.nestId,
     required this.name,
+    required this.dirty,
+    required this.deleted,
     required this.createdAt,
+    required this.updatedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
     map['name'] = Variable<String>(name);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
 
   ShoppingListsCompanion toCompanion(bool nullToAbsent) {
     return ShoppingListsCompanion(
       id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
       name: Value(name),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
       createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
     );
   }
 
@@ -638,8 +1401,12 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ShoppingList(
       id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
       name: serializer.fromJson<String>(json['name']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
   @override
@@ -647,22 +1414,41 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
       'name': serializer.toJson<String>(name),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
 
-  ShoppingList copyWith({String? id, String? name, DateTime? createdAt}) =>
-      ShoppingList(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        createdAt: createdAt ?? this.createdAt,
-      );
+  ShoppingList copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    String? name,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ShoppingList(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    name: name ?? this.name,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
   ShoppingList copyWithCompanion(ShoppingListsCompanion data) {
     return ShoppingList(
       id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
       name: data.name.present ? data.name.value : this.name,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
 
@@ -670,65 +1456,102 @@ class ShoppingList extends DataClass implements Insertable<ShoppingList> {
   String toString() {
     return (StringBuffer('ShoppingList(')
           ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
           ..write('name: $name, ')
-          ..write('createdAt: $createdAt')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, createdAt);
+  int get hashCode =>
+      Object.hash(id, nestId, name, dirty, deleted, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ShoppingList &&
           other.id == this.id &&
+          other.nestId == this.nestId &&
           other.name == this.name &&
-          other.createdAt == this.createdAt);
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
 }
 
 class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
   final Value<String> id;
+  final Value<String?> nestId;
   final Value<String> name;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
   final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const ShoppingListsCompanion({
     this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
     this.name = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShoppingListsCompanion.insert({
     required String id,
+    this.nestId = const Value.absent(),
     required String name,
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name);
   static Insertable<ShoppingList> custom({
     Expression<String>? id,
+    Expression<String>? nestId,
     Expression<String>? name,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
       if (name != null) 'name': name,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
   ShoppingListsCompanion copyWith({
     Value<String>? id,
+    Value<String?>? nestId,
     Value<String>? name,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
     Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
     Value<int>? rowid,
   }) {
     return ShoppingListsCompanion(
       id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
       name: name ?? this.name,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -739,11 +1562,23 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -755,8 +1590,12 @@ class ShoppingListsCompanion extends UpdateCompanion<ShoppingList> {
   String toString() {
     return (StringBuffer('ShoppingListsCompanion(')
           ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
           ..write('name: $name, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -777,6 +1616,15 @@ class $ShoppingItemsTable extends ShoppingItems
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _listIdMeta = const VerificationMeta('listId');
   @override
@@ -846,6 +1694,34 @@ class $ShoppingItemsTable extends ShoppingItems
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -873,12 +1749,15 @@ class $ShoppingItemsTable extends ShoppingItems
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    nestId,
     listId,
     name,
     category,
     qty,
     done,
     sortOrder,
+    dirty,
+    deleted,
     createdAt,
     updatedAt,
   ];
@@ -898,6 +1777,12 @@ class $ShoppingItemsTable extends ShoppingItems
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
     }
     if (data.containsKey('list_id')) {
       context.handle(
@@ -939,6 +1824,18 @@ class $ShoppingItemsTable extends ShoppingItems
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -964,6 +1861,10 @@ class $ShoppingItemsTable extends ShoppingItems
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
       listId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}list_id'],
@@ -988,6 +1889,14 @@ class $ShoppingItemsTable extends ShoppingItems
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1007,22 +1916,28 @@ class $ShoppingItemsTable extends ShoppingItems
 
 class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
   final String id;
+  final String? nestId;
   final String listId;
   final String name;
   final String category;
   final String qty;
   final bool done;
   final int sortOrder;
+  final bool dirty;
+  final bool deleted;
   final DateTime createdAt;
   final DateTime updatedAt;
   const ShoppingItem({
     required this.id,
+    this.nestId,
     required this.listId,
     required this.name,
     required this.category,
     required this.qty,
     required this.done,
     required this.sortOrder,
+    required this.dirty,
+    required this.deleted,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -1030,12 +1945,17 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
     map['list_id'] = Variable<String>(listId);
     map['name'] = Variable<String>(name);
     map['category'] = Variable<String>(category);
     map['qty'] = Variable<String>(qty);
     map['done'] = Variable<bool>(done);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -1044,12 +1964,17 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
   ShoppingItemsCompanion toCompanion(bool nullToAbsent) {
     return ShoppingItemsCompanion(
       id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
       listId: Value(listId),
       name: Value(name),
       category: Value(category),
       qty: Value(qty),
       done: Value(done),
       sortOrder: Value(sortOrder),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1062,12 +1987,15 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ShoppingItem(
       id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
       listId: serializer.fromJson<String>(json['listId']),
       name: serializer.fromJson<String>(json['name']),
       category: serializer.fromJson<String>(json['category']),
       qty: serializer.fromJson<String>(json['qty']),
       done: serializer.fromJson<bool>(json['done']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1077,12 +2005,15 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
       'listId': serializer.toJson<String>(listId),
       'name': serializer.toJson<String>(name),
       'category': serializer.toJson<String>(category),
       'qty': serializer.toJson<String>(qty),
       'done': serializer.toJson<bool>(done),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1090,34 +2021,43 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
 
   ShoppingItem copyWith({
     String? id,
+    Value<String?> nestId = const Value.absent(),
     String? listId,
     String? name,
     String? category,
     String? qty,
     bool? done,
     int? sortOrder,
+    bool? dirty,
+    bool? deleted,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => ShoppingItem(
     id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
     listId: listId ?? this.listId,
     name: name ?? this.name,
     category: category ?? this.category,
     qty: qty ?? this.qty,
     done: done ?? this.done,
     sortOrder: sortOrder ?? this.sortOrder,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   ShoppingItem copyWithCompanion(ShoppingItemsCompanion data) {
     return ShoppingItem(
       id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
       listId: data.listId.present ? data.listId.value : this.listId,
       name: data.name.present ? data.name.value : this.name,
       category: data.category.present ? data.category.value : this.category,
       qty: data.qty.present ? data.qty.value : this.qty,
       done: data.done.present ? data.done.value : this.done,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1127,12 +2067,15 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
   String toString() {
     return (StringBuffer('ShoppingItem(')
           ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
           ..write('listId: $listId, ')
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('qty: $qty, ')
           ..write('done: $done, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1142,12 +2085,15 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
   @override
   int get hashCode => Object.hash(
     id,
+    nestId,
     listId,
     name,
     category,
     qty,
     done,
     sortOrder,
+    dirty,
+    deleted,
     createdAt,
     updatedAt,
   );
@@ -1156,47 +2102,59 @@ class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
       identical(this, other) ||
       (other is ShoppingItem &&
           other.id == this.id &&
+          other.nestId == this.nestId &&
           other.listId == this.listId &&
           other.name == this.name &&
           other.category == this.category &&
           other.qty == this.qty &&
           other.done == this.done &&
           other.sortOrder == this.sortOrder &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
 
 class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
   final Value<String> id;
+  final Value<String?> nestId;
   final Value<String> listId;
   final Value<String> name;
   final Value<String> category;
   final Value<String> qty;
   final Value<bool> done;
   final Value<int> sortOrder;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const ShoppingItemsCompanion({
     this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
     this.listId = const Value.absent(),
     this.name = const Value.absent(),
     this.category = const Value.absent(),
     this.qty = const Value.absent(),
     this.done = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ShoppingItemsCompanion.insert({
     required String id,
+    this.nestId = const Value.absent(),
     required String listId,
     required String name,
     this.category = const Value.absent(),
     this.qty = const Value.absent(),
     this.done = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1205,24 +2163,30 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
        name = Value(name);
   static Insertable<ShoppingItem> custom({
     Expression<String>? id,
+    Expression<String>? nestId,
     Expression<String>? listId,
     Expression<String>? name,
     Expression<String>? category,
     Expression<String>? qty,
     Expression<bool>? done,
     Expression<int>? sortOrder,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
       if (listId != null) 'list_id': listId,
       if (name != null) 'name': name,
       if (category != null) 'category': category,
       if (qty != null) 'qty': qty,
       if (done != null) 'done': done,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1231,24 +2195,30 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
 
   ShoppingItemsCompanion copyWith({
     Value<String>? id,
+    Value<String?>? nestId,
     Value<String>? listId,
     Value<String>? name,
     Value<String>? category,
     Value<String>? qty,
     Value<bool>? done,
     Value<int>? sortOrder,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
   }) {
     return ShoppingItemsCompanion(
       id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
       listId: listId ?? this.listId,
       name: name ?? this.name,
       category: category ?? this.category,
       qty: qty ?? this.qty,
       done: done ?? this.done,
       sortOrder: sortOrder ?? this.sortOrder,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1260,6 +2230,9 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
     }
     if (listId.present) {
       map['list_id'] = Variable<String>(listId.value);
@@ -1279,6 +2252,12 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1295,14 +2274,965 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
   String toString() {
     return (StringBuffer('ShoppingItemsCompanion(')
           ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
           ..write('listId: $listId, ')
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('qty: $qty, ')
           ..write('done: $done, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CalendarEventsTable extends CalendarEvents
+    with TableInfo<$CalendarEventsTable, CalendarEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CalendarEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<String> memberId = GeneratedColumn<String>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('dad'),
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('Family'),
+  );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startsAtMeta = const VerificationMeta(
+    'startsAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startsAt = GeneratedColumn<DateTime>(
+    'starts_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endsAtMeta = const VerificationMeta('endsAt');
+  @override
+  late final GeneratedColumn<DateTime> endsAt = GeneratedColumn<DateTime>(
+    'ends_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _allDayMeta = const VerificationMeta('allDay');
+  @override
+  late final GeneratedColumn<bool> allDay = GeneratedColumn<bool>(
+    'all_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("all_day" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    title,
+    memberId,
+    category,
+    location,
+    startsAt,
+    endsAt,
+    allDay,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'calendar_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CalendarEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('starts_at')) {
+      context.handle(
+        _startsAtMeta,
+        startsAt.isAcceptableOrUnknown(data['starts_at']!, _startsAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startsAtMeta);
+    }
+    if (data.containsKey('ends_at')) {
+      context.handle(
+        _endsAtMeta,
+        endsAt.isAcceptableOrUnknown(data['ends_at']!, _endsAtMeta),
+      );
+    }
+    if (data.containsKey('all_day')) {
+      context.handle(
+        _allDayMeta,
+        allDay.isAcceptableOrUnknown(data['all_day']!, _allDayMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CalendarEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CalendarEvent(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}member_id'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      ),
+      startsAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}starts_at'],
+      )!,
+      endsAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ends_at'],
+      ),
+      allDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}all_day'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CalendarEventsTable createAlias(String alias) {
+    return $CalendarEventsTable(attachedDatabase, alias);
+  }
+}
+
+class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
+  final String id;
+  final String? nestId;
+  final String title;
+  final String memberId;
+  final String category;
+  final String? location;
+  final DateTime startsAt;
+  final DateTime? endsAt;
+  final bool allDay;
+  final bool dirty;
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CalendarEvent({
+    required this.id,
+    this.nestId,
+    required this.title,
+    required this.memberId,
+    required this.category,
+    this.location,
+    required this.startsAt,
+    this.endsAt,
+    required this.allDay,
+    required this.dirty,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
+    map['title'] = Variable<String>(title);
+    map['member_id'] = Variable<String>(memberId);
+    map['category'] = Variable<String>(category);
+    if (!nullToAbsent || location != null) {
+      map['location'] = Variable<String>(location);
+    }
+    map['starts_at'] = Variable<DateTime>(startsAt);
+    if (!nullToAbsent || endsAt != null) {
+      map['ends_at'] = Variable<DateTime>(endsAt);
+    }
+    map['all_day'] = Variable<bool>(allDay);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CalendarEventsCompanion toCompanion(bool nullToAbsent) {
+    return CalendarEventsCompanion(
+      id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
+      title: Value(title),
+      memberId: Value(memberId),
+      category: Value(category),
+      location: location == null && nullToAbsent
+          ? const Value.absent()
+          : Value(location),
+      startsAt: Value(startsAt),
+      endsAt: endsAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endsAt),
+      allDay: Value(allDay),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CalendarEvent.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CalendarEvent(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
+      title: serializer.fromJson<String>(json['title']),
+      memberId: serializer.fromJson<String>(json['memberId']),
+      category: serializer.fromJson<String>(json['category']),
+      location: serializer.fromJson<String?>(json['location']),
+      startsAt: serializer.fromJson<DateTime>(json['startsAt']),
+      endsAt: serializer.fromJson<DateTime?>(json['endsAt']),
+      allDay: serializer.fromJson<bool>(json['allDay']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
+      'title': serializer.toJson<String>(title),
+      'memberId': serializer.toJson<String>(memberId),
+      'category': serializer.toJson<String>(category),
+      'location': serializer.toJson<String?>(location),
+      'startsAt': serializer.toJson<DateTime>(startsAt),
+      'endsAt': serializer.toJson<DateTime?>(endsAt),
+      'allDay': serializer.toJson<bool>(allDay),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CalendarEvent copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    String? title,
+    String? memberId,
+    String? category,
+    Value<String?> location = const Value.absent(),
+    DateTime? startsAt,
+    Value<DateTime?> endsAt = const Value.absent(),
+    bool? allDay,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CalendarEvent(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    title: title ?? this.title,
+    memberId: memberId ?? this.memberId,
+    category: category ?? this.category,
+    location: location.present ? location.value : this.location,
+    startsAt: startsAt ?? this.startsAt,
+    endsAt: endsAt.present ? endsAt.value : this.endsAt,
+    allDay: allDay ?? this.allDay,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CalendarEvent copyWithCompanion(CalendarEventsCompanion data) {
+    return CalendarEvent(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      title: data.title.present ? data.title.value : this.title,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      category: data.category.present ? data.category.value : this.category,
+      location: data.location.present ? data.location.value : this.location,
+      startsAt: data.startsAt.present ? data.startsAt.value : this.startsAt,
+      endsAt: data.endsAt.present ? data.endsAt.value : this.endsAt,
+      allDay: data.allDay.present ? data.allDay.value : this.allDay,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarEvent(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('memberId: $memberId, ')
+          ..write('category: $category, ')
+          ..write('location: $location, ')
+          ..write('startsAt: $startsAt, ')
+          ..write('endsAt: $endsAt, ')
+          ..write('allDay: $allDay, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    title,
+    memberId,
+    category,
+    location,
+    startsAt,
+    endsAt,
+    allDay,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CalendarEvent &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.title == this.title &&
+          other.memberId == this.memberId &&
+          other.category == this.category &&
+          other.location == this.location &&
+          other.startsAt == this.startsAt &&
+          other.endsAt == this.endsAt &&
+          other.allDay == this.allDay &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
+  final Value<String> id;
+  final Value<String?> nestId;
+  final Value<String> title;
+  final Value<String> memberId;
+  final Value<String> category;
+  final Value<String?> location;
+  final Value<DateTime> startsAt;
+  final Value<DateTime?> endsAt;
+  final Value<bool> allDay;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CalendarEventsCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.category = const Value.absent(),
+    this.location = const Value.absent(),
+    this.startsAt = const Value.absent(),
+    this.endsAt = const Value.absent(),
+    this.allDay = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CalendarEventsCompanion.insert({
+    required String id,
+    this.nestId = const Value.absent(),
+    required String title,
+    this.memberId = const Value.absent(),
+    this.category = const Value.absent(),
+    this.location = const Value.absent(),
+    required DateTime startsAt,
+    this.endsAt = const Value.absent(),
+    this.allDay = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       startsAt = Value(startsAt);
+  static Insertable<CalendarEvent> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<String>? title,
+    Expression<String>? memberId,
+    Expression<String>? category,
+    Expression<String>? location,
+    Expression<DateTime>? startsAt,
+    Expression<DateTime>? endsAt,
+    Expression<bool>? allDay,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (title != null) 'title': title,
+      if (memberId != null) 'member_id': memberId,
+      if (category != null) 'category': category,
+      if (location != null) 'location': location,
+      if (startsAt != null) 'starts_at': startsAt,
+      if (endsAt != null) 'ends_at': endsAt,
+      if (allDay != null) 'all_day': allDay,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CalendarEventsCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? nestId,
+    Value<String>? title,
+    Value<String>? memberId,
+    Value<String>? category,
+    Value<String?>? location,
+    Value<DateTime>? startsAt,
+    Value<DateTime?>? endsAt,
+    Value<bool>? allDay,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CalendarEventsCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      title: title ?? this.title,
+      memberId: memberId ?? this.memberId,
+      category: category ?? this.category,
+      location: location ?? this.location,
+      startsAt: startsAt ?? this.startsAt,
+      endsAt: endsAt ?? this.endsAt,
+      allDay: allDay ?? this.allDay,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<String>(memberId.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (startsAt.present) {
+      map['starts_at'] = Variable<DateTime>(startsAt.value);
+    }
+    if (endsAt.present) {
+      map['ends_at'] = Variable<DateTime>(endsAt.value);
+    }
+    if (allDay.present) {
+      map['all_day'] = Variable<bool>(allDay.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('memberId: $memberId, ')
+          ..write('category: $category, ')
+          ..write('location: $location, ')
+          ..write('startsAt: $startsAt, ')
+          ..write('endsAt: $endsAt, ')
+          ..write('allDay: $allDay, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncMetaTable extends SyncMeta
+    with TableInfo<$SyncMetaTable, SyncMetaData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncMetaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_meta';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncMetaData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  SyncMetaData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncMetaData(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncMetaTable createAlias(String alias) {
+    return $SyncMetaTable(attachedDatabase, alias);
+  }
+}
+
+class SyncMetaData extends DataClass implements Insertable<SyncMetaData> {
+  final String key;
+  final String value;
+  const SyncMetaData({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  SyncMetaCompanion toCompanion(bool nullToAbsent) {
+    return SyncMetaCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory SyncMetaData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncMetaData(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  SyncMetaData copyWith({String? key, String? value}) =>
+      SyncMetaData(key: key ?? this.key, value: value ?? this.value);
+  SyncMetaData copyWithCompanion(SyncMetaCompanion data) {
+    return SyncMetaData(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncMetaData(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncMetaData &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class SyncMetaCompanion extends UpdateCompanion<SyncMetaData> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const SyncMetaCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncMetaCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<SyncMetaData> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncMetaCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return SyncMetaCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncMetaCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1312,28 +3242,296 @@ class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $NestMembersTable nestMembers = $NestMembersTable(this);
   late final $TasksTable tasks = $TasksTable(this);
   late final $ShoppingListsTable shoppingLists = $ShoppingListsTable(this);
   late final $ShoppingItemsTable shoppingItems = $ShoppingItemsTable(this);
+  late final $CalendarEventsTable calendarEvents = $CalendarEventsTable(this);
+  late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    nestMembers,
     tasks,
     shoppingLists,
     shoppingItems,
+    calendarEvents,
+    syncMeta,
   ];
 }
 
+typedef $$NestMembersTableCreateCompanionBuilder =
+    NestMembersCompanion Function({
+      required String id,
+      required String nestId,
+      required String name,
+      Value<String> role,
+      required String initials,
+      required int colorValue,
+      Value<bool> dirty,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$NestMembersTableUpdateCompanionBuilder =
+    NestMembersCompanion Function({
+      Value<String> id,
+      Value<String> nestId,
+      Value<String> name,
+      Value<String> role,
+      Value<String> initials,
+      Value<int> colorValue,
+      Value<bool> dirty,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$NestMembersTableFilterComposer
+    extends Composer<_$AppDatabase, $NestMembersTable> {
+  $$NestMembersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get initials => $composableBuilder(
+    column: $table.initials,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NestMembersTableOrderingComposer
+    extends Composer<_$AppDatabase, $NestMembersTable> {
+  $$NestMembersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get initials => $composableBuilder(
+    column: $table.initials,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NestMembersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NestMembersTable> {
+  $$NestMembersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get initials =>
+      $composableBuilder(column: $table.initials, builder: (column) => column);
+
+  GeneratedColumn<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$NestMembersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NestMembersTable,
+          NestMember,
+          $$NestMembersTableFilterComposer,
+          $$NestMembersTableOrderingComposer,
+          $$NestMembersTableAnnotationComposer,
+          $$NestMembersTableCreateCompanionBuilder,
+          $$NestMembersTableUpdateCompanionBuilder,
+          (
+            NestMember,
+            BaseReferences<_$AppDatabase, $NestMembersTable, NestMember>,
+          ),
+          NestMember,
+          PrefetchHooks Function()
+        > {
+  $$NestMembersTableTableManager(_$AppDatabase db, $NestMembersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NestMembersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NestMembersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NestMembersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> nestId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<String> initials = const Value.absent(),
+                Value<int> colorValue = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NestMembersCompanion(
+                id: id,
+                nestId: nestId,
+                name: name,
+                role: role,
+                initials: initials,
+                colorValue: colorValue,
+                dirty: dirty,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String nestId,
+                required String name,
+                Value<String> role = const Value.absent(),
+                required String initials,
+                required int colorValue,
+                Value<bool> dirty = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NestMembersCompanion.insert(
+                id: id,
+                nestId: nestId,
+                name: name,
+                role: role,
+                initials: initials,
+                colorValue: colorValue,
+                dirty: dirty,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NestMembersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NestMembersTable,
+      NestMember,
+      $$NestMembersTableFilterComposer,
+      $$NestMembersTableOrderingComposer,
+      $$NestMembersTableAnnotationComposer,
+      $$NestMembersTableCreateCompanionBuilder,
+      $$NestMembersTableUpdateCompanionBuilder,
+      (
+        NestMember,
+        BaseReferences<_$AppDatabase, $NestMembersTable, NestMember>,
+      ),
+      NestMember,
+      PrefetchHooks Function()
+    >;
 typedef $$TasksTableCreateCompanionBuilder =
     TasksCompanion Function({
       required String id,
+      Value<String?> nestId,
       required String title,
       Value<String> assigneeId,
       Value<String> dueLabel,
       Value<bool> done,
       Value<bool> recurring,
+      Value<bool> dirty,
+      Value<bool> deleted,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -1341,11 +3539,14 @@ typedef $$TasksTableCreateCompanionBuilder =
 typedef $$TasksTableUpdateCompanionBuilder =
     TasksCompanion Function({
       Value<String> id,
+      Value<String?> nestId,
       Value<String> title,
       Value<String> assigneeId,
       Value<String> dueLabel,
       Value<bool> done,
       Value<bool> recurring,
+      Value<bool> dirty,
+      Value<bool> deleted,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -1361,6 +3562,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1389,6 +3595,16 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -1411,6 +3627,11 @@ class $$TasksTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -1439,6 +3660,16 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1462,6 +3693,9 @@ class $$TasksTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
 
@@ -1478,6 +3712,12 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<bool> get recurring =>
       $composableBuilder(column: $table.recurring, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1515,21 +3755,27 @@ class $$TasksTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> assigneeId = const Value.absent(),
                 Value<String> dueLabel = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
+                nestId: nestId,
                 title: title,
                 assigneeId: assigneeId,
                 dueLabel: dueLabel,
                 done: done,
                 recurring: recurring,
+                dirty: dirty,
+                deleted: deleted,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -1537,21 +3783,27 @@ class $$TasksTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> nestId = const Value.absent(),
                 required String title,
                 Value<String> assigneeId = const Value.absent(),
                 Value<String> dueLabel = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion.insert(
                 id: id,
+                nestId: nestId,
                 title: title,
                 assigneeId: assigneeId,
                 dueLabel: dueLabel,
                 done: done,
                 recurring: recurring,
+                dirty: dirty,
+                deleted: deleted,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -1581,15 +3833,23 @@ typedef $$TasksTableProcessedTableManager =
 typedef $$ShoppingListsTableCreateCompanionBuilder =
     ShoppingListsCompanion Function({
       required String id,
+      Value<String?> nestId,
       required String name,
+      Value<bool> dirty,
+      Value<bool> deleted,
       Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
       Value<int> rowid,
     });
 typedef $$ShoppingListsTableUpdateCompanionBuilder =
     ShoppingListsCompanion Function({
       Value<String> id,
+      Value<String?> nestId,
       Value<String> name,
+      Value<bool> dirty,
+      Value<bool> deleted,
       Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
       Value<int> rowid,
     });
 
@@ -1634,13 +3894,33 @@ class $$ShoppingListsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1684,13 +3964,33 @@ class $$ShoppingListsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -1707,11 +4007,23 @@ class $$ShoppingListsTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   Expression<T> shoppingItemsRefs<T extends Object>(
     Expression<T> Function($$ShoppingItemsTableAnnotationComposer a) f,
@@ -1768,25 +4080,41 @@ class $$ShoppingListsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingListsCompanion(
                 id: id,
+                nestId: nestId,
                 name: name,
+                dirty: dirty,
+                deleted: deleted,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> nestId = const Value.absent(),
                 required String name,
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingListsCompanion.insert(
                 id: id,
+                nestId: nestId,
                 name: name,
+                dirty: dirty,
+                deleted: deleted,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -1850,12 +4178,15 @@ typedef $$ShoppingListsTableProcessedTableManager =
 typedef $$ShoppingItemsTableCreateCompanionBuilder =
     ShoppingItemsCompanion Function({
       required String id,
+      Value<String?> nestId,
       required String listId,
       required String name,
       Value<String> category,
       Value<String> qty,
       Value<bool> done,
       Value<int> sortOrder,
+      Value<bool> dirty,
+      Value<bool> deleted,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -1863,12 +4194,15 @@ typedef $$ShoppingItemsTableCreateCompanionBuilder =
 typedef $$ShoppingItemsTableUpdateCompanionBuilder =
     ShoppingItemsCompanion Function({
       Value<String> id,
+      Value<String?> nestId,
       Value<String> listId,
       Value<String> name,
       Value<String> category,
       Value<String> qty,
       Value<bool> done,
       Value<int> sortOrder,
+      Value<bool> dirty,
+      Value<bool> deleted,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -1914,6 +4248,11 @@ class $$ShoppingItemsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnFilters(column),
@@ -1936,6 +4275,16 @@ class $$ShoppingItemsTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1987,6 +4336,11 @@ class $$ShoppingItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -2009,6 +4363,16 @@ class $$ShoppingItemsTableOrderingComposer
 
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2058,6 +4422,9 @@ class $$ShoppingItemsTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
@@ -2072,6 +4439,12 @@ class $$ShoppingItemsTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2132,23 +4505,29 @@ class $$ShoppingItemsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
                 Value<String> listId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<String> qty = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingItemsCompanion(
                 id: id,
+                nestId: nestId,
                 listId: listId,
                 name: name,
                 category: category,
                 qty: qty,
                 done: done,
                 sortOrder: sortOrder,
+                dirty: dirty,
+                deleted: deleted,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -2156,23 +4535,29 @@ class $$ShoppingItemsTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> nestId = const Value.absent(),
                 required String listId,
                 required String name,
                 Value<String> category = const Value.absent(),
                 Value<String> qty = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ShoppingItemsCompanion.insert(
                 id: id,
+                nestId: nestId,
                 listId: listId,
                 name: name,
                 category: category,
                 qty: qty,
                 done: done,
                 sortOrder: sortOrder,
+                dirty: dirty,
+                deleted: deleted,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -2244,14 +4629,513 @@ typedef $$ShoppingItemsTableProcessedTableManager =
       ShoppingItem,
       PrefetchHooks Function({bool listId})
     >;
+typedef $$CalendarEventsTableCreateCompanionBuilder =
+    CalendarEventsCompanion Function({
+      required String id,
+      Value<String?> nestId,
+      required String title,
+      Value<String> memberId,
+      Value<String> category,
+      Value<String?> location,
+      required DateTime startsAt,
+      Value<DateTime?> endsAt,
+      Value<bool> allDay,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CalendarEventsTableUpdateCompanionBuilder =
+    CalendarEventsCompanion Function({
+      Value<String> id,
+      Value<String?> nestId,
+      Value<String> title,
+      Value<String> memberId,
+      Value<String> category,
+      Value<String?> location,
+      Value<DateTime> startsAt,
+      Value<DateTime?> endsAt,
+      Value<bool> allDay,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CalendarEventsTableFilterComposer
+    extends Composer<_$AppDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startsAt => $composableBuilder(
+    column: $table.startsAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endsAt => $composableBuilder(
+    column: $table.endsAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get allDay => $composableBuilder(
+    column: $table.allDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CalendarEventsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startsAt => $composableBuilder(
+    column: $table.startsAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endsAt => $composableBuilder(
+    column: $table.endsAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get allDay => $composableBuilder(
+    column: $table.allDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CalendarEventsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get memberId =>
+      $composableBuilder(column: $table.memberId, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startsAt =>
+      $composableBuilder(column: $table.startsAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endsAt =>
+      $composableBuilder(column: $table.endsAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get allDay =>
+      $composableBuilder(column: $table.allDay, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CalendarEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CalendarEventsTable,
+          CalendarEvent,
+          $$CalendarEventsTableFilterComposer,
+          $$CalendarEventsTableOrderingComposer,
+          $$CalendarEventsTableAnnotationComposer,
+          $$CalendarEventsTableCreateCompanionBuilder,
+          $$CalendarEventsTableUpdateCompanionBuilder,
+          (
+            CalendarEvent,
+            BaseReferences<_$AppDatabase, $CalendarEventsTable, CalendarEvent>,
+          ),
+          CalendarEvent,
+          PrefetchHooks Function()
+        > {
+  $$CalendarEventsTableTableManager(
+    _$AppDatabase db,
+    $CalendarEventsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CalendarEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CalendarEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CalendarEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> memberId = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<DateTime> startsAt = const Value.absent(),
+                Value<DateTime?> endsAt = const Value.absent(),
+                Value<bool> allDay = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarEventsCompanion(
+                id: id,
+                nestId: nestId,
+                title: title,
+                memberId: memberId,
+                category: category,
+                location: location,
+                startsAt: startsAt,
+                endsAt: endsAt,
+                allDay: allDay,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> nestId = const Value.absent(),
+                required String title,
+                Value<String> memberId = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                required DateTime startsAt,
+                Value<DateTime?> endsAt = const Value.absent(),
+                Value<bool> allDay = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarEventsCompanion.insert(
+                id: id,
+                nestId: nestId,
+                title: title,
+                memberId: memberId,
+                category: category,
+                location: location,
+                startsAt: startsAt,
+                endsAt: endsAt,
+                allDay: allDay,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CalendarEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CalendarEventsTable,
+      CalendarEvent,
+      $$CalendarEventsTableFilterComposer,
+      $$CalendarEventsTableOrderingComposer,
+      $$CalendarEventsTableAnnotationComposer,
+      $$CalendarEventsTableCreateCompanionBuilder,
+      $$CalendarEventsTableUpdateCompanionBuilder,
+      (
+        CalendarEvent,
+        BaseReferences<_$AppDatabase, $CalendarEventsTable, CalendarEvent>,
+      ),
+      CalendarEvent,
+      PrefetchHooks Function()
+    >;
+typedef $$SyncMetaTableCreateCompanionBuilder =
+    SyncMetaCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$SyncMetaTableUpdateCompanionBuilder =
+    SyncMetaCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
+
+class $$SyncMetaTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncMetaTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncMetaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$SyncMetaTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncMetaTable,
+          SyncMetaData,
+          $$SyncMetaTableFilterComposer,
+          $$SyncMetaTableOrderingComposer,
+          $$SyncMetaTableAnnotationComposer,
+          $$SyncMetaTableCreateCompanionBuilder,
+          $$SyncMetaTableUpdateCompanionBuilder,
+          (
+            SyncMetaData,
+            BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>,
+          ),
+          SyncMetaData,
+          PrefetchHooks Function()
+        > {
+  $$SyncMetaTableTableManager(_$AppDatabase db, $SyncMetaTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncMetaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncMetaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncMetaTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncMetaCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => SyncMetaCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncMetaTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncMetaTable,
+      SyncMetaData,
+      $$SyncMetaTableFilterComposer,
+      $$SyncMetaTableOrderingComposer,
+      $$SyncMetaTableAnnotationComposer,
+      $$SyncMetaTableCreateCompanionBuilder,
+      $$SyncMetaTableUpdateCompanionBuilder,
+      (
+        SyncMetaData,
+        BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>,
+      ),
+      SyncMetaData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$NestMembersTableTableManager get nestMembers =>
+      $$NestMembersTableTableManager(_db, _db.nestMembers);
   $$TasksTableTableManager get tasks =>
       $$TasksTableTableManager(_db, _db.tasks);
   $$ShoppingListsTableTableManager get shoppingLists =>
       $$ShoppingListsTableTableManager(_db, _db.shoppingLists);
   $$ShoppingItemsTableTableManager get shoppingItems =>
       $$ShoppingItemsTableTableManager(_db, _db.shoppingItems);
+  $$CalendarEventsTableTableManager get calendarEvents =>
+      $$CalendarEventsTableTableManager(_db, _db.calendarEvents);
+  $$SyncMetaTableTableManager get syncMeta =>
+      $$SyncMetaTableTableManager(_db, _db.syncMeta);
 }

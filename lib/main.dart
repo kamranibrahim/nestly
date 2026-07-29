@@ -1,9 +1,11 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/db/app_database.dart';
-import 'screens/app_shell.dart';
+import 'firebase_options.dart';
+import 'screens/auth_gate.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -14,6 +16,8 @@ Future<void> main() async {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final database = AppDatabase();
   await database.ensureSeeded();
@@ -37,7 +41,7 @@ class NestlyApp extends StatelessWidget {
       title: 'Nestly',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      home: const AppShell(),
+      home: const AuthGate(),
     );
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/mock_data.dart';
+import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import 'emergency_screen.dart';
@@ -8,14 +11,41 @@ import 'expenses_screen.dart';
 import 'shopping_screen.dart';
 import 'vault_screen.dart';
 
-class MoreScreen extends StatelessWidget {
+class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nest = ref.watch(nestInfoProvider).valueOrNull;
+    final members = ref.watch(membersProvider).valueOrNull ?? [];
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Explore')),
+      appBar: AppBar(
+        title: const Text('Explore'),
+        actions: [
+          IconButton(
+            tooltip: 'Sync',
+            onPressed: () async {
+              try {
+                await ref.read(syncServiceProvider).syncAll();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Synced with nest')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Sync failed: $e')),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.cloud_sync_outlined),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
@@ -23,26 +53,40 @@ class MoreScreen extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                ...MockData.members.map(
-                  (m) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: MemberAvatar(
-                      initials: m.initials,
-                      color: m.color,
-                      size: 40,
+                if (members.isEmpty)
+                  ...MockData.members.map(
+                    (m) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: MemberAvatar(
+                        initials: m.initials,
+                        color: m.color,
+                        size: 40,
+                      ),
+                    ),
+                  )
+                else
+                  ...members.map(
+                    (m) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: MemberAvatar(
+                        initials: m.initials,
+                        color: Color(m.colorValue),
+                        size: 40,
+                      ),
                     ),
                   ),
-                ),
                 const Spacer(),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      MockData.familyName,
+                      nest?.name ?? MockData.familyName,
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     Text(
-                      '${MockData.members.length} members',
+                      members.isEmpty
+                          ? '${MockData.members.length} members'
+                          : '${members.length} members',
                       style: const TextStyle(
                         color: AppColors.inkMuted,
                         fontSize: 12.5,
@@ -53,6 +97,57 @@ class MoreScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (nest != null) ...[
+            const SizedBox(height: 12),
+            NestCard(
+              onTap: () async {
+                await Clipboard.setData(ClipboardData(text: nest.inviteCode));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Invite code ${nest.inviteCode} copied'),
+                    ),
+                  );
+                }
+              },
+              child: Row(
+                children: [
+                  const Icon(Icons.vpn_key_rounded, color: AppColors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Invite code',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.inkMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          nest.inviteCode,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Text(
+                    'Copy',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           GridView.count(
             crossAxisCount: 2,
@@ -149,6 +244,12 @@ class MoreScreen extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+          const SizedBox(height: 20),
+          TextButton.icon(
+            onPressed: () => ref.read(authRepositoryProvider).signOut(),
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Sign out'),
           ),
         ],
       ),

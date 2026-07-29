@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
-import 'package:nestly/main.dart';
+import 'package:nestly/screens/app_shell.dart';
 
 void main() {
   testWidgets('Nestly home shows family hub and feature tiles', (tester) async {
@@ -13,7 +13,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [databaseProvider.overrideWithValue(database)],
-        child: const NestlyApp(),
+        child: const MaterialApp(home: AppShell()),
       ),
     );
     await tester.pumpAndSettle();
@@ -23,7 +23,6 @@ void main() {
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Tasks'), findsWidgets);
 
-    // Close Drift streams before the test binding checks for pending timers.
     await database.close();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 50));

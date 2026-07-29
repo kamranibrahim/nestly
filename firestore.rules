@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function nestMember(nestId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/nests/$(nestId)/members/$(request.auth.uid));
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /inviteCodes/{code} {
+      allow read: if signedIn();
+      allow write: if signedIn();
+    }
+
+    match /nests/{nestId} {
+      allow read: if nestMember(nestId);
+      allow create: if signedIn();
+      allow update, delete: if nestMember(nestId);
+
+      match /members/{memberId} {
+        allow read: if nestMember(nestId);
+        allow write: if signedIn();
+      }
+
+      match /tasks/{taskId} {
+        allow read, write: if nestMember(nestId);
+      }
+
+      match /shoppingLists/{listId} {
+        allow read, write: if nestMember(nestId);
+      }
+
+      match /shoppingItems/{itemId} {
+        allow read, write: if nestMember(nestId);
+      }
+
+      match /events/{eventId} {
+        allow read, write: if nestMember(nestId);
+      }
+    }
+  }
+}

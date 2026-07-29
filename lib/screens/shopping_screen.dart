@@ -28,6 +28,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     if (name.isEmpty) return;
     await ref.read(shoppingRepositoryProvider).addItem(name: name);
     _addController.clear();
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
   }
 
   @override
@@ -146,9 +149,16 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                             for (var i = 0; i < categoryItems.length; i++) ...[
                               _ShopRow(
                                 item: categoryItems[i],
-                                onToggle: () => ref
-                                    .read(shoppingRepositoryProvider)
-                                    .toggleDone(categoryItems[i]),
+                                onToggle: () async {
+                                  await ref
+                                      .read(shoppingRepositoryProvider)
+                                      .toggleDone(categoryItems[i]);
+                                  try {
+                                    await ref
+                                        .read(syncServiceProvider)
+                                        .syncAll();
+                                  } catch (_) {}
+                                },
                               ),
                               if (i != categoryItems.length - 1)
                                 const Divider(height: 1, indent: 52),

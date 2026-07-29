@@ -80,9 +80,14 @@ class TasksScreen extends ConsumerWidget {
                         for (var i = 0; i < open.length; i++) ...[
                           _TaskRow(
                             task: open[i],
-                            onToggle: () => ref
-                                .read(taskRepositoryProvider)
-                                .toggleDone(open[i]),
+                            onToggle: () async {
+                              await ref
+                                  .read(taskRepositoryProvider)
+                                  .toggleDone(open[i]);
+                              try {
+                                await ref.read(syncServiceProvider).syncAll();
+                              } catch (_) {}
+                            },
                           ),
                           if (i != open.length - 1)
                             const Divider(height: 1, indent: 52),
@@ -100,9 +105,14 @@ class TasksScreen extends ConsumerWidget {
                         for (var i = 0; i < done.length; i++) ...[
                           _TaskRow(
                             task: done[i],
-                            onToggle: () => ref
-                                .read(taskRepositoryProvider)
-                                .toggleDone(done[i]),
+                            onToggle: () async {
+                              await ref
+                                  .read(taskRepositoryProvider)
+                                  .toggleDone(done[i]);
+                              try {
+                                await ref.read(syncServiceProvider).syncAll();
+                              } catch (_) {}
+                            },
                           ),
                           if (i != done.length - 1)
                             const Divider(height: 1, indent: 52),
@@ -210,6 +220,9 @@ class TasksScreen extends ConsumerWidget {
             title: title,
             assigneeId: assigneeId,
           );
+      try {
+        await ref.read(syncServiceProvider).syncAll();
+      } catch (_) {}
     }
   }
 }
