@@ -1154,6 +1154,32 @@ class SchoolRepository {
     );
   }
 
+  Future<void> update({
+    required String id,
+    required String title,
+    String kind = 'School',
+    int cadenceDays = 7,
+    String location = '',
+    String memberId = '',
+    String notes = '',
+    DateTime? nextAt,
+  }) {
+    return (_db.update(_db.schoolActivities)..where((s) => s.id.equals(id)))
+        .write(
+      SchoolActivitiesCompanion(
+        title: Value(title.trim()),
+        kind: Value(kind),
+        cadenceDays: Value(cadenceDays),
+        location: Value(location.trim()),
+        memberId: Value(memberId),
+        notes: Value(notes.trim()),
+        nextAt: nextAt == null ? const Value.absent() : Value(nextAt),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   /// Creates a same-day task for a pickup / activity.
   Future<void> createPickupTask(SchoolActivity item) async {
     final loc = item.location.trim();

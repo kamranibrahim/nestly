@@ -242,4 +242,41 @@ void main() {
     final remaining = await events.watchAll().first;
     expect(remaining.any((e) => e.id == added.id), isFalse);
   });
+
+  test('school activities can be updated with next date and notes', () async {
+    final school = SchoolRepository(database);
+    final nextAt = DateTime(2026, 7, 30);
+    await school.add(
+      title: 'Soccer',
+      kind: 'Sports',
+      cadenceDays: 7,
+      location: 'Field A',
+      memberId: 'kid',
+      nextAt: nextAt,
+    );
+
+    final added = (await school.watchAll().first)
+        .firstWhere((s) => s.title == 'Soccer');
+
+    await school.update(
+      id: added.id,
+      title: 'Soccer practice',
+      kind: 'Sports',
+      cadenceDays: 3,
+      location: 'Field B',
+      memberId: 'kid2',
+      notes: 'Bring water bottle',
+      nextAt: nextAt.add(const Duration(days: 2)),
+    );
+
+    final updated = (await school.watchAll().first)
+        .firstWhere((s) => s.id == added.id);
+    expect(updated.title, 'Soccer practice');
+    expect(updated.cadenceDays, 3);
+    expect(updated.location, 'Field B');
+    expect(updated.memberId, 'kid2');
+    expect(updated.notes, 'Bring water bottle');
+    expect(updated.nextAt.day, 1);
+    expect(updated.nextAt.month, 8);
+  });
 }

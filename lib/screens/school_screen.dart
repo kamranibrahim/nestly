@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -9,6 +8,7 @@ import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
+import '../widgets/shimmer.dart';
 
 class SchoolScreen extends ConsumerStatefulWidget {
   const SchoolScreen({super.key});
@@ -24,6 +24,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
   @override
   Widget build(BuildContext context) {
     final itemsAsync = ref.watch(schoolActivitiesProvider);
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
     final now = DateTime.now();
     final endToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
@@ -33,7 +34,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
         title: const Text('School & activities'),
         actions: [
           IconButton(
-            onPressed: () => _showAdd(context),
+            onPressed: () => _showSheet(context),
             icon: const Icon(Icons.add_rounded),
           ),
         ],
@@ -56,7 +57,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
             children: [
               const NestCard(
                 child: Text(
-                  'School runs, sports, clubs, and pickups — mark done to roll the next date, or add a same-day pickup task.',
+                  'School runs, sports, clubs, and pickups — tap to edit, mark done to roll the next date, or add a same-day pickup task.',
                   style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
@@ -79,7 +80,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
               const SizedBox(height: 6),
               if (items.isEmpty)
                 NestCard(
-                  onTap: () => _showAdd(context),
+                  onTap: () => _showSheet(context),
                   child: Text(
                     all.isEmpty
                         ? 'No school schedules yet. Tap to add one.'
@@ -97,7 +98,9 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                         for (var i = 0; i < due.length; i++) ...[
                           _SchoolRow(
                             item: due[i],
+                            memberName: _memberName(members, due[i].memberId),
                             highlight: true,
+                            onOpen: () => _showSheet(context, existing: due[i]),
                             onDone: () => _markDone(due[i]),
                             onPickup: () => _pickup(due[i]),
                             onDelete: () => _delete(due[i].id),
@@ -119,7 +122,11 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                         for (var i = 0; i < upcoming.length; i++) ...[
                           _SchoolRow(
                             item: upcoming[i],
+                            memberName:
+                                _memberName(members, upcoming[i].memberId),
                             highlight: false,
+                            onOpen: () =>
+                                _showSheet(context, existing: upcoming[i]),
                             onDone: () => _markDone(upcoming[i]),
                             onPickup: () => _pickup(upcoming[i]),
                             onDelete: () => _delete(upcoming[i].id),
@@ -137,6 +144,14 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
         },
       ),
     );
+  }
+
+  String? _memberName(List<NestMember> members, String memberId) {
+    if (memberId.isEmpty) return null;
+    for (final m in members) {
+      if (m.id == memberId) return m.name.split(' ').first;
+    }
+    return null;
   }
 
   Future<void> _markDone(SchoolActivity item) async {
@@ -165,12 +180,19 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
     try {
       await ref.read(syncServiceProvider).syncAll();
     } catch (_) {}
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
   }
 
-  Future<void> _showAdd(BuildContext context) async {
+  Future<void> _showSheet(
+    BuildContext context, {
+    SchoolActivity? existing,
+  }) async {
     final members = List<NestMember>.from(
       ref.read(membersProvider).valueOrNull ?? const [],
     )..sort((a, b) => MemberRoles.kidsFirst(a.role, b.role));
+
     final result = await showModalBottomSheet<
         ({
           String title,
@@ -178,6 +200,9 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
           int cadence,
           String location,
           String memberId,
+          String notes,
+          DateTime nextAt,
+          bool deleteItem,
         })>(
       context: context,
       isScrollControlled: true,
@@ -186,12 +211,25 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        var kind = 'School';
-        var cadence = 7;
-        var memberId = members.isEmpty ? '' : members.first.id;
+        var kind = existing?.kind ?? 'School';
+        var cadence = existing?.cadenceDays ?? 7;
+        var memberId = existing?.memberId.isNotEmpty == true
+            ? existing!.memberId
+            : (members.isEmpty ? '' : members.first.id);
+        var nextAt = existing?.nextAt ??
+            DateTime.now().add(Duration(days: cadence));
         return OwnedControllers(
-          count: 2,
+          count: 3,
           builder: (context, c) {
+            if (c[0].text.isEmpty && existing != null) {
+              c[0].text = existing.title;
+            }
+            if (c[1].text.isEmpty && existing != null) {
+              c[1].text = existing.location;
+            }
+            if (c[2].text.isEmpty && existing != null) {
+              c[2].text = existing.notes;
+            }
             return StatefulBuilder(
               builder: (context, setModal) {
                 return sheetBody(
@@ -199,15 +237,17 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                   children: [
                     sheetHandle(),
                     const SizedBox(height: 6),
-                    const Text(
-                      'New activity',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    Text(
+                      existing == null ? 'New activity' : 'Edit activity',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: c[0],
-                      autofocus: true,
+                      autofocus: existing == null,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
                         hintText: 'e.g. Soccer practice',
@@ -219,6 +259,16 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
                         hintText: 'Location (optional)',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c[2],
+                      minLines: 2,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText: 'Notes (optional)',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -236,9 +286,8 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                             selected: kind == k,
                             selectedColor: AppColors.primary,
                             labelStyle: TextStyle(
-                              color: kind == k
-                                  ? Colors.white
-                                  : AppColors.ink,
+                              color:
+                                  kind == k ? Colors.white : AppColors.ink,
                               fontWeight: FontWeight.w600,
                             ),
                             onSelected: (_) => setModal(() => kind = k),
@@ -261,11 +310,34 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                               label:
                                   '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
                               selected: memberId == m.id,
-                              onTap: () => setModal(() => memberId = m.id),
+                              onTap: () =>
+                                  setModal(() => memberId = m.id),
                             ),
                         ],
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    SoftPill(
+                      label:
+                          'Next · ${DateFormat('EEE, MMM d').format(nextAt)}',
+                      selected: true,
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: nextAt,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                        );
+                        if (picked == null) return;
+                        setModal(() {
+                          nextAt = DateTime(
+                            picked.year,
+                            picked.month,
+                            picked.day,
+                          );
+                        });
+                      },
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       'Every $cadence day${cadence == 1 ? '' : 's'}',
@@ -295,11 +367,35 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                             cadence: cadence,
                             location: c[1].text.trim(),
                             memberId: memberId,
+                            notes: c[2].text.trim(),
+                            nextAt: nextAt,
+                            deleteItem: false,
                           ),
                         );
                       },
-                      child: const Text('Add'),
+                      child: Text(
+                        existing == null ? 'Add' : 'Save changes',
+                      ),
                     ),
+                    if (existing != null) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(
+                          context,
+                          (
+                            title: existing.title,
+                            kind: existing.kind,
+                            cadence: existing.cadenceDays,
+                            location: existing.location,
+                            memberId: existing.memberId,
+                            notes: existing.notes,
+                            nextAt: existing.nextAt,
+                            deleteItem: true,
+                          ),
+                        ),
+                        child: const Text('Delete activity'),
+                      ),
+                    ],
                   ],
                 );
               },
@@ -309,18 +405,41 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
       },
     );
 
-    if (result != null) {
+    if (result == null) return;
+
+    if (result.deleteItem && existing != null) {
+      await _delete(existing.id);
+      return;
+    }
+
+    if (existing == null) {
       await ref.read(schoolRepositoryProvider).add(
             title: result.title,
             kind: result.kind,
             cadenceDays: result.cadence,
             location: result.location,
             memberId: result.memberId,
+            notes: result.notes,
+            nextAt: result.nextAt,
           );
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+    } else {
+      await ref.read(schoolRepositoryProvider).update(
+            id: existing.id,
+            title: result.title,
+            kind: result.kind,
+            cadenceDays: result.cadence,
+            location: result.location,
+            memberId: result.memberId,
+            notes: result.notes,
+            nextAt: result.nextAt,
+          );
     }
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
   }
 }
 
@@ -328,40 +447,54 @@ class _SchoolRow extends StatelessWidget {
   const _SchoolRow({
     required this.item,
     required this.highlight,
+    required this.onOpen,
     required this.onDone,
     required this.onPickup,
     required this.onDelete,
+    this.memberName,
   });
 
   final SchoolActivity item;
   final bool highlight;
+  final VoidCallback onOpen;
   final VoidCallback onDone;
   final VoidCallback onPickup;
   final VoidCallback onDelete;
+  final String? memberName;
 
   @override
   Widget build(BuildContext context) {
     final loc = item.location.trim();
+    final notes = item.notes.trim();
+    final due = _dueLabel(item.nextAt);
     return ListTile(
+      onTap: onOpen,
       title: Text(
         item.title,
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        '${item.kind}'
-        '${loc.isEmpty ? '' : ' · $loc'}'
-        ' · next ${DateFormat.MMMd().format(item.nextAt)}'
-        '${item.lastDoneAt == null ? '' : ' · last ${DateFormat.MMMd().format(item.lastDoneAt!)}'}',
+        [
+          item.kind,
+          ?memberName,
+          if (loc.isNotEmpty) loc,
+          due,
+          if (item.lastDoneAt != null)
+            'last ${DateFormat.MMMd().format(item.lastDoneAt!)}',
+          if (notes.isNotEmpty) notes,
+        ].join(' · '),
       ),
-      isThreeLine: loc.isNotEmpty,
+      isThreeLine: loc.isNotEmpty || notes.isNotEmpty,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
             tooltip: 'Add pickup task',
             onPressed: onPickup,
-            icon: const Icon(Icons.directions_car_outlined,
-                color: AppColors.inkMuted),
+            icon: const Icon(
+              Icons.directions_car_outlined,
+              color: AppColors.inkMuted,
+            ),
           ),
           TextButton(
             onPressed: onDone,
@@ -375,11 +508,27 @@ class _SchoolRow extends StatelessWidget {
           ),
           IconButton(
             onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline_rounded,
-                color: AppColors.inkMuted),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.inkMuted,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  String _dueLabel(DateTime nextAt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(nextAt.year, nextAt.month, nextAt.day);
+    final days = day.difference(today).inDays;
+    if (days < 0) {
+      return 'overdue · ${DateFormat.MMMd().format(nextAt)}';
+    }
+    if (days == 0) return 'due today';
+    if (days == 1) return 'due tomorrow';
+    if (days < 7) return 'due in $days days';
+    return 'next ${DateFormat.MMMd().format(nextAt)}';
   }
 }
