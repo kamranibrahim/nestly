@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
 import '../data/family_needs.dart';
+import '../data/repositories.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
@@ -42,23 +43,38 @@ class HomeScreen extends ConsumerWidget {
     final bills = ref.watch(billsProvider).valueOrNull ?? const [];
     final tasks = ref.watch(tasksProvider).valueOrNull ?? const [];
     final openTaskList = tasks.where((t) => !t.done).take(4).toList();
+    final careItems = ref.watch(careItemsProvider).valueOrNull ?? const [];
+    final endToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final careDueItems = careItems
+        .where((c) => !c.nextDueAt.isAfter(endToday))
+        .toList();
+    final schoolItems =
+        ref.watch(schoolActivitiesProvider).valueOrNull ?? const [];
+    final schoolDueItems =
+        schoolItems.where((s) => !s.nextAt.isAfter(endToday)).toList();
     final timeline = ref.watch(timelineProvider).valueOrNull ?? const [];
     final recent = timeline.take(5).toList();
 
     final weekAhead = today.add(const Duration(days: 7));
-    final billsDueSoon = bills
+    final billsDueSoonList = bills
         .where(
           (b) =>
               !b.paid &&
               !b.dueAt.isBefore(today) &&
               !b.dueAt.isAfter(weekAhead),
         )
-        .length;
-    final dinnerToday = meals.any(
-      (m) =>
-          m.weekday == now.weekday &&
-          m.mealType.toLowerCase() == 'dinner',
-    );
+        .toList()
+      ..sort((a, b) => a.dueAt.compareTo(b.dueAt));
+    final billsDueSoon = billsDueSoonList.length;
+    MealPlan? dinnerMeal;
+    for (final m in meals) {
+      if (m.weekday == now.weekday &&
+          m.mealType.toLowerCase() == 'dinner') {
+        dinnerMeal = m;
+        break;
+      }
+    }
+    final dinnerToday = dinnerMeal != null;
     final needs = buildFamilyNeeds(
       openTasks: openTasks,
       openShopping: openShopping,
@@ -68,6 +84,7 @@ class HomeScreen extends ConsumerWidget {
       dinnerPlannedToday: dinnerToday,
       eventsToday: todayEvents.length,
       grocerySuggestions: grocerySuggestions.length,
+      dinnerTitle: dinnerMeal?.title,
     );
 
     final nestName =
@@ -116,17 +133,14 @@ class HomeScreen extends ConsumerWidget {
                           background: AppColors.surfaceMuted,
                           foreground: AppColors.ink,
                           size: 38,
-                          onTap: () async {
-                            try {
-                              await ref.read(syncServiceProvider).syncAll();
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Sync failed: $e')),
-                                );
-                              }
-                            }
-                          },
+                          onTap: () => _showTodayReminders(
+                            context,
+                            ref,
+                            careDue: careDue,
+                            schoolDue: schoolDue,
+                            billsDueSoon: billsDueSoon,
+                            openTasks: openTasks,
+                          ),
                         ),
                       ],
                     ),
@@ -223,27 +237,45 @@ class HomeScreen extends ConsumerWidget {
                             for (final task in openTaskList)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 6),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () async {
+                                    await ref
+                                        .read(taskRepositoryProvider)
+                                        .toggleDone(task);
+                                    try {
+                                      await ref
+                                          .read(syncServiceProvider)
+                                          .syncAll();
+                                    } catch (_) {}
+                                  },
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.radio_button_unchecked_rounded,
+                                        size: 20,
                                         color: AppColors.mintDeep,
-                                        shape: BoxShape.circle,
                                       ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        task.title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          task.title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      const Text(
+                                        'Done',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                           ],
@@ -259,10 +291,44 @@ class HomeScreen extends ConsumerWidget {
                           for (var i = 0; i < needs.needs.length; i++) ...[
                             _NeedRow(
                               need: needs.needs[i],
-                              onTap: () => _openNeed(
+                              detailOverride: _needDetailOverride(
+                                needs.needs[i].kind,
+                                firstOpenTask: openTaskList.isEmpty
+                                    ? null
+                                    : openTaskList.first,
+                                firstCareDue: careDueItems.isEmpty
+                                    ? null
+                                    : careDueItems.first,
+                                firstBillDue: billsDueSoonList.isEmpty
+                                    ? null
+                                    : billsDueSoonList.first,
+                                firstSchoolDue: schoolDueItems.isEmpty
+                                    ? null
+                                    : schoolDueItems.first,
+                              ),
+                              onOpen: () => _openNeed(
                                 context,
                                 onOpenTab,
                                 needs.needs[i].kind,
+                              ),
+                              onAction: () => _runNeedAction(
+                                context,
+                                ref,
+                                onOpenTab,
+                                needs.needs[i].kind,
+                                firstOpenTask: openTaskList.isEmpty
+                                    ? null
+                                    : openTaskList.first,
+                                firstCareDue: careDueItems.isEmpty
+                                    ? null
+                                    : careDueItems.first,
+                                firstBillDue: billsDueSoonList.isEmpty
+                                    ? null
+                                    : billsDueSoonList.first,
+                                firstSchoolDue: schoolDueItems.isEmpty
+                                    ? null
+                                    : schoolDueItems.first,
+                                dinnerMeal: dinnerMeal,
                               ),
                             ),
                             if (i != needs.needs.length - 1)
@@ -406,6 +472,250 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _showTodayReminders(
+    BuildContext context,
+    WidgetRef ref, {
+    required int careDue,
+    required int schoolDue,
+    required int billsDueSoon,
+    required int openTasks,
+  }) async {
+    final lines = <String>[
+      if (openTasks > 0) '$openTasks open task${openTasks == 1 ? '' : 's'}',
+      if (careDue > 0) '$careDue care item${careDue == 1 ? '' : 's'} due',
+      if (schoolDue > 0)
+        '$schoolDue school / pickup${schoolDue == 1 ? '' : 's'} due',
+      if (billsDueSoon > 0)
+        '$billsDueSoon bill${billsDueSoon == 1 ? '' : 's'} due soon',
+    ];
+
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        final bottom = MediaQuery.viewPaddingOf(context).bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Today’s reminders',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                lines.isEmpty
+                    ? 'Nothing urgent right now. Local reminders stay scheduled when items are due.'
+                    : lines.map((l) => '• $l').join('\n'),
+                style: const TextStyle(
+                  color: AppColors.inkSecondary,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 14),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  nestPush(context, const EmergencyScreen());
+                },
+                child: const Text('Open emergency card'),
+              ),
+              const SizedBox(height: 6),
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Got it'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String? _needDetailOverride(
+    FamilyNeedKind kind, {
+    Task? firstOpenTask,
+    CareItem? firstCareDue,
+    Bill? firstBillDue,
+    SchoolActivity? firstSchoolDue,
+  }) {
+    switch (kind) {
+      case FamilyNeedKind.tasks:
+        return firstOpenTask == null
+            ? null
+            : 'Next: ${firstOpenTask.title}';
+      case FamilyNeedKind.care:
+        return firstCareDue == null ? null : 'Next: ${firstCareDue.title}';
+      case FamilyNeedKind.bills:
+        return firstBillDue == null
+            ? null
+            : 'Next: ${firstBillDue.title} · \$${firstBillDue.amount.toStringAsFixed(0)}';
+      case FamilyNeedKind.school:
+        return firstSchoolDue == null
+            ? null
+            : 'Next: ${firstSchoolDue.title}';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _runNeedAction(
+    BuildContext context,
+    WidgetRef ref,
+    ValueChanged<int> onOpenTab,
+    FamilyNeedKind kind, {
+    Task? firstOpenTask,
+    CareItem? firstCareDue,
+    Bill? firstBillDue,
+    SchoolActivity? firstSchoolDue,
+    MealPlan? dinnerMeal,
+  }) async {
+    switch (kind) {
+      case FamilyNeedKind.tasks:
+        if (firstOpenTask == null) {
+          onOpenTab(2);
+          return;
+        }
+        await ref.read(taskRepositoryProvider).toggleDone(firstOpenTask);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        if (context.mounted) {
+          final note = firstOpenTask.recurring
+              ? 'Done · next ${TaskRepository.nextDueLabel(firstOpenTask.dueLabel)}'
+              : 'Done: ${firstOpenTask.title}';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(note)),
+          );
+        }
+      case FamilyNeedKind.care:
+        if (firstCareDue == null) {
+          nestPush(context, const CareScreen());
+          return;
+        }
+        await ref.read(careRepositoryProvider).markDone(firstCareDue);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        try {
+          await ref.read(notificationServiceProvider).rescheduleReminders();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Done: ${firstCareDue.title}')),
+          );
+        }
+      case FamilyNeedKind.school:
+        if (firstSchoolDue == null) {
+          nestPush(context, const SchoolScreen());
+          return;
+        }
+        await ref.read(schoolRepositoryProvider).markDone(firstSchoolDue);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        try {
+          await ref.read(notificationServiceProvider).rescheduleReminders();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Done: ${firstSchoolDue.title}')),
+          );
+        }
+      case FamilyNeedKind.bills:
+        if (firstBillDue == null) {
+          nestPush(context, const ExpensesScreen());
+          return;
+        }
+        await ref.read(billRepositoryProvider).togglePaid(firstBillDue);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        try {
+          await ref.read(notificationServiceProvider).rescheduleReminders();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Paid: ${firstBillDue.title}')),
+          );
+        }
+      case FamilyNeedKind.meals:
+        if (dinnerMeal == null || dinnerMeal.ingredients.trim().isEmpty) {
+          nestPush(context, const MealsScreen());
+          return;
+        }
+        final added = await ref
+            .read(mealRepositoryProvider)
+            .addIngredientsToShopping(dinnerMeal);
+        try {
+          await ref.read(syncServiceProvider).syncAll();
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                added == 0
+                    ? 'Ingredients already on the list'
+                    : 'Added $added item${added == 1 ? '' : 's'} to groceries',
+              ),
+            ),
+          );
+          if (added > 0) onOpenTab(3);
+        }
+      case FamilyNeedKind.shopping:
+        final openCount =
+            ref.read(openShoppingCountProvider).valueOrNull ?? 0;
+        if (openCount == 0) {
+          final suggestions =
+              ref.read(grocerySuggestionsProvider).valueOrNull ?? const [];
+          if (suggestions.isNotEmpty) {
+            for (final habit in suggestions.take(5)) {
+              await ref.read(shoppingRepositoryProvider).addSuggestion(habit);
+            }
+            try {
+              await ref.read(syncServiceProvider).syncAll();
+            } catch (_) {}
+            if (context.mounted) {
+              final n = suggestions.take(5).length;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Added $n restock item${n == 1 ? '' : 's'}',
+                  ),
+                ),
+              );
+            }
+          }
+        }
+        onOpenTab(3);
+      default:
+        _openNeed(context, onOpenTab, kind);
+    }
+  }
+
   void _openNeed(
     BuildContext context,
     ValueChanged<int> onOpenTab,
@@ -535,24 +845,43 @@ class _TodayEventCard extends StatelessWidget {
 }
 
 class _NeedRow extends StatelessWidget {
-  const _NeedRow({required this.need, required this.onTap});
+  const _NeedRow({
+    required this.need,
+    required this.onOpen,
+    required this.onAction,
+    this.detailOverride,
+  });
 
   final FamilyNeed need;
-  final VoidCallback onTap;
+  final VoidCallback onOpen;
+  final VoidCallback onAction;
+  final String? detailOverride;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: onTap,
+      onTap: onOpen,
       title: Text(
         need.title,
         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
       ),
       subtitle: Text(
-        need.detail,
+        detailOverride ?? need.detail,
         style: const TextStyle(color: AppColors.inkMuted, fontSize: 12.5),
       ),
-      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SoftPill(
+            label: need.actionLabel,
+            selected: need.kind == FamilyNeedKind.tasks ||
+                need.kind == FamilyNeedKind.care,
+            onTap: onAction,
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
+        ],
+      ),
     );
   }
 }

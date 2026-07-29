@@ -308,7 +308,7 @@ class _SuggestionsStrip extends ConsumerWidget {
             children: [
               for (final habit in suggestions) ...[
                 SoftPill(
-                  label: '+ ${habit.name}',
+                  label: '+ ${habit.name} · ~${habit.cadenceDays}d',
                   onTap: () async {
                     await ref
                         .read(shoppingRepositoryProvider)

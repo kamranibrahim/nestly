@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/document_ai_service.dart';
+import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -382,7 +383,8 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
 
     setState(() => _busy = true);
     try {
-      final members = ref.read(membersProvider).valueOrNull ?? const [];
+      final members = List.of(ref.read(membersProvider).valueOrNull ?? const [])
+        ..sort((a, b) => MemberRoles.adultLikeFirst(a.role, b.role));
       final memberId = _assigneeId.isNotEmpty
           ? _assigneeId
           : (members.isNotEmpty ? members.first.id : '');
@@ -460,8 +462,10 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
   @override
   Widget build(BuildContext context) {
     final d = widget.draft;
-    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+    final members = List.of(ref.watch(membersProvider).valueOrNull ?? const [])
+      ..sort((a, b) => MemberRoles.adultLikeFirst(a.role, b.role));
     final confidencePct = (d.confidence.clamp(0.0, 1.0) * 100).round();
+    final defaultAssigneeId = members.isEmpty ? '' : members.first.id;
 
     return sheetBody(
       context: context,
@@ -647,9 +651,10 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
             children: [
               for (final m in members)
                 SoftPill(
-                  label: m.name.split(' ').first,
+                  label:
+                      '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
                   selected: _assigneeId == m.id ||
-                      (_assigneeId.isEmpty && m.id == members.first.id),
+                      (_assigneeId.isEmpty && m.id == defaultAssigneeId),
                   onTap: () => setState(() => _assigneeId = m.id),
                 ),
             ],

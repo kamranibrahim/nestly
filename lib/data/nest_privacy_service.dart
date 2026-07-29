@@ -31,6 +31,7 @@ class NestPrivacyService {
     final timeline = await _db.select(_db.timelineEvents).get();
     final meals = await _db.select(_db.mealPlans).get();
     final care = await _db.select(_db.careItems).get();
+    final careProfiles = await _db.select(_db.careProfiles).get();
     final school = await _db.select(_db.schoolActivities).get();
     final groceryHabits = await _db.select(_db.groceryHabits).get();
 
@@ -62,6 +63,7 @@ class NestPrivacyService {
         'timeline': timeline.map((e) => e.toJson()).toList(),
         'meals': meals.map((e) => e.toJson()).toList(),
         'care': care.map((e) => e.toJson()).toList(),
+        'careProfiles': careProfiles.map((e) => e.toJson()).toList(),
         'school': school.map((e) => e.toJson()).toList(),
         'groceryHabits': groceryHabits.map((e) => e.toJson()).toList(),
       },

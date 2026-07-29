@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
+import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
@@ -179,11 +180,18 @@ class TasksScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final members = ref.read(membersProvider).valueOrNull ?? const [];
+    final members = List<NestMember>.from(
+      ref.read(membersProvider).valueOrNull ?? const [],
+    )..sort((a, b) => MemberRoles.adultLikeFirst(a.role, b.role));
     final initialAssignee = members.isNotEmpty ? members.first.id : '';
 
-    final result =
-        await showModalBottomSheet<({String title, String assigneeId})>(
+    final result = await showModalBottomSheet<
+        ({
+          String title,
+          String assigneeId,
+          bool recurring,
+          String dueLabel,
+        })>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
@@ -200,6 +208,8 @@ class TasksScreen extends ConsumerWidget {
       await ref.read(taskRepositoryProvider).addTask(
             title: result.title,
             assigneeId: result.assigneeId,
+            recurring: result.recurring,
+            dueLabel: result.dueLabel,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
@@ -224,6 +234,8 @@ class _AddTaskSheet extends StatefulWidget {
 class _AddTaskSheetState extends State<_AddTaskSheet> {
   late final TextEditingController _controller;
   late String _assigneeId;
+  bool _recurring = false;
+  String _dueLabel = 'Today';
 
   @override
   void initState() {
@@ -244,7 +256,15 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
       Navigator.pop(context);
       return;
     }
-    Navigator.pop(context, (title: title, assigneeId: _assigneeId));
+    Navigator.pop(
+      context,
+      (
+        title: title,
+        assigneeId: _assigneeId,
+        recurring: _recurring,
+        dueLabel: _dueLabel,
+      ),
+    );
   }
 
   @override
@@ -282,21 +302,49 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
               ),
               onSubmitted: (_) => _submit(),
             ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final label in const ['Today', 'Tomorrow', 'In 7 days'])
+                  SoftPill(
+                    label: label,
+                    selected: _dueLabel == label,
+                    onTap: () => setState(() => _dueLabel = label),
+                  ),
+              ],
+            ),
             if (widget.members.isNotEmpty) ...[
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
+                runSpacing: 6,
                 children: [
                   for (final member in widget.members)
                     SoftPill(
-                      label: member.name,
+                      label:
+                          '${member.name.split(' ').first} · ${MemberRoles.normalize(member.role)}',
                       selected: _assigneeId == member.id,
                       onTap: () => setState(() => _assigneeId = member.id),
                     ),
                 ],
               ),
             ],
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Repeats',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: const Text(
+                'Stays open and rolls the due label when done',
+                style: TextStyle(fontSize: 12.5),
+              ),
+              value: _recurring,
+              onChanged: (v) => setState(() => _recurring = v),
+            ),
             FilledButton(
               onPressed: _submit,
               child: const Text('Add task'),
@@ -372,7 +420,7 @@ class _PastelTaskCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '$name · ${task.dueLabel}',
+                '$name · ${task.dueLabel}${task.recurring ? ' · repeats' : ''}',
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: AppColors.inkSecondary,
@@ -388,9 +436,9 @@ class _PastelTaskCard extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
-                    'Open',
-                    style: TextStyle(
+                  child: Text(
+                    task.recurring ? 'Repeats' : 'Open',
+                    style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                     ),

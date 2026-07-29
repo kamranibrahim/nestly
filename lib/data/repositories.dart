@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
+import 'member_roles.dart';
 
 class TaskRepository {
   TaskRepository(this._db);
@@ -29,11 +30,30 @@ class TaskRepository {
 
   Future<void> toggleDone(Task task) async {
     final markingDone = !task.done;
+    final now = DateTime.now();
+
+    if (markingDone && task.recurring) {
+      final nextLabel = nextDueLabel(task.dueLabel);
+      await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
+        TasksCompanion(
+          done: const Value(false),
+          dueLabel: Value(nextLabel),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+      await TimelineRepository(_db).add(
+        message: 'Completed "${task.title}" · next $nextLabel',
+        memberName: 'You',
+      );
+      return;
+    }
+
     await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
       TasksCompanion(
         done: Value(markingDone),
         dirty: const Value(true),
-        updatedAt: Value(DateTime.now()),
+        updatedAt: Value(now),
       ),
     );
     if (markingDone) {
@@ -44,10 +64,25 @@ class TaskRepository {
     }
   }
 
+  /// Advances recurring chore labels without a full calendar cadence.
+  static String nextDueLabel(String current) {
+    switch (current.trim().toLowerCase()) {
+      case 'today':
+        return 'Tomorrow';
+      case 'tomorrow':
+        return 'In 7 days';
+      case 'in 7 days':
+        return 'Today';
+      default:
+        return 'Tomorrow';
+    }
+  }
+
   Future<void> addTask({
     required String title,
     String assigneeId = '',
     String dueLabel = 'Today',
+    bool recurring = false,
     String? nestId,
   }) async {
     final now = DateTime.now();
@@ -60,6 +95,7 @@ class TaskRepository {
             title: title.trim(),
             assigneeId: Value(assigneeId),
             dueLabel: Value(dueLabel),
+            recurring: Value(recurring),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -112,7 +148,7 @@ class ShoppingRepository {
     return query.watchSingle().map((row) => row.read(countExp) ?? 0);
   }
 
-  /// Habits ready to restock: bought 2+ times, stale enough, not already open.
+  /// Habits ready to restock: bought 2+ times, past learned cadence, not open.
   Stream<List<GroceryHabit>> watchSuggestions({
     String listId = defaultListId,
   }) {
@@ -132,22 +168,34 @@ class ShoppingRepository {
       final due = habits.where((h) {
         if (h.buyCount < 2) return false;
         if (openNames.contains(h.id)) return false;
-        final staleDays = _restockAfterDays(h.buyCount);
+        final staleDays = h.cadenceDays.clamp(2, 60);
         return now.difference(h.lastBoughtAt).inDays >= staleDays;
       }).toList()
         ..sort((a, b) {
-          final byCount = b.buyCount.compareTo(a.buyCount);
-          if (byCount != 0) return byCount;
-          return a.lastBoughtAt.compareTo(b.lastBoughtAt);
+          final aOverdue =
+              now.difference(a.lastBoughtAt).inDays - a.cadenceDays;
+          final bOverdue =
+              now.difference(b.lastBoughtAt).inDays - b.cadenceDays;
+          final byOverdue = bOverdue.compareTo(aOverdue);
+          if (byOverdue != 0) return byOverdue;
+          return b.buyCount.compareTo(a.buyCount);
         });
       return due.take(8).toList();
     });
   }
 
-  static int _restockAfterDays(int buyCount) {
-    if (buyCount >= 6) return 5;
-    if (buyCount >= 4) return 7;
-    return 10;
+  /// Blend a new purchase gap into the habit cadence (days).
+  static int blendCadence({
+    required int previousCadence,
+    required int gapDays,
+    required int buyCount,
+  }) {
+    final gap = gapDays.clamp(1, 90);
+    if (buyCount <= 2) return gap;
+    // EMA: newer gaps weigh more as the habit matures.
+    final weight = buyCount >= 6 ? 0.45 : 0.35;
+    final blended = (previousCadence * (1 - weight)) + (gap * weight);
+    return blended.round().clamp(2, 60);
   }
 
   Future<void> toggleDone(ShoppingItem item) async {
@@ -184,17 +232,26 @@ class ShoppingRepository {
               name: item.name.trim(),
               category: Value(item.category),
               buyCount: const Value(1),
+              cadenceDays: const Value(7),
               lastBoughtAt: now,
               updatedAt: Value(now),
             ),
           );
     } else {
+      final gapDays = now.difference(existing.lastBoughtAt).inDays;
+      final nextCount = existing.buyCount + 1;
+      final cadence = blendCadence(
+        previousCadence: existing.cadenceDays,
+        gapDays: gapDays <= 0 ? existing.cadenceDays : gapDays,
+        buyCount: nextCount,
+      );
       await (_db.update(_db.groceryHabits)..where((h) => h.id.equals(key)))
           .write(
         GroceryHabitsCompanion(
           name: Value(item.name.trim()),
           category: Value(item.category),
-          buyCount: Value(existing.buyCount + 1),
+          buyCount: Value(nextCount),
+          cadenceDays: Value(cadence),
           lastBoughtAt: Value(now),
           updatedAt: Value(now),
         ),
@@ -334,6 +391,17 @@ class MemberRepository {
   Future<NestMember?> byId(String id) {
     return (_db.select(_db.nestMembers)..where((m) => m.id.equals(id)))
         .getSingleOrNull();
+  }
+
+  Future<void> updateRole(String memberId, String role) {
+    return (_db.update(_db.nestMembers)..where((m) => m.id.equals(memberId)))
+        .write(
+      NestMembersCompanion(
+        role: Value(role),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 }
 
@@ -718,6 +786,7 @@ class CareRepository {
     String category = 'Home',
     int cadenceDays = 7,
     String notes = '',
+    String memberId = '',
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
@@ -732,6 +801,7 @@ class CareRepository {
             cadenceDays: Value(cadenceDays),
             nextDueAt: due,
             notes: Value(notes.trim()),
+            memberId: Value(memberId),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -766,6 +836,66 @@ class CareRepository {
         updatedAt: Value(DateTime.now()),
       ),
     );
+  }
+
+  Stream<List<CareProfile>> watchProfiles() {
+    return (_db.select(_db.careProfiles)
+          ..where((p) => p.deleted.equals(false))
+          ..orderBy([(p) => OrderingTerm(expression: p.updatedAt)]))
+        .watch();
+  }
+
+  Future<CareProfile?> profileForMember(String memberId) {
+    return (_db.select(_db.careProfiles)
+          ..where((p) => p.id.equals(memberId) & p.deleted.equals(false)))
+        .getSingleOrNull();
+  }
+
+  Future<void> upsertProfile({
+    required String memberId,
+    String medications = '',
+    String allergies = '',
+    String mobilityNotes = '',
+    String primaryDoctor = '',
+    String notes = '',
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final existing = await (_db.select(_db.careProfiles)
+          ..where((p) => p.id.equals(memberId)))
+        .getSingleOrNull();
+    if (existing == null) {
+      await _db.into(_db.careProfiles).insert(
+            CareProfilesCompanion.insert(
+              id: memberId,
+              nestId: Value(nestId),
+              memberId: memberId,
+              medications: Value(medications.trim()),
+              allergies: Value(allergies.trim()),
+              mobilityNotes: Value(mobilityNotes.trim()),
+              primaryDoctor: Value(primaryDoctor.trim()),
+              notes: Value(notes.trim()),
+              dirty: const Value(true),
+              createdAt: Value(now),
+              updatedAt: Value(now),
+            ),
+          );
+    } else {
+      await (_db.update(_db.careProfiles)..where((p) => p.id.equals(memberId)))
+          .write(
+        CareProfilesCompanion(
+          nestId: Value(nestId),
+          medications: Value(medications.trim()),
+          allergies: Value(allergies.trim()),
+          mobilityNotes: Value(mobilityNotes.trim()),
+          primaryDoctor: Value(primaryDoctor.trim()),
+          notes: Value(notes.trim()),
+          deleted: const Value(false),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+    }
   }
 }
 
@@ -852,7 +982,22 @@ class SchoolRepository {
     final title = loc.isEmpty
         ? 'Pickup: ${item.title}'
         : 'Pickup: ${item.title} @ $loc';
-    await TaskRepository(_db).addTask(title: title, dueLabel: 'Today');
+    final members = await _db.select(_db.nestMembers).get();
+    String assigneeId = '';
+    for (final m in members) {
+      if (MemberRoles.isAdultLike(m.role)) {
+        assigneeId = m.id;
+        break;
+      }
+    }
+    if (assigneeId.isEmpty && members.isNotEmpty) {
+      assigneeId = members.first.id;
+    }
+    await TaskRepository(_db).addTask(
+      title: title,
+      dueLabel: 'Today',
+      assigneeId: assigneeId,
+    );
     await TimelineRepository(_db).add(
       message: 'Added pickup task for ${item.title}',
       memberName: 'You',

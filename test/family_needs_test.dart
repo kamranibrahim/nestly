@@ -40,7 +40,7 @@ void main() {
     expect(summary.needs.first.title, 'Quiet day');
   });
 
-  test('restock suggestion when list empty but habits due', () {
+  test('dinner shop CTA when meal planned with title', () {
     final summary = buildFamilyNeeds(
       openTasks: 0,
       openShopping: 0,
@@ -49,16 +49,31 @@ void main() {
       schoolDue: 0,
       dinnerPlannedToday: true,
       eventsToday: 0,
-      grocerySuggestions: 3,
+      dinnerTitle: 'Tacos',
     );
 
     expect(
-      summary.needs.any((n) => n.kind == FamilyNeedKind.shopping),
+      summary.needs.any((n) => n.kind == FamilyNeedKind.meals),
       isTrue,
     );
-    expect(
-      summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.shopping).title,
-      contains('Restock'),
+    final meal = summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.meals);
+    expect(meal.title, 'Dinner: Tacos');
+    expect(meal.actionLabel, 'Shop');
+  });
+
+  test('school due uses Done action', () {
+    final summary = buildFamilyNeeds(
+      openTasks: 0,
+      openShopping: 0,
+      unpaidBillsDueSoon: 0,
+      careDue: 0,
+      schoolDue: 2,
+      dinnerPlannedToday: true,
+      eventsToday: 0,
     );
+
+    final school =
+        summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.school);
+    expect(school.actionLabel, 'Done');
   });
 }
