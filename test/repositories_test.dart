@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
@@ -54,23 +55,24 @@ void main() {
   });
 
   test('checking off items builds grocery habits and suggestions', () async {
-    await shopping.addItem(name: 'Milk', category: 'Dairy');
-    var milk = (await shopping.watchItems().first)
-        .firstWhere((i) => i.name == 'Milk');
-    await shopping.toggleDone(milk);
+    const name = 'Kefir';
+    await shopping.addItem(name: name, category: 'Dairy');
+    var item = (await shopping.watchItems().first)
+        .firstWhere((i) => i.name == name && !i.done);
+    await shopping.toggleDone(item);
 
-    await shopping.addItem(name: 'Milk', category: 'Dairy');
-    milk = (await shopping.watchItems().first)
-        .firstWhere((i) => i.name == 'Milk' && !i.done);
-    await shopping.toggleDone(milk);
+    await shopping.addItem(name: name, category: 'Dairy');
+    item = (await shopping.watchItems().first)
+        .firstWhere((i) => i.name == name && !i.done);
+    await shopping.toggleDone(item);
 
+    final key = ShoppingRepository.normalizeName(name);
     final habits = await database.select(database.groceryHabits).get();
-    final milkHabit = habits.firstWhere((h) => h.id == 'milk');
-    expect(milkHabit.buyCount, 2);
+    final habit = habits.firstWhere((h) => h.id == key);
+    expect(habit.buyCount, 2);
 
-    // Make habit stale so it surfaces as a suggestion.
     await (database.update(database.groceryHabits)
-          ..where((h) => h.id.equals('milk')))
+          ..where((h) => h.id.equals(key)))
         .write(
       GroceryHabitsCompanion(
         lastBoughtAt: Value(DateTime.now().subtract(const Duration(days: 14))),
@@ -78,12 +80,12 @@ void main() {
     );
 
     final suggestions = await shopping.watchSuggestions().first;
-    expect(suggestions.any((s) => s.id == 'milk'), isTrue);
+    expect(suggestions.any((s) => s.id == key), isTrue);
 
-    await shopping.addSuggestion(milkHabit);
+    await shopping.addSuggestion(habit);
     final openNames = (await shopping.watchItems().first)
         .where((i) => !i.done)
         .map((i) => i.name);
-    expect(openNames, contains('Milk'));
+    expect(openNames, contains(name));
   });
 }
