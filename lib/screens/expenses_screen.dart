@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
-import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../data/member_roles.dart';
 import '../data/repositories.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
+import '../widgets/shimmer.dart';
+
+const _expenseCategories = [
+  'Groceries',
+  'Transport',
+  'Kids',
+  'Home',
+  'Dining',
+  'Health',
+  'General',
+];
 
 class ExpensesScreen extends ConsumerWidget {
   const ExpensesScreen({super.key});
@@ -26,7 +37,7 @@ class ExpensesScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Budget')),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _addExpense(context, ref),
+        onPressed: () => showExpenseSheet(context, ref),
         child: const Icon(Icons.add_rounded),
       ),
       body: ListView(
@@ -94,6 +105,8 @@ class ExpensesScreen extends ConsumerWidget {
                   children: [
                     for (var i = 0; i < items.length; i++) ...[
                       ListTile(
+                        onTap: () =>
+                            showExpenseSheet(context, ref, existing: items[i]),
                         leading: const CircleAvatar(
                           backgroundColor: AppColors.primarySoft,
                           child: Icon(
@@ -128,7 +141,7 @@ class ExpensesScreen extends ConsumerWidget {
             children: [
               const Expanded(child: SectionLabel('Bills')),
               TextButton(
-                onPressed: () => _addBill(context, ref),
+                onPressed: () => showBillSheet(context, ref),
                 child: const Text('Add bill'),
               ),
             ],
@@ -151,24 +164,29 @@ class ExpensesScreen extends ConsumerWidget {
                   children: [
                     for (var i = 0; i < bills.length; i++) ...[
                       ListTile(
-                        onTap: () async {
-                          await ref
-                              .read(billRepositoryProvider)
-                              .togglePaid(bills[i]);
-                          await ref
-                              .read(notificationServiceProvider)
-                              .rescheduleBillReminders();
-                          try {
-                            await ref.read(syncServiceProvider).syncAll();
-                          } catch (_) {}
-                        },
-                        leading: Icon(
-                          bills[i].paid
-                              ? Icons.check_circle_rounded
-                              : Icons.schedule_rounded,
-                          color: bills[i].paid
-                              ? AppColors.tileGreen
-                              : AppColors.tileOrange,
+                        onTap: () =>
+                            showBillSheet(context, ref, existing: bills[i]),
+                        leading: IconButton(
+                          tooltip: bills[i].paid ? 'Mark unpaid' : 'Mark paid',
+                          onPressed: () async {
+                            await ref
+                                .read(billRepositoryProvider)
+                                .togglePaid(bills[i]);
+                            await ref
+                                .read(notificationServiceProvider)
+                                .rescheduleBillReminders();
+                            try {
+                              await ref.read(syncServiceProvider).syncAll();
+                            } catch (_) {}
+                          },
+                          icon: Icon(
+                            bills[i].paid
+                                ? Icons.check_circle_rounded
+                                : Icons.schedule_rounded,
+                            color: bills[i].paid
+                                ? AppColors.tileGreen
+                                : AppColors.tileOrange,
+                          ),
                         ),
                         title: Text(
                           bills[i].title,
@@ -193,142 +211,413 @@ class ExpensesScreen extends ConsumerWidget {
     );
   }
 
-  String _dueLabel(Bill bill) {
+  static String _dueLabel(Bill bill) {
     if (bill.paid) return 'Paid';
-    final days = bill.dueAt
-        .difference(DateTime.now())
-        .inDays;
+    final days = bill.dueAt.difference(DateTime.now()).inDays;
     if (days < 0) return 'Overdue';
     if (days == 0) return 'Due today';
     if (days == 1) return 'Due tomorrow';
-    return 'Due in $days days';
+    return 'Due in $days days · ${DateFormat.MMMd().format(bill.dueAt)}';
   }
 
-  Future<void> _addExpense(BuildContext context, WidgetRef ref) async {
-    final result = await showModalBottomSheet<({String title, double amount})>(
+  static Future<void> showExpenseSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    Expense? existing,
+  }) async {
+    final members = List<NestMember>.from(
+      ref.read(membersProvider).valueOrNull ?? const [],
+    )..sort((a, b) => MemberRoles.adultLikeFirst(a.role, b.role));
+
+    final result = await showModalBottomSheet<
+        ({
+          String title,
+          double amount,
+          String category,
+          String paidBy,
+          bool deleteExpense,
+        })>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return OwnedControllers(
-          count: 2,
-          builder: (context, c) {
-            return sheetBody(
-              context: context,
-              children: [
-                sheetHandle(),
-                const SizedBox(height: 6),
-                const Text(
-                  'Add expense',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: c[0],
-                  decoration: const InputDecoration(labelText: 'Title'),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: c[1],
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Amount'),
-                ),
-                const SizedBox(height: 6),
-                FilledButton(
-                  onPressed: () {
-                    final parsed = double.tryParse(c[1].text.trim());
-                    final name = c[0].text.trim();
-                    if (name.isEmpty || parsed == null) {
-                      Navigator.pop(context);
-                      return;
-                    }
-                    Navigator.pop(context, (title: name, amount: parsed));
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (context) => _ExpenseSheet(
+        existing: existing,
+        members: members,
+      ),
     );
-    if (result != null) {
-      await ref.read(expenseRepositoryProvider).addExpense(
-            title: result.title,
-            amount: result.amount,
-          );
+
+    if (result == null) return;
+
+    if (result.deleteExpense && existing != null) {
+      await ref.read(expenseRepositoryProvider).deleteExpense(existing.id);
       try {
         await ref.read(syncServiceProvider).syncAll();
       } catch (_) {}
+      return;
     }
+
+    if (result.title.isEmpty) return;
+
+    if (existing == null) {
+      await ref.read(expenseRepositoryProvider).addExpense(
+            title: result.title,
+            amount: result.amount,
+            category: result.category,
+            paidBy: result.paidBy,
+          );
+    } else {
+      await ref.read(expenseRepositoryProvider).updateExpense(
+            id: existing.id,
+            title: result.title,
+            amount: result.amount,
+            category: result.category,
+            paidBy: result.paidBy,
+          );
+    }
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
   }
 
-  Future<void> _addBill(BuildContext context, WidgetRef ref) async {
-    final result = await showModalBottomSheet<({String title, double amount})>(
+  static Future<void> showBillSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    Bill? existing,
+  }) async {
+    final result = await showModalBottomSheet<
+        ({
+          String title,
+          double amount,
+          DateTime dueAt,
+          bool deleteBill,
+        })>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return OwnedControllers(
-          count: 2,
-          builder: (context, c) {
-            return sheetBody(
-              context: context,
-              children: [
-                sheetHandle(),
-                const SizedBox(height: 6),
-                const Text(
-                  'Add bill',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: c[0],
-                  decoration: const InputDecoration(labelText: 'Title'),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: c[1],
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Amount'),
-                ),
-                const SizedBox(height: 6),
-                FilledButton(
-                  onPressed: () {
-                    final parsed = double.tryParse(c[1].text.trim());
-                    final name = c[0].text.trim();
-                    if (name.isEmpty || parsed == null) {
-                      Navigator.pop(context);
-                      return;
-                    }
-                    Navigator.pop(context, (title: name, amount: parsed));
-                  },
-                  child: const Text('Save · due in 7 days'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (context) => _BillSheet(existing: existing),
     );
-    if (result != null) {
-      await ref.read(billRepositoryProvider).addBill(
-            title: result.title,
-            amount: result.amount,
-            dueAt: DateTime.now().add(const Duration(days: 7)),
-          );
+
+    if (result == null) return;
+
+    if (result.deleteBill && existing != null) {
+      await ref.read(billRepositoryProvider).deleteBill(existing.id);
       await ref.read(notificationServiceProvider).rescheduleBillReminders();
       try {
         await ref.read(syncServiceProvider).syncAll();
       } catch (_) {}
+      return;
     }
+
+    if (result.title.isEmpty) return;
+
+    if (existing == null) {
+      await ref.read(billRepositoryProvider).addBill(
+            title: result.title,
+            amount: result.amount,
+            dueAt: result.dueAt,
+          );
+    } else {
+      await ref.read(billRepositoryProvider).updateBill(
+            id: existing.id,
+            title: result.title,
+            amount: result.amount,
+            dueAt: result.dueAt,
+          );
+    }
+    await ref.read(notificationServiceProvider).rescheduleBillReminders();
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+  }
+}
+
+class _ExpenseSheet extends StatefulWidget {
+  const _ExpenseSheet({
+    required this.members,
+    this.existing,
+  });
+
+  final List<NestMember> members;
+  final Expense? existing;
+
+  @override
+  State<_ExpenseSheet> createState() => _ExpenseSheetState();
+}
+
+class _ExpenseSheetState extends State<_ExpenseSheet> {
+  late final TextEditingController _title;
+  late final TextEditingController _amount;
+  late String _category;
+  late String _paidBy;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    _title = TextEditingController(text: existing?.title ?? '');
+    _amount = TextEditingController(
+      text: existing == null ? '' : existing.amount.toStringAsFixed(
+            existing.amount == existing.amount.roundToDouble() ? 0 : 2,
+          ),
+    );
+    _category = existing?.category ?? 'General';
+    _paidBy = existing?.paidBy ?? '';
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _amount.dispose();
+    super.dispose();
+  }
+
+  void _submit({bool deleteExpense = false}) {
+    final name = _title.text.trim();
+    final parsed = double.tryParse(_amount.text.trim());
+    if (!deleteExpense && (name.isEmpty || parsed == null)) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(
+      context,
+      (
+        title: name,
+        amount: parsed ?? 0,
+        category: _category,
+        paidBy: _paidBy,
+        deleteExpense: deleteExpense,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final existing = widget.existing;
+    final cats = {
+      ..._expenseCategories,
+      if (!_expenseCategories.contains(_category)) _category,
+    }.toList();
+
+    return sheetBody(
+      context: context,
+      children: [
+        sheetHandle(),
+        const SizedBox(height: 6),
+        Text(
+          existing == null ? 'Add expense' : 'Edit expense',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _title,
+          autofocus: existing == null,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(labelText: 'Title'),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _amount,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'Amount'),
+          onSubmitted: (_) => _submit(),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Category',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final cat in cats)
+              SoftPill(
+                label: cat,
+                selected: _category == cat,
+                onTap: () => setState(() => _category = cat),
+              ),
+          ],
+        ),
+        if (widget.members.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Paid by',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              SoftPill(
+                label: 'Anyone',
+                selected: _paidBy.isEmpty,
+                onTap: () => setState(() => _paidBy = ''),
+              ),
+              for (final m in widget.members)
+                SoftPill(
+                  label: m.name.split(' ').first,
+                  selected: _paidBy == m.name,
+                  onTap: () => setState(() => _paidBy = m.name),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 14),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(existing == null ? 'Save' : 'Save changes'),
+        ),
+        if (existing != null)
+          TextButton(
+            onPressed: () => _submit(deleteExpense: true),
+            child: const Text(
+              'Delete expense',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _BillSheet extends StatefulWidget {
+  const _BillSheet({this.existing});
+
+  final Bill? existing;
+
+  @override
+  State<_BillSheet> createState() => _BillSheetState();
+}
+
+class _BillSheetState extends State<_BillSheet> {
+  late final TextEditingController _title;
+  late final TextEditingController _amount;
+  late DateTime _dueAt;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    _title = TextEditingController(text: existing?.title ?? '');
+    _amount = TextEditingController(
+      text: existing == null ? '' : existing.amount.toStringAsFixed(
+            existing.amount == existing.amount.roundToDouble() ? 0 : 2,
+          ),
+    );
+    final now = DateTime.now();
+    _dueAt = existing?.dueAt ??
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _amount.dispose();
+    super.dispose();
+  }
+
+  void _submit({bool deleteBill = false}) {
+    final name = _title.text.trim();
+    final parsed = double.tryParse(_amount.text.trim());
+    if (!deleteBill && (name.isEmpty || parsed == null)) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(
+      context,
+      (
+        title: name,
+        amount: parsed ?? 0,
+        dueAt: _dueAt,
+        deleteBill: deleteBill,
+      ),
+    );
+  }
+
+  Future<void> _pickDue() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dueAt,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    setState(() => _dueAt = DateTime(picked.year, picked.month, picked.day));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final existing = widget.existing;
+
+    return sheetBody(
+      context: context,
+      children: [
+        sheetHandle(),
+        const SizedBox(height: 6),
+        Text(
+          existing == null ? 'Add bill' : 'Edit bill',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _title,
+          autofocus: existing == null,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(labelText: 'Title'),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _amount,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'Amount'),
+          onSubmitted: (_) => _submit(),
+        ),
+        const SizedBox(height: 10),
+        SoftPill(
+          label: 'Due · ${DateFormat('EEE, MMM d').format(_dueAt)}',
+          selected: true,
+          onTap: _pickDue,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final days in const [3, 7, 14, 30])
+              SoftPill(
+                label: 'In $days days',
+                onTap: () {
+                  final now = DateTime.now();
+                  setState(() {
+                    _dueAt = DateTime(now.year, now.month, now.day)
+                        .add(Duration(days: days));
+                  });
+                },
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(existing == null ? 'Save' : 'Save changes'),
+        ),
+        if (existing != null)
+          TextButton(
+            onPressed: () => _submit(deleteBill: true),
+            child: const Text(
+              'Delete bill',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+      ],
+    );
   }
 }

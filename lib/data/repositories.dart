@@ -531,6 +531,37 @@ class ExpenseRepository {
           ),
         );
   }
+
+  Future<void> updateExpense({
+    required String id,
+    required String title,
+    required double amount,
+    required String category,
+    String paidBy = '',
+  }) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return (_db.update(_db.expenses)..where((e) => e.id.equals(id))).write(
+      ExpensesCompanion(
+        title: Value(trimmed),
+        amount: Value(amount),
+        category: Value(category.trim().isEmpty ? 'General' : category.trim()),
+        paidBy: Value(paidBy.trim()),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> deleteExpense(String id) {
+    return (_db.update(_db.expenses)..where((e) => e.id.equals(id))).write(
+      ExpensesCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
 }
 
 class BillRepository {
@@ -584,6 +615,35 @@ class BillRepository {
             updatedAt: Value(now),
           ),
         );
+  }
+
+  Future<void> updateBill({
+    required String id,
+    required String title,
+    required double amount,
+    required DateTime dueAt,
+  }) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return (_db.update(_db.bills)..where((b) => b.id.equals(id))).write(
+      BillsCompanion(
+        title: Value(trimmed),
+        amount: Value(amount),
+        dueAt: Value(dueAt),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> deleteBill(String id) {
+    return (_db.update(_db.bills)..where((b) => b.id.equals(id))).write(
+      BillsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 }
 

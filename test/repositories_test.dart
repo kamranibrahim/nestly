@@ -324,4 +324,59 @@ void main() {
     expect(updated.nextAt.day, 1);
     expect(updated.nextAt.month, 8);
   });
+
+  test('expenses and bills can be updated and deleted', () async {
+    final expenses = ExpenseRepository(database);
+    final bills = BillRepository(database);
+
+    await expenses.addExpense(
+      title: 'Coffee',
+      amount: 4.5,
+      category: 'Dining',
+      paidBy: 'Kamran',
+    );
+    final expense = (await expenses.watchAll().first)
+        .firstWhere((e) => e.title == 'Coffee');
+
+    await expenses.updateExpense(
+      id: expense.id,
+      title: 'Latte',
+      amount: 5.25,
+      category: 'Groceries',
+      paidBy: 'Sara',
+    );
+    final updatedExpense =
+        (await expenses.watchAll().first).firstWhere((e) => e.id == expense.id);
+    expect(updatedExpense.title, 'Latte');
+    expect(updatedExpense.amount, 5.25);
+    expect(updatedExpense.category, 'Groceries');
+    expect(updatedExpense.paidBy, 'Sara');
+
+    await expenses.deleteExpense(expense.id);
+    final afterDelete =
+        (await expenses.watchAll().first).where((e) => e.id == expense.id);
+    expect(afterDelete, isEmpty);
+
+    final due = DateTime(2026, 8, 10);
+    await bills.addBill(title: 'Gas', amount: 30, dueAt: due);
+    final bill =
+        (await bills.watchAll().first).firstWhere((b) => b.title == 'Gas');
+
+    await bills.updateBill(
+      id: bill.id,
+      title: 'Natural gas',
+      amount: 35.5,
+      dueAt: due.add(const Duration(days: 5)),
+    );
+    final updatedBill =
+        (await bills.watchAll().first).firstWhere((b) => b.id == bill.id);
+    expect(updatedBill.title, 'Natural gas');
+    expect(updatedBill.amount, 35.5);
+    expect(updatedBill.dueAt.day, 15);
+
+    await bills.deleteBill(bill.id);
+    final billsLeft =
+        (await bills.watchAll().first).where((b) => b.id == bill.id);
+    expect(billsLeft, isEmpty);
+  });
 }
