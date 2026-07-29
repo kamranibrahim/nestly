@@ -7,8 +7,10 @@ import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import 'about_screen.dart';
+import 'care_screen.dart';
 import 'emergency_screen.dart';
 import 'expenses_screen.dart';
+import 'meals_screen.dart';
 import 'privacy_screen.dart';
 import 'shopping_screen.dart';
 import 'vault_screen.dart';
@@ -171,6 +173,22 @@ class MoreScreen extends ConsumerWidget {
                 color: AppColors.tileYellow,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ExpensesScreen()),
+                ),
+              ),
+              FeatureTile(
+                title: 'Meals',
+                icon: Icons.restaurant_rounded,
+                color: AppColors.tilePink,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MealsScreen()),
+                ),
+              ),
+              FeatureTile(
+                title: 'Care',
+                icon: Icons.pets_rounded,
+                color: AppColors.tileTeal,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CareScreen()),
                 ),
               ),
               FeatureTile(

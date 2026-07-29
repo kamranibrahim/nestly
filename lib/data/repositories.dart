@@ -495,3 +495,188 @@ class VaultRepository {
     );
   }
 }
+
+class MealRepository {
+  MealRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+
+  static const weekdays = [
+    (1, 'Mon'),
+    (2, 'Tue'),
+    (3, 'Wed'),
+    (4, 'Thu'),
+    (5, 'Fri'),
+    (6, 'Sat'),
+    (7, 'Sun'),
+  ];
+
+  Stream<List<MealPlan>> watchAll() {
+    return (_db.select(_db.mealPlans)
+          ..where((m) => m.deleted.equals(false))
+          ..orderBy([
+            (m) => OrderingTerm(expression: m.weekday),
+            (m) => OrderingTerm(expression: m.mealType),
+          ]))
+        .watch();
+  }
+
+  Stream<List<MealPlan>> watchForWeekday(int weekday) {
+    return (_db.select(_db.mealPlans)
+          ..where(
+            (m) => m.deleted.equals(false) & m.weekday.equals(weekday),
+          )
+          ..orderBy([(m) => OrderingTerm(expression: m.mealType)]))
+        .watch();
+  }
+
+  Future<void> upsert({
+    String? id,
+    required int weekday,
+    required String title,
+    String mealType = 'Dinner',
+    String ingredients = '',
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final mealId = id ?? _uuid.v4();
+    await _db.into(_db.mealPlans).insertOnConflictUpdate(
+          MealPlansCompanion.insert(
+            id: mealId,
+            nestId: Value(nestId),
+            weekday: weekday,
+            mealType: Value(mealType),
+            title: title.trim(),
+            ingredients: Value(ingredients.trim()),
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  Future<void> delete(String id) {
+    return (_db.update(_db.mealPlans)..where((m) => m.id.equals(id))).write(
+      MealPlansCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Parses ingredients (comma or newline) and adds missing ones to groceries.
+  Future<int> addIngredientsToShopping(MealPlan meal) async {
+    final raw = meal.ingredients
+        .split(RegExp(r'[\n,]'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (raw.isEmpty) return 0;
+
+    final shopping = ShoppingRepository(_db);
+    final existing = await shopping.watchItems().first;
+    final openNames = existing
+        .where((i) => !i.done)
+        .map((i) => i.name.toLowerCase())
+        .toSet();
+
+    var added = 0;
+    for (final name in raw) {
+      if (openNames.contains(name.toLowerCase())) continue;
+      await shopping.addItem(name: name, category: 'Meals');
+      openNames.add(name.toLowerCase());
+      added++;
+    }
+    if (added > 0) {
+      await TimelineRepository(_db).add(
+        message: 'Added $added ingredient${added == 1 ? '' : 's'} for ${meal.title}',
+        memberName: 'You',
+      );
+    }
+    return added;
+  }
+}
+
+class CareRepository {
+  CareRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+
+  Stream<List<CareItem>> watchAll() {
+    return (_db.select(_db.careItems)
+          ..where((c) => c.deleted.equals(false))
+          ..orderBy([(c) => OrderingTerm(expression: c.nextDueAt)]))
+        .watch();
+  }
+
+  Stream<int> watchDueCount() {
+    final now = DateTime.now();
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final countExp = _db.careItems.id.count();
+    final query = _db.selectOnly(_db.careItems)
+      ..addColumns([countExp])
+      ..where(
+        _db.careItems.deleted.equals(false) &
+            _db.careItems.nextDueAt.isSmallerOrEqualValue(endOfToday),
+      );
+    return query.watchSingle().map((row) => row.read(countExp) ?? 0);
+  }
+
+  Future<void> add({
+    required String title,
+    String category = 'Home',
+    int cadenceDays = 7,
+    String notes = '',
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final due = DateTime(now.year, now.month, now.day)
+        .add(Duration(days: cadenceDays));
+    await _db.into(_db.careItems).insert(
+          CareItemsCompanion.insert(
+            id: _uuid.v4(),
+            nestId: Value(nestId),
+            title: title.trim(),
+            category: Value(category),
+            cadenceDays: Value(cadenceDays),
+            nextDueAt: due,
+            notes: Value(notes.trim()),
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  Future<void> markDone(CareItem item) async {
+    final now = DateTime.now();
+    final next = DateTime(now.year, now.month, now.day)
+        .add(Duration(days: item.cadenceDays));
+    await (_db.update(_db.careItems)..where((c) => c.id.equals(item.id)))
+        .write(
+      CareItemsCompanion(
+        lastDoneAt: Value(now),
+        nextDueAt: Value(next),
+        dirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+    await TimelineRepository(_db).add(
+      message: 'Completed care: ${item.title}',
+      memberName: 'You',
+    );
+  }
+
+  Future<void> delete(String id) {
+    return (_db.update(_db.careItems)..where((c) => c.id.equals(id))).write(
+      CareItemsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+}

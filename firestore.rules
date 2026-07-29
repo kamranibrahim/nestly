@@ -64,6 +64,14 @@ service cloud.firestore {
       match /timeline/{eventId} {
         allow read, write: if nestMember(nestId);
       }
+
+      match /meals/{mealId} {
+        allow read, write: if nestMember(nestId);
+      }
+
+      match /care/{careId} {
+        allow read, write: if nestMember(nestId);
+      }
     }
   }
 }

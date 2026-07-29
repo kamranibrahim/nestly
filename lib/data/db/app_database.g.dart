@@ -6277,6 +6277,1308 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
   }
 }
 
+class $MealPlansTable extends MealPlans
+    with TableInfo<$MealPlansTable, MealPlan> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MealPlansTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _weekdayMeta = const VerificationMeta(
+    'weekday',
+  );
+  @override
+  late final GeneratedColumn<int> weekday = GeneratedColumn<int>(
+    'weekday',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mealTypeMeta = const VerificationMeta(
+    'mealType',
+  );
+  @override
+  late final GeneratedColumn<String> mealType = GeneratedColumn<String>(
+    'meal_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('Dinner'),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ingredientsMeta = const VerificationMeta(
+    'ingredients',
+  );
+  @override
+  late final GeneratedColumn<String> ingredients = GeneratedColumn<String>(
+    'ingredients',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    weekday,
+    mealType,
+    title,
+    ingredients,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'meal_plans';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MealPlan> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
+    if (data.containsKey('weekday')) {
+      context.handle(
+        _weekdayMeta,
+        weekday.isAcceptableOrUnknown(data['weekday']!, _weekdayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekdayMeta);
+    }
+    if (data.containsKey('meal_type')) {
+      context.handle(
+        _mealTypeMeta,
+        mealType.isAcceptableOrUnknown(data['meal_type']!, _mealTypeMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('ingredients')) {
+      context.handle(
+        _ingredientsMeta,
+        ingredients.isAcceptableOrUnknown(
+          data['ingredients']!,
+          _ingredientsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MealPlan map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MealPlan(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
+      weekday: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}weekday'],
+      )!,
+      mealType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meal_type'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      ingredients: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ingredients'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MealPlansTable createAlias(String alias) {
+    return $MealPlansTable(attachedDatabase, alias);
+  }
+}
+
+class MealPlan extends DataClass implements Insertable<MealPlan> {
+  final String id;
+  final String? nestId;
+  final int weekday;
+  final String mealType;
+  final String title;
+  final String ingredients;
+  final bool dirty;
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const MealPlan({
+    required this.id,
+    this.nestId,
+    required this.weekday,
+    required this.mealType,
+    required this.title,
+    required this.ingredients,
+    required this.dirty,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
+    map['weekday'] = Variable<int>(weekday);
+    map['meal_type'] = Variable<String>(mealType);
+    map['title'] = Variable<String>(title);
+    map['ingredients'] = Variable<String>(ingredients);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  MealPlansCompanion toCompanion(bool nullToAbsent) {
+    return MealPlansCompanion(
+      id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
+      weekday: Value(weekday),
+      mealType: Value(mealType),
+      title: Value(title),
+      ingredients: Value(ingredients),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory MealPlan.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MealPlan(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
+      weekday: serializer.fromJson<int>(json['weekday']),
+      mealType: serializer.fromJson<String>(json['mealType']),
+      title: serializer.fromJson<String>(json['title']),
+      ingredients: serializer.fromJson<String>(json['ingredients']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
+      'weekday': serializer.toJson<int>(weekday),
+      'mealType': serializer.toJson<String>(mealType),
+      'title': serializer.toJson<String>(title),
+      'ingredients': serializer.toJson<String>(ingredients),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  MealPlan copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    int? weekday,
+    String? mealType,
+    String? title,
+    String? ingredients,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => MealPlan(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    weekday: weekday ?? this.weekday,
+    mealType: mealType ?? this.mealType,
+    title: title ?? this.title,
+    ingredients: ingredients ?? this.ingredients,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  MealPlan copyWithCompanion(MealPlansCompanion data) {
+    return MealPlan(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      weekday: data.weekday.present ? data.weekday.value : this.weekday,
+      mealType: data.mealType.present ? data.mealType.value : this.mealType,
+      title: data.title.present ? data.title.value : this.title,
+      ingredients: data.ingredients.present
+          ? data.ingredients.value
+          : this.ingredients,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MealPlan(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('weekday: $weekday, ')
+          ..write('mealType: $mealType, ')
+          ..write('title: $title, ')
+          ..write('ingredients: $ingredients, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    weekday,
+    mealType,
+    title,
+    ingredients,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MealPlan &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.weekday == this.weekday &&
+          other.mealType == this.mealType &&
+          other.title == this.title &&
+          other.ingredients == this.ingredients &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class MealPlansCompanion extends UpdateCompanion<MealPlan> {
+  final Value<String> id;
+  final Value<String?> nestId;
+  final Value<int> weekday;
+  final Value<String> mealType;
+  final Value<String> title;
+  final Value<String> ingredients;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const MealPlansCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.weekday = const Value.absent(),
+    this.mealType = const Value.absent(),
+    this.title = const Value.absent(),
+    this.ingredients = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MealPlansCompanion.insert({
+    required String id,
+    this.nestId = const Value.absent(),
+    required int weekday,
+    this.mealType = const Value.absent(),
+    required String title,
+    this.ingredients = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       weekday = Value(weekday),
+       title = Value(title);
+  static Insertable<MealPlan> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<int>? weekday,
+    Expression<String>? mealType,
+    Expression<String>? title,
+    Expression<String>? ingredients,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (weekday != null) 'weekday': weekday,
+      if (mealType != null) 'meal_type': mealType,
+      if (title != null) 'title': title,
+      if (ingredients != null) 'ingredients': ingredients,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MealPlansCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? nestId,
+    Value<int>? weekday,
+    Value<String>? mealType,
+    Value<String>? title,
+    Value<String>? ingredients,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return MealPlansCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      weekday: weekday ?? this.weekday,
+      mealType: mealType ?? this.mealType,
+      title: title ?? this.title,
+      ingredients: ingredients ?? this.ingredients,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (weekday.present) {
+      map['weekday'] = Variable<int>(weekday.value);
+    }
+    if (mealType.present) {
+      map['meal_type'] = Variable<String>(mealType.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (ingredients.present) {
+      map['ingredients'] = Variable<String>(ingredients.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MealPlansCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('weekday: $weekday, ')
+          ..write('mealType: $mealType, ')
+          ..write('title: $title, ')
+          ..write('ingredients: $ingredients, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CareItemsTable extends CareItems
+    with TableInfo<$CareItemsTable, CareItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CareItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('Home'),
+  );
+  static const VerificationMeta _cadenceDaysMeta = const VerificationMeta(
+    'cadenceDays',
+  );
+  @override
+  late final GeneratedColumn<int> cadenceDays = GeneratedColumn<int>(
+    'cadence_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(7),
+  );
+  static const VerificationMeta _lastDoneAtMeta = const VerificationMeta(
+    'lastDoneAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastDoneAt = GeneratedColumn<DateTime>(
+    'last_done_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nextDueAtMeta = const VerificationMeta(
+    'nextDueAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextDueAt = GeneratedColumn<DateTime>(
+    'next_due_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    title,
+    category,
+    cadenceDays,
+    lastDoneAt,
+    nextDueAt,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'care_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CareItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('cadence_days')) {
+      context.handle(
+        _cadenceDaysMeta,
+        cadenceDays.isAcceptableOrUnknown(
+          data['cadence_days']!,
+          _cadenceDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_done_at')) {
+      context.handle(
+        _lastDoneAtMeta,
+        lastDoneAt.isAcceptableOrUnknown(
+          data['last_done_at']!,
+          _lastDoneAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('next_due_at')) {
+      context.handle(
+        _nextDueAtMeta,
+        nextDueAt.isAcceptableOrUnknown(data['next_due_at']!, _nextDueAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nextDueAtMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CareItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CareItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      cadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cadence_days'],
+      )!,
+      lastDoneAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_done_at'],
+      ),
+      nextDueAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_due_at'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CareItemsTable createAlias(String alias) {
+    return $CareItemsTable(attachedDatabase, alias);
+  }
+}
+
+class CareItem extends DataClass implements Insertable<CareItem> {
+  final String id;
+  final String? nestId;
+  final String title;
+  final String category;
+  final int cadenceDays;
+  final DateTime? lastDoneAt;
+  final DateTime nextDueAt;
+  final String notes;
+  final bool dirty;
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CareItem({
+    required this.id,
+    this.nestId,
+    required this.title,
+    required this.category,
+    required this.cadenceDays,
+    this.lastDoneAt,
+    required this.nextDueAt,
+    required this.notes,
+    required this.dirty,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
+    map['title'] = Variable<String>(title);
+    map['category'] = Variable<String>(category);
+    map['cadence_days'] = Variable<int>(cadenceDays);
+    if (!nullToAbsent || lastDoneAt != null) {
+      map['last_done_at'] = Variable<DateTime>(lastDoneAt);
+    }
+    map['next_due_at'] = Variable<DateTime>(nextDueAt);
+    map['notes'] = Variable<String>(notes);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CareItemsCompanion toCompanion(bool nullToAbsent) {
+    return CareItemsCompanion(
+      id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
+      title: Value(title),
+      category: Value(category),
+      cadenceDays: Value(cadenceDays),
+      lastDoneAt: lastDoneAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastDoneAt),
+      nextDueAt: Value(nextDueAt),
+      notes: Value(notes),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CareItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CareItem(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
+      title: serializer.fromJson<String>(json['title']),
+      category: serializer.fromJson<String>(json['category']),
+      cadenceDays: serializer.fromJson<int>(json['cadenceDays']),
+      lastDoneAt: serializer.fromJson<DateTime?>(json['lastDoneAt']),
+      nextDueAt: serializer.fromJson<DateTime>(json['nextDueAt']),
+      notes: serializer.fromJson<String>(json['notes']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
+      'title': serializer.toJson<String>(title),
+      'category': serializer.toJson<String>(category),
+      'cadenceDays': serializer.toJson<int>(cadenceDays),
+      'lastDoneAt': serializer.toJson<DateTime?>(lastDoneAt),
+      'nextDueAt': serializer.toJson<DateTime>(nextDueAt),
+      'notes': serializer.toJson<String>(notes),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CareItem copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    String? title,
+    String? category,
+    int? cadenceDays,
+    Value<DateTime?> lastDoneAt = const Value.absent(),
+    DateTime? nextDueAt,
+    String? notes,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CareItem(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    title: title ?? this.title,
+    category: category ?? this.category,
+    cadenceDays: cadenceDays ?? this.cadenceDays,
+    lastDoneAt: lastDoneAt.present ? lastDoneAt.value : this.lastDoneAt,
+    nextDueAt: nextDueAt ?? this.nextDueAt,
+    notes: notes ?? this.notes,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CareItem copyWithCompanion(CareItemsCompanion data) {
+    return CareItem(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      title: data.title.present ? data.title.value : this.title,
+      category: data.category.present ? data.category.value : this.category,
+      cadenceDays: data.cadenceDays.present
+          ? data.cadenceDays.value
+          : this.cadenceDays,
+      lastDoneAt: data.lastDoneAt.present
+          ? data.lastDoneAt.value
+          : this.lastDoneAt,
+      nextDueAt: data.nextDueAt.present ? data.nextDueAt.value : this.nextDueAt,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CareItem(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('category: $category, ')
+          ..write('cadenceDays: $cadenceDays, ')
+          ..write('lastDoneAt: $lastDoneAt, ')
+          ..write('nextDueAt: $nextDueAt, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    title,
+    category,
+    cadenceDays,
+    lastDoneAt,
+    nextDueAt,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CareItem &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.title == this.title &&
+          other.category == this.category &&
+          other.cadenceDays == this.cadenceDays &&
+          other.lastDoneAt == this.lastDoneAt &&
+          other.nextDueAt == this.nextDueAt &&
+          other.notes == this.notes &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CareItemsCompanion extends UpdateCompanion<CareItem> {
+  final Value<String> id;
+  final Value<String?> nestId;
+  final Value<String> title;
+  final Value<String> category;
+  final Value<int> cadenceDays;
+  final Value<DateTime?> lastDoneAt;
+  final Value<DateTime> nextDueAt;
+  final Value<String> notes;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CareItemsCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.category = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
+    this.lastDoneAt = const Value.absent(),
+    this.nextDueAt = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CareItemsCompanion.insert({
+    required String id,
+    this.nestId = const Value.absent(),
+    required String title,
+    this.category = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
+    this.lastDoneAt = const Value.absent(),
+    required DateTime nextDueAt,
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       nextDueAt = Value(nextDueAt);
+  static Insertable<CareItem> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<String>? title,
+    Expression<String>? category,
+    Expression<int>? cadenceDays,
+    Expression<DateTime>? lastDoneAt,
+    Expression<DateTime>? nextDueAt,
+    Expression<String>? notes,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (title != null) 'title': title,
+      if (category != null) 'category': category,
+      if (cadenceDays != null) 'cadence_days': cadenceDays,
+      if (lastDoneAt != null) 'last_done_at': lastDoneAt,
+      if (nextDueAt != null) 'next_due_at': nextDueAt,
+      if (notes != null) 'notes': notes,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CareItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? nestId,
+    Value<String>? title,
+    Value<String>? category,
+    Value<int>? cadenceDays,
+    Value<DateTime?>? lastDoneAt,
+    Value<DateTime>? nextDueAt,
+    Value<String>? notes,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CareItemsCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      title: title ?? this.title,
+      category: category ?? this.category,
+      cadenceDays: cadenceDays ?? this.cadenceDays,
+      lastDoneAt: lastDoneAt ?? this.lastDoneAt,
+      nextDueAt: nextDueAt ?? this.nextDueAt,
+      notes: notes ?? this.notes,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (cadenceDays.present) {
+      map['cadence_days'] = Variable<int>(cadenceDays.value);
+    }
+    if (lastDoneAt.present) {
+      map['last_done_at'] = Variable<DateTime>(lastDoneAt.value);
+    }
+    if (nextDueAt.present) {
+      map['next_due_at'] = Variable<DateTime>(nextDueAt.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CareItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('category: $category, ')
+          ..write('cadenceDays: $cadenceDays, ')
+          ..write('lastDoneAt: $lastDoneAt, ')
+          ..write('nextDueAt: $nextDueAt, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6293,6 +7595,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $VaultDocumentsTable vaultDocuments = $VaultDocumentsTable(this);
   late final $TimelineEventsTable timelineEvents = $TimelineEventsTable(this);
+  late final $MealPlansTable mealPlans = $MealPlansTable(this);
+  late final $CareItemsTable careItems = $CareItemsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6309,6 +7613,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     emergencyEntries,
     vaultDocuments,
     timelineEvents,
+    mealPlans,
+    careItems,
   ];
 }
 
@@ -9667,6 +10973,628 @@ typedef $$TimelineEventsTableProcessedTableManager =
       TimelineEvent,
       PrefetchHooks Function()
     >;
+typedef $$MealPlansTableCreateCompanionBuilder =
+    MealPlansCompanion Function({
+      required String id,
+      Value<String?> nestId,
+      required int weekday,
+      Value<String> mealType,
+      required String title,
+      Value<String> ingredients,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$MealPlansTableUpdateCompanionBuilder =
+    MealPlansCompanion Function({
+      Value<String> id,
+      Value<String?> nestId,
+      Value<int> weekday,
+      Value<String> mealType,
+      Value<String> title,
+      Value<String> ingredients,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$MealPlansTableFilterComposer
+    extends Composer<_$AppDatabase, $MealPlansTable> {
+  $$MealPlansTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get weekday => $composableBuilder(
+    column: $table.weekday,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mealType => $composableBuilder(
+    column: $table.mealType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MealPlansTableOrderingComposer
+    extends Composer<_$AppDatabase, $MealPlansTable> {
+  $$MealPlansTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get weekday => $composableBuilder(
+    column: $table.weekday,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mealType => $composableBuilder(
+    column: $table.mealType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MealPlansTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MealPlansTable> {
+  $$MealPlansTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<int> get weekday =>
+      $composableBuilder(column: $table.weekday, builder: (column) => column);
+
+  GeneratedColumn<String> get mealType =>
+      $composableBuilder(column: $table.mealType, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$MealPlansTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MealPlansTable,
+          MealPlan,
+          $$MealPlansTableFilterComposer,
+          $$MealPlansTableOrderingComposer,
+          $$MealPlansTableAnnotationComposer,
+          $$MealPlansTableCreateCompanionBuilder,
+          $$MealPlansTableUpdateCompanionBuilder,
+          (MealPlan, BaseReferences<_$AppDatabase, $MealPlansTable, MealPlan>),
+          MealPlan,
+          PrefetchHooks Function()
+        > {
+  $$MealPlansTableTableManager(_$AppDatabase db, $MealPlansTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MealPlansTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MealPlansTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MealPlansTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
+                Value<int> weekday = const Value.absent(),
+                Value<String> mealType = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> ingredients = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MealPlansCompanion(
+                id: id,
+                nestId: nestId,
+                weekday: weekday,
+                mealType: mealType,
+                title: title,
+                ingredients: ingredients,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> nestId = const Value.absent(),
+                required int weekday,
+                Value<String> mealType = const Value.absent(),
+                required String title,
+                Value<String> ingredients = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MealPlansCompanion.insert(
+                id: id,
+                nestId: nestId,
+                weekday: weekday,
+                mealType: mealType,
+                title: title,
+                ingredients: ingredients,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MealPlansTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MealPlansTable,
+      MealPlan,
+      $$MealPlansTableFilterComposer,
+      $$MealPlansTableOrderingComposer,
+      $$MealPlansTableAnnotationComposer,
+      $$MealPlansTableCreateCompanionBuilder,
+      $$MealPlansTableUpdateCompanionBuilder,
+      (MealPlan, BaseReferences<_$AppDatabase, $MealPlansTable, MealPlan>),
+      MealPlan,
+      PrefetchHooks Function()
+    >;
+typedef $$CareItemsTableCreateCompanionBuilder =
+    CareItemsCompanion Function({
+      required String id,
+      Value<String?> nestId,
+      required String title,
+      Value<String> category,
+      Value<int> cadenceDays,
+      Value<DateTime?> lastDoneAt,
+      required DateTime nextDueAt,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CareItemsTableUpdateCompanionBuilder =
+    CareItemsCompanion Function({
+      Value<String> id,
+      Value<String?> nestId,
+      Value<String> title,
+      Value<String> category,
+      Value<int> cadenceDays,
+      Value<DateTime?> lastDoneAt,
+      Value<DateTime> nextDueAt,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CareItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $CareItemsTable> {
+  $$CareItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastDoneAt => $composableBuilder(
+    column: $table.lastDoneAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextDueAt => $composableBuilder(
+    column: $table.nextDueAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CareItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CareItemsTable> {
+  $$CareItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastDoneAt => $composableBuilder(
+    column: $table.lastDoneAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextDueAt => $composableBuilder(
+    column: $table.nextDueAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CareItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CareItemsTable> {
+  $$CareItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastDoneAt => $composableBuilder(
+    column: $table.lastDoneAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get nextDueAt =>
+      $composableBuilder(column: $table.nextDueAt, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CareItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CareItemsTable,
+          CareItem,
+          $$CareItemsTableFilterComposer,
+          $$CareItemsTableOrderingComposer,
+          $$CareItemsTableAnnotationComposer,
+          $$CareItemsTableCreateCompanionBuilder,
+          $$CareItemsTableUpdateCompanionBuilder,
+          (CareItem, BaseReferences<_$AppDatabase, $CareItemsTable, CareItem>),
+          CareItem,
+          PrefetchHooks Function()
+        > {
+  $$CareItemsTableTableManager(_$AppDatabase db, $CareItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CareItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CareItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CareItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
+                Value<DateTime?> lastDoneAt = const Value.absent(),
+                Value<DateTime> nextDueAt = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CareItemsCompanion(
+                id: id,
+                nestId: nestId,
+                title: title,
+                category: category,
+                cadenceDays: cadenceDays,
+                lastDoneAt: lastDoneAt,
+                nextDueAt: nextDueAt,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> nestId = const Value.absent(),
+                required String title,
+                Value<String> category = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
+                Value<DateTime?> lastDoneAt = const Value.absent(),
+                required DateTime nextDueAt,
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CareItemsCompanion.insert(
+                id: id,
+                nestId: nestId,
+                title: title,
+                category: category,
+                cadenceDays: cadenceDays,
+                lastDoneAt: lastDoneAt,
+                nextDueAt: nextDueAt,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CareItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CareItemsTable,
+      CareItem,
+      $$CareItemsTableFilterComposer,
+      $$CareItemsTableOrderingComposer,
+      $$CareItemsTableAnnotationComposer,
+      $$CareItemsTableCreateCompanionBuilder,
+      $$CareItemsTableUpdateCompanionBuilder,
+      (CareItem, BaseReferences<_$AppDatabase, $CareItemsTable, CareItem>),
+      CareItem,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9693,4 +11621,8 @@ class $AppDatabaseManager {
       $$VaultDocumentsTableTableManager(_db, _db.vaultDocuments);
   $$TimelineEventsTableTableManager get timelineEvents =>
       $$TimelineEventsTableTableManager(_db, _db.timelineEvents);
+  $$MealPlansTableTableManager get mealPlans =>
+      $$MealPlansTableTableManager(_db, _db.mealPlans);
+  $$CareItemsTableTableManager get careItems =>
+      $$CareItemsTableTableManager(_db, _db.careItems);
 }

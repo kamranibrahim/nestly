@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../data/family_needs.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import 'care_screen.dart';
 import 'emergency_screen.dart';
 import 'expenses_screen.dart';
+import 'meals_screen.dart';
 import 'shopping_screen.dart';
 import 'vault_screen.dart';
 
@@ -36,8 +39,34 @@ class HomeScreen extends ConsumerWidget {
     final openTasks = ref.watch(openTaskCountProvider).valueOrNull ?? 0;
     final openShopping = ref.watch(openShoppingCountProvider).valueOrNull ?? 0;
     final vaultCount = ref.watch(vaultCountProvider).valueOrNull ?? 0;
+    final careDue = ref.watch(careDueCountProvider).valueOrNull ?? 0;
+    final meals = ref.watch(mealsProvider).valueOrNull ?? const [];
+    final bills = ref.watch(billsProvider).valueOrNull ?? const [];
     final timeline = ref.watch(timelineProvider).valueOrNull ?? const [];
     final recent = timeline.take(5).toList();
+
+    final weekAhead = today.add(const Duration(days: 7));
+    final billsDueSoon = bills
+        .where(
+          (b) =>
+              !b.paid &&
+              !b.dueAt.isBefore(today) &&
+              !b.dueAt.isAfter(weekAhead),
+        )
+        .length;
+    final dinnerToday = meals.any(
+      (m) =>
+          m.weekday == now.weekday &&
+          m.mealType.toLowerCase() == 'dinner',
+    );
+    final needs = buildFamilyNeeds(
+      openTasks: openTasks,
+      openShopping: openShopping,
+      unpaidBillsDueSoon: billsDueSoon,
+      careDue: careDue,
+      dinnerPlannedToday: dinnerToday,
+      eventsToday: todayEvents.length,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -120,6 +149,27 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
+                    const SectionLabel('Today for your nest'),
+                    NestCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < needs.needs.length; i++) ...[
+                            _NeedRow(
+                              need: needs.needs[i],
+                              onTap: () => _openNeed(
+                                context,
+                                onOpenTab,
+                                needs.needs[i].kind,
+                              ),
+                            ),
+                            if (i != needs.needs.length - 1)
+                              const Divider(height: 1, indent: 16),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
@@ -189,20 +239,24 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                         FeatureTile(
-                          title: 'Timeline',
-                          subtitle: 'Family activity',
-                          icon: Icons.forum_rounded,
+                          title: 'Meals',
+                          subtitle: dinnerToday ? 'Dinner set' : 'Plan week',
+                          icon: Icons.restaurant_rounded,
                           color: AppColors.tilePink,
-                          onTap: () => onOpenTab(4),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const MealsScreen(),
+                            ),
+                          ),
                         ),
                         FeatureTile(
-                          title: 'Shopping',
-                          subtitle: '$openShopping left',
-                          icon: Icons.storefront_rounded,
+                          title: 'Care',
+                          subtitle: careDue == 0 ? 'Up to date' : '$careDue due',
+                          icon: Icons.pets_rounded,
                           color: AppColors.tileTeal,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const ShoppingScreen(),
+                              builder: (_) => const CareScreen(),
                             ),
                           ),
                         ),
@@ -243,6 +297,62 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _openNeed(
+    BuildContext context,
+    ValueChanged<int> onOpenTab,
+    FamilyNeedKind kind,
+  ) {
+    switch (kind) {
+      case FamilyNeedKind.tasks:
+        onOpenTab(2);
+      case FamilyNeedKind.shopping:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ShoppingScreen()),
+        );
+      case FamilyNeedKind.bills:
+      case FamilyNeedKind.calendar:
+        // Expenses holds bills; calendar is tab 1.
+        if (kind == FamilyNeedKind.calendar) {
+          onOpenTab(1);
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ExpensesScreen()),
+          );
+        }
+      case FamilyNeedKind.care:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CareScreen()),
+        );
+      case FamilyNeedKind.meals:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const MealsScreen()),
+        );
+    }
+  }
+}
+
+class _NeedRow extends StatelessWidget {
+  const _NeedRow({required this.need, required this.onTap});
+
+  final FamilyNeed need;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      title: Text(
+        need.title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
+      subtitle: Text(
+        need.detail,
+        style: const TextStyle(color: AppColors.inkMuted, fontSize: 12.5),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
     );
   }
 }

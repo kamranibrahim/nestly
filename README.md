@@ -59,3 +59,12 @@ flutter run
 - [x] Center FAB opens real add flows; About screen
 - [ ] Store public listing / TestFlight external (manual)
 - [ ] Nestly Plus paywall (deferred)
+
+## Year 2 status
+
+### Depth (first slice)
+- [x] Weekly meal plan → push ingredients to shopping
+- [x] Care schedules (home / pet / car) with due + mark done
+- [x] Quiet “Today for your nest” summary on Home (local, no chatbot)
+- [ ] Web companion (calendar + lists)
+- [ ] Model-backed quiet AI (receipts, PDF → event)

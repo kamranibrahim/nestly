@@ -175,6 +175,42 @@ class TimelineEvents extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// Weekly meal plan slot. weekday: 1=Mon … 7=Sun (DateTime.weekday).
+class MealPlans extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  IntColumn get weekday => integer()();
+  TextColumn get mealType => text().withDefault(const Constant('Dinner'))();
+  TextColumn get title => text()();
+  TextColumn get ingredients => text().withDefault(const Constant(''))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Recurring household care (pet, home, car).
+class CareItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get title => text()();
+  TextColumn get category => text().withDefault(const Constant('Home'))();
+  IntColumn get cadenceDays => integer().withDefault(const Constant(7))();
+  DateTimeColumn get lastDoneAt => dateTime().nullable()();
+  DateTimeColumn get nextDueAt => dateTime()();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     NestMembers,
@@ -188,13 +224,15 @@ class TimelineEvents extends Table {
     EmergencyEntries,
     VaultDocuments,
     TimelineEvents,
+    MealPlans,
+    CareItems,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -225,6 +263,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await m.createTable(vaultDocuments);
             await m.createTable(timelineEvents);
+          }
+          if (from < 5) {
+            await m.createTable(mealPlans);
+            await m.createTable(careItems);
           }
         },
       );
@@ -262,6 +304,8 @@ class AppDatabase extends _$AppDatabase {
       b.deleteAll(emergencyEntries);
       b.deleteAll(vaultDocuments);
       b.deleteAll(timelineEvents);
+      b.deleteAll(mealPlans);
+      b.deleteAll(careItems);
       b.deleteAll(nestMembers);
     });
   }

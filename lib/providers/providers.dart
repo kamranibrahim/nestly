@@ -125,3 +125,23 @@ final vaultDocumentsProvider =
     StreamProvider.family<List<VaultDocument>, String>((ref, category) {
   return ref.watch(vaultRepositoryProvider).watchAll(category: category);
 });
+
+final mealRepositoryProvider = Provider<MealRepository>((ref) {
+  return MealRepository(ref.watch(databaseProvider));
+});
+
+final careRepositoryProvider = Provider<CareRepository>((ref) {
+  return CareRepository(ref.watch(databaseProvider));
+});
+
+final mealsProvider = StreamProvider<List<MealPlan>>((ref) {
+  return ref.watch(mealRepositoryProvider).watchAll();
+});
+
+final careItemsProvider = StreamProvider<List<CareItem>>((ref) {
+  return ref.watch(careRepositoryProvider).watchAll();
+});
+
+final careDueCountProvider = StreamProvider<int>((ref) {
+  return ref.watch(careRepositoryProvider).watchDueCount();
+});
