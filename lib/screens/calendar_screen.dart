@@ -22,6 +22,30 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   late DateTime _selected;
   String _memberFilter = 'All';
 
+  String _pickDefaultMemberId(List<NestMember> members) {
+    if (members.isEmpty) return '';
+    // Prefer matching the active filter; otherwise fall back to adult-like.
+    if (_memberFilter == 'Adults') {
+      for (final m in members) {
+        if (MemberRoles.isAdultLike(m.role)) return m.id;
+      }
+    } else if (_memberFilter == 'Kids') {
+      for (final m in members) {
+        if (MemberRoles.isKid(m.role)) return m.id;
+      }
+    } else if (_memberFilter == 'Grandparents') {
+      for (final m in members) {
+        if (MemberRoles.normalize(m.role) == MemberRoles.grandparent) {
+          return m.id;
+        }
+      }
+    }
+    for (final m in members) {
+      if (MemberRoles.isAdultLike(m.role)) return m.id;
+    }
+    return members.first.id;
+  }
+
   bool _matchesMemberFilter(
     String memberId,
     List<NestMember> members,
@@ -350,6 +374,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Future<void> _showAddEvent(BuildContext context) async {
+    final members = ref.read(membersProvider).valueOrNull ?? const [];
+    var selectedMemberId = _pickDefaultMemberId(members);
+
     final title = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -362,47 +389,68 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           count: 1,
           builder: (context, c) {
             void submit() => Navigator.pop(context, c[0].text.trim());
-            return sheetBody(
-              context: context,
-              children: [
-                sheetHandle(),
-                const SizedBox(height: 6),
-                const Text(
-                  'New event',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: c[0],
-                  autofocus: true,
-                  decoration: const InputDecoration(hintText: 'Event title'),
-                  onSubmitted: (_) => submit(),
-                ),
-                const SizedBox(height: 6),
-                FilledButton(
-                  onPressed: submit,
-                  child: const Text('Add event'),
-                ),
-              ],
+            return StatefulBuilder(
+              builder: (context, setModal) {
+                return sheetBody(
+                  context: context,
+                  children: [
+                    sheetHandle(),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'New event',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: c[0],
+                      autofocus: true,
+                      decoration:
+                          const InputDecoration(hintText: 'Event title'),
+                      onSubmitted: (_) => submit(),
+                    ),
+                    if (members.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      const Text(
+                        'For',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          for (final m in members)
+                            SoftPill(
+                              label:
+                                  '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
+                              selected: selectedMemberId == m.id,
+                              onTap: () =>
+                                  setModal(() => selectedMemberId = m.id),
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    FilledButton(
+                      onPressed: submit,
+                      child: const Text('Add event'),
+                    ),
+                  ],
+                );
+              },
             );
           },
         );
       },
     );
     if (title != null && title.isNotEmpty) {
-      final members = ref.read(membersProvider).valueOrNull ?? const [];
-      String memberId = '';
-      for (final m in members) {
-        if (MemberRoles.isAdultLike(m.role)) {
-          memberId = m.id;
-          break;
-        }
-      }
-      memberId = memberId.isEmpty && members.isNotEmpty ? members.first.id : memberId;
       await ref.read(eventRepositoryProvider).addEvent(
             title: title,
             startsAt: _selected.add(const Duration(hours: 9)),
-            memberId: memberId,
+            memberId: selectedMemberId,
           );
       try {
         await ref.read(syncServiceProvider).syncAll();
