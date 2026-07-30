@@ -62,8 +62,8 @@ Next 16 weeks: see [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md) (web paused; no do
 - [x] Center FAB opens real add flows; About screen
 - [x] Four-month execution (Home→widget→a11y→Nest hub→tests); see `FOUR_MONTH_PLAN.md`
 - [x] Nestly Plus one-pager only (`store/NESTLY_PLUS_ONE_PAGER.md`) — **no paywall code**
-- [ ] Store public listing / TestFlight external (manual)
-- [ ] Nestly Plus paywall (deferred)
+- [ ] Store public listing / TestFlight external (manual — see `STORE_CHECKLIST.md`)
+- [ ] Nestly Plus paywall (deferred; one-pager only)
 
 ## Year 2 status
 

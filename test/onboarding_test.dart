@@ -8,6 +8,7 @@ import 'package:nestly/screens/onboarding/onboarding_screen.dart';
 Future<void> _settleFrames(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump(const Duration(milliseconds: 400));
 }
 
 void main() {
@@ -29,12 +30,13 @@ void main() {
     await tester.tap(find.text('Next'));
     await _settleFrames(tester);
 
-    expect(find.textContaining('AI That Organizes'), findsOneWidget);
-    expect(find.text('School PTA Meeting'), findsOneWidget);
+    expect(find.textContaining('Quiet help when'), findsOneWidget);
+    expect(find.text('Scan suggestion'), findsOneWidget);
+    expect(find.textContaining('Suggested expense'), findsOneWidget);
 
-    await database.close();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 50));
+    await database.close();
   });
 
   testWidgets('skip marks onboarding seen', (tester) async {
@@ -53,8 +55,8 @@ void main() {
 
     expect(await database.getMeta('onboardingSeen'), '1');
 
-    await database.close();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 50));
+    await database.close();
   });
 }

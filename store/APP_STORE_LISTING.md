@@ -78,7 +78,7 @@ family,organizer,calendar,chores,grocery,shopping,bills,budget,meals,planner,hou
 
 ### What’s New
 ```
-Welcome to Nestly — your family’s shared nest for calendar, tasks, groceries, bills, meals, care, school, and documents. Soft launch: core features are free.
+Soft launch updates: Today snapshot and quiet family needs, invite funnel polish, meals→shopping loop, care and school depth, iOS Home Screen widget, accessibility and reduce-motion, Nest hub with leave/export, and bill/care/school notification deep links. Core features stay free.
 ```
 
 ### Primary category
@@ -112,7 +112,7 @@ When you point `nestly.app` at this Netlify site, you can switch these to `https
 | User Content — Other | Yes | No | Nest tasks, calendar, lists, expenses, etc. |
 | User Content — Photos/files | Yes | No | Vault uploads (optional) |
 | Identifiers — User ID | Yes | No | Firebase Auth |
-| Diagnostics — Crash/performance | Optional | No | If you enable Crashlytics later |
+| Diagnostics — Crash/performance | Yes | No | Firebase Crashlytics (stability) |
 | Other — Notifications | Yes | No | Bill / care reminders |
 
 **Not used for tracking / third-party advertising.**

@@ -7,12 +7,14 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 - [ ] Enable Email/Password in Firebase Auth console
 - [x] Deploy rules: `firebase deploy --only firestore:rules,storage` (auth-only)
 - [x] Enable Firebase Storage in console + deploy storage rules
+- [x] Crashlytics + Analytics wired (skip symbol upload on iOS simulator)
 - [ ] Confirm `app.nestly.family` matches store listing package / bundle ID
 - [ ] Build release: `flutter build appbundle` / `flutter build ipa`
-- [ ] Privacy policy URL live (in-app: Nest → Privacy — includes export + delete)
+- [ ] Privacy policy URL live (in-app: Nest → Privacy — includes export + delete + leave nest)
 - [ ] Store listing screenshots of Home, Calendar, Tasks, Vault, Nest/Privacy
 - [ ] Short description: “Nestly — the operating system for modern families.”
-- [ ] Data safety / App Privacy: account email, nest content, files, notifications, optional document-scan AI
+- [ ] Data safety / App Privacy: account email, nest content, files, notifications, Crashlytics diagnostics, optional document-scan AI
+- [ ] Copy from `store/APP_STORE_LISTING.md` (What’s New + keywords ready)
 
 ## Optional AI scan (not required for store)
 

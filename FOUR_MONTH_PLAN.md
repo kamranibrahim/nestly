@@ -358,3 +358,14 @@ Until then, keep Week 1 mitigations.
 4. When domain is purchased, insert Appendix A ASAP (doesn’t replace a product week if done in 1–2 days).  
 
 **Bottom line:** Web paused, no domain required to execute. This cycle is packed with **Home/Timeline, sync, vault, budget, notifications, invite, meals/shop/care/school depth, iOS widget, a11y, Nest hub, and tests** — while treating email Inbox as a **domain-gated follow-up**, not a blocker.
+
+---
+
+## After Week 16 — soft launch ops (manual + light polish)
+
+Product weeks are done. Next is shipping, not new modules:
+
+1. Walk `STORE_CHECKLIST.md` → closed testing → public listing / TestFlight external  
+2. Watch Crashlytics + Day-7 / 2+ member nest metrics  
+3. Buy domain when ready → Appendix A (reset mail Inbox)  
+4. Only then prioritize Nestly Plus candidates from `store/NESTLY_PLUS_ONE_PAGER.md`

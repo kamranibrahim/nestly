@@ -187,11 +187,11 @@ class OnboardHeroAi extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           Positioned(
-            top: 8,
-            left: 18,
-            right: 18,
+            top: 12,
+            left: 22,
+            right: 22,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(28),
@@ -203,45 +203,138 @@ class OnboardHeroAi extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Column(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _MockEvent(
-                    title: 'School PTA Meeting',
-                    meta: '5:00 PM · MIT School',
-                    tag: 'Today',
-                    tagColor: OnboardColors.tagToday,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: OnboardColors.peach.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.document_scanner_rounded,
+                          size: 20,
+                          color: OnboardColors.cocoa,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Scan suggestion',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: OnboardColors.cocoa,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: OnboardColors.tagTomorrow,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'Review',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: OnboardColors.cocoa,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8),
-                  _MockEvent(
-                    title: 'Doctor Appointment',
-                    meta: '11:30 AM · Apollo',
-                    tag: 'Tomorrow',
-                    tagColor: OnboardColors.tagTomorrow,
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Grocery run · \$42.50',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 17,
+                      color: OnboardColors.cocoa,
+                      letterSpacing: -0.2,
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  _MockTask(title: 'Call internet provider'),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Suggested expense from your receipt',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: OnboardColors.inkSoft,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: OnboardColors.cocoa,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'Save expense',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: OnboardColors.cream,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: OnboardColors.cocoaMuted.withValues(
+                                alpha: 0.45,
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            'Edit first',
+                            style: TextStyle(
+                              color: OnboardColors.cocoa,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
-          const Positioned(
-            bottom: 18,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _OrbitAvatar(initials: 'S', color: AppColors.tilePink, size: 46),
-                SizedBox(width: 10),
-                _OrbitAvatar(initials: 'K', color: AppColors.accent, size: 52),
-                SizedBox(width: 10),
-                _OrbitAvatar(initials: 'A', color: AppColors.mint, size: 44),
-                SizedBox(width: 10),
-                _OrbitAvatar(initials: 'M', color: AppColors.tileOrange, size: 48),
-              ],
-            ),
+          const _Sparkle(
+            alignment: Alignment(-0.82, 0.62),
+            color: OnboardColors.peachDeep,
           ),
-          const _Sparkle(alignment: Alignment(-0.78, 0.55), color: OnboardColors.peachDeep),
-          const _Sparkle(alignment: Alignment(0.82, 0.48), color: OnboardColors.sparkTeal, size: 16),
-          const _Sparkle(alignment: Alignment(0.7, -0.55), color: OnboardColors.peach, size: 12),
+          const _Sparkle(
+            alignment: Alignment(0.85, 0.55),
+            color: OnboardColors.sparkTeal,
+            size: 16,
+          ),
+          const _Sparkle(
+            alignment: Alignment(0.72, -0.62),
+            color: OnboardColors.peach,
+            size: 12,
+          ),
         ],
       ),
     );
@@ -393,114 +486,6 @@ class _CapsulePortrait extends StatelessWidget {
             color: OnboardColors.cocoa.withValues(alpha: 0.75),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MockEvent extends StatelessWidget {
-  const _MockEvent({
-    required this.title,
-    required this.meta,
-    required this.tag,
-    required this.tagColor,
-  });
-
-  final String title;
-  final String meta;
-  final String tag;
-  final Color tagColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: OnboardColors.cream,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    color: OnboardColors.cocoa,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  meta,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: OnboardColors.inkSoft,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: tagColor,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              tag,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: OnboardColors.cocoa,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MockTask extends StatelessWidget {
-  const _MockTask({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: OnboardColors.cream,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: OnboardColors.cocoaMuted, width: 1.6),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-              color: OnboardColors.cocoa,
-            ),
-          ),
-        ],
       ),
     );
   }
