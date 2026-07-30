@@ -78,7 +78,7 @@ family,organizer,calendar,chores,grocery,shopping,bills,budget,meals,planner,hou
 
 ### What’s New
 ```
-Soft launch updates: Today snapshot and quiet family needs, invite funnel polish, meals→shopping loop, care and school depth, iOS Home Screen widget, accessibility and reduce-motion, Nest hub with leave/export, and bill/care/school notification deep links. Core features stay free.
+Soft launch updates: Today snapshot and quiet family needs, invite funnel polish, meals→shopping loop, care and school depth, iOS Home Screen widget, accessibility and reduce-motion, Nest hub with leave/export, bill/care/school notification deep links, and opt-in Nest Locator (Share now — no background tracking). Core features stay free.
 ```
 
 ### Primary category
@@ -114,6 +114,7 @@ When you point `nestly.app` at this Netlify site, you can switch these to `https
 | Identifiers — User ID | Yes | No | Firebase Auth |
 | Diagnostics — Crash/performance | Yes | No | Firebase Crashlytics (stability) |
 | Other — Notifications | Yes | No | Bill / care reminders |
+| Location — Coarse/Approximate | Yes | No | Optional Locator “Share now” pin (opt-in; not background) |
 
 **Not used for tracking / third-party advertising.**
 

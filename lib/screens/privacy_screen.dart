@@ -196,9 +196,11 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 SizedBox(height: 6),
                 Text(
                   'Account email, nest membership, tasks, lists, calendar, '
-                  'expenses, bills, emergency notes, vault file metadata, and '
-                  'family timeline events. Vault files upload to Firebase Storage '
-                  'under your nest when you are online.',
+                  'expenses, bills, emergency notes, vault file metadata, '
+                  'family timeline events, and — if you opt in — a last-known '
+                  'Locator pin. Vault files upload to Firebase Storage '
+                  'under your nest when you are online. Locator never tracks '
+                  'you in the background; you share only when you tap Share now.',
                   style: TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,

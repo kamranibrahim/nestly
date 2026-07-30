@@ -62,6 +62,9 @@ dependencies:
   firebase_analytics: ^12.4.5
   home_widget: ^0.9.3
   in_app_review: ^2.0.12
+  geolocator: ^14.0.2
+  google_maps_flutter: ^2.18.0
+  geocoding: ^5.0.0
 
 dev_dependencies:
   flutter_test:

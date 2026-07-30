@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'auth_repository.dart';
 import 'db/app_database.dart';
+import 'locator_models.dart';
 import 'nest_home_widget.dart';
 import 'repositories.dart';
 
@@ -77,6 +78,7 @@ class NestPrivacyService {
         'Vault file binaries are not included — only document titles, folders, and metadata.',
         'To re-download vault files, open Nestly while signed in and use Vault.',
         'Budget and nest preference settings are included under settings.',
+        'Locator last-known pins are nest-scoped and opt-in; binaries and live GPS streams are not exported.',
       ],
     };
   }
@@ -125,6 +127,15 @@ class NestPrivacyService {
       await FirebaseFirestore.instance
           .collection('nests')
           .doc(nestId)
+          .collection('locations')
+          .doc(user.uid)
+          .delete();
+    } catch (_) {}
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('nests')
+          .doc(nestId)
           .collection('members')
           .doc(user.uid)
           .delete();
@@ -141,6 +152,12 @@ class NestPrivacyService {
     await _db.clearHouseholdData();
     await _db.setMeta('nestId', '');
     await _db.setMeta('householdClean', '0');
+    await _db.setMeta(locatorSharingMetaKey, '0');
+    await _db.setMeta(locatorLastLatMetaKey, '');
+    await _db.setMeta(locatorLastLngMetaKey, '');
+    await _db.setMeta(locatorLastAtMetaKey, '');
+    await _db.setMeta(locatorLastLabelMetaKey, '');
+    await _db.setMeta(locatorLastAccuracyMetaKey, '');
   }
 
   /// Leaves the nest, deletes Firestore user profile + Auth user, then wipes local DB.
@@ -165,6 +182,14 @@ class NestPrivacyService {
     final nestId = userDoc.data()?['nestId'] as String?;
 
     if (nestId != null && nestId.isNotEmpty) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('nests')
+            .doc(nestId)
+            .collection('locations')
+            .doc(user.uid)
+            .delete();
+      } catch (_) {}
       try {
         await FirebaseFirestore.instance
             .collection('nests')

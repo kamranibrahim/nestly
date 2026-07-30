@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/auth_repository.dart';
 import '../data/db/app_database.dart';
+import '../data/locator_models.dart';
+import '../data/locator_service.dart';
 import '../data/notification_service.dart';
 import '../data/repositories.dart';
 import '../data/vault_service.dart';
@@ -199,4 +201,16 @@ final schoolActivitiesProvider = StreamProvider<List<SchoolActivity>>((ref) {
 
 final schoolDueCountProvider = StreamProvider<int>((ref) {
   return ref.watch(schoolRepositoryProvider).watchDueCount();
+});
+
+final locatorServiceProvider = Provider<LocatorService>((ref) {
+  return LocatorService(ref.watch(databaseProvider));
+});
+
+final locatorSharingProvider = FutureProvider<bool>((ref) async {
+  return ref.watch(locatorServiceProvider).isSharingEnabled();
+});
+
+final nestLocationsProvider = StreamProvider<List<NestLocation>>((ref) {
+  return ref.watch(locatorServiceProvider).watchNestLocations();
 });

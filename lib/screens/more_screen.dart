@@ -17,6 +17,7 @@ import '../widgets/invite_family_sheet.dart';
 import '../widgets/motion.dart';
 import 'about_screen.dart';
 import 'auth/reset_password_screen.dart';
+import 'locator_screen.dart';
 import 'privacy_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
@@ -365,6 +366,45 @@ class MoreScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 12),
             const SectionLabel('Settings'),
+            Appear(
+              delay: const Duration(milliseconds: 105),
+              child: NestCard(
+                onTap: () => nestPush(context, const LocatorScreen()),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      color: AppColors.accentDeep,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Locator',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Live nest map · opt-in last-known pins',
+                            style: TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.inkMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
             Appear(
               delay: const Duration(milliseconds: 90),
               child: NestCard(

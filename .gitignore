@@ -49,3 +49,7 @@ app.*.map.json
 node_modules/
 package-lock.json
 ios/build/
+
+# Local secrets (Maps API keys — never commit)
+android/keys.properties
+ios/Flutter/Secrets.xcconfig

@@ -17,6 +17,7 @@ import '../widgets/shimmer.dart';
 import 'care_screen.dart';
 import 'emergency_screen.dart';
 import 'expenses_screen.dart';
+import 'locator_screen.dart';
 import 'meals_screen.dart';
 import 'school_screen.dart';
 import 'tasks_screen.dart';
@@ -824,6 +825,14 @@ class HomeScreen extends ConsumerWidget {
                             color: AppColors.tileRed,
                             onTap: () =>
                                 nestPush(context, const EmergencyScreen()),
+                          ),
+                          FeatureTile(
+                            title: 'Locator',
+                            subtitle: 'Nest map & last-known pins',
+                            icon: Icons.location_on_rounded,
+                            color: AppColors.tileBlue,
+                            onTap: () =>
+                                nestPush(context, const LocatorScreen()),
                           ),
                           FeatureTile(
                             title: 'Meals',

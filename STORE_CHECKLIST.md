@@ -13,8 +13,9 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 - [ ] Privacy policy URL live (in-app: Nest → Privacy — includes export + delete + leave nest)
 - [ ] Store listing screenshots of Home, Calendar, Tasks, Vault, Nest/Privacy
 - [ ] Short description: “Nestly — the operating system for modern families.”
-- [ ] Data safety / App Privacy: account email, nest content, files, notifications, Crashlytics diagnostics, optional document-scan AI
+- [ ] Data safety / App Privacy: account email, nest content, files, notifications, Crashlytics diagnostics, optional document-scan AI, optional approximate location (Locator opt-in)
 - [ ] Copy from `store/APP_STORE_LISTING.md` (What’s New + keywords ready)
+- [ ] Maps API key in local `android/keys.properties` + `ios/Flutter/Secrets.xcconfig` for Locator map (see `store/LOCATOR_MAPS_SETUP.md`)
 
 ## Optional AI scan (not required for store)
 
@@ -34,6 +35,7 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 6. Sync when online → both devices see updates
 7. Confirm bill reminder notification (local) fires if a bill is due soon
 8. (Optional) FAB → Scan receipt / invite → review draft → save
+9. (Optional) Locator → turn on sharing → Share now → second device sees pin; opt out clears it
 
 ## Known manual steps
 

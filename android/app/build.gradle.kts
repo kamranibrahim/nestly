@@ -7,6 +7,15 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+val keysProperties = Properties()
+val keysFile = rootProject.file("keys.properties")
+if (keysFile.exists()) {
+    keysProperties.load(FileInputStream(keysFile))
+}
+
 android {
     namespace = "app.nestly.family"
     compileSdk = flutter.compileSdkVersion
@@ -30,6 +39,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] =
+            keysProperties.getProperty("GOOGLE_MAPS_API_KEY") ?: ""
     }
 
     buildTypes {
