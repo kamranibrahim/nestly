@@ -17,6 +17,17 @@
   FLUTTER_WEB = "true"
   NODE_VERSION = "22"
 
+# Legal / store pages (static files from web/) — before SPA catch-all
+[[redirects]]
+  from = "/support"
+  to = "/support.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200
+
 # Function uses config.path = /api/parse-document (takes priority over SPA).
 [[redirects]]
   from = "/*"

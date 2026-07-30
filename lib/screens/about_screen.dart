@@ -19,21 +19,13 @@ class AboutScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.mint,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Text(
-                    'N',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.ink,
-                    ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset(
+                    'assets/brand/logos/nestly-logo-lettermark.png',
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
                   ),
                 ),
                 const SizedBox(height: 14),

@@ -45,6 +45,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '165083787847',
     projectId: 'nestly-family-os',
     storageBucket: 'nestly-family-os.firebasestorage.app',
-    iosBundleId: 'com.nestly.nestly',
+    iosBundleId: 'app.nestly.family',
   );
 }

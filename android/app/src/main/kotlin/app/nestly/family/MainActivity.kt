@@ -1,4 +1,4 @@
-package com.nestly.nestly
+package app.nestly.family
 
 import io.flutter.embedding.android.FlutterActivity
 
