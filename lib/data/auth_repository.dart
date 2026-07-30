@@ -24,11 +24,9 @@ class NestInfo {
 }
 
 class AuthRepository {
-  AuthRepository({
-    FirebaseAuth? auth,
-    FirebaseFirestore? firestore,
-  })  : _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+  AuthRepository({FirebaseAuth? auth, FirebaseFirestore? firestore})
+    : _auth = auth ?? FirebaseAuth.instance,
+      _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
@@ -74,7 +72,9 @@ class AuthRepository {
     await NestlyTelemetry.passwordResetRequested();
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    await _auth.signOut();
+  }
 
   /// Required before sensitive ops like account deletion when the session is stale.
   Future<void> reauthenticateWithPassword(String password) async {
@@ -148,7 +148,11 @@ class AuthRepository {
     });
 
     batch.set(
-      _firestore.collection('nests').doc(nestId).collection('members').doc(user.uid),
+      _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('members')
+          .doc(user.uid),
       {
         'name': memberName.trim(),
         'role': 'Adult',
@@ -172,7 +176,11 @@ class AuthRepository {
 
     await batch.commit();
 
-    final info = NestInfo(id: nestId, name: nestName.trim(), inviteCode: inviteCode);
+    final info = NestInfo(
+      id: nestId,
+      name: nestName.trim(),
+      inviteCode: inviteCode,
+    );
     await NestlyTelemetry.nestCreated();
     return info;
   }
@@ -195,18 +203,16 @@ class AuthRepository {
     final nest = await _firestore.collection('nests').doc(nestId).get();
     final nestName = nest.data()?['name'] as String? ?? 'Family';
 
-    final colors = [
-      0xFFB2B2E6,
-      0xFFD4E7B3,
-      0xFFFFD8A8,
-      0xFFF5C6D8,
-      0xFFC5E8E0,
-    ];
+    final colors = [0xFFB2B2E6, 0xFFD4E7B3, 0xFFFFD8A8, 0xFFF5C6D8, 0xFFC5E8E0];
     final color = colors[Random().nextInt(colors.length)];
 
     final batch = _firestore.batch();
     batch.set(
-      _firestore.collection('nests').doc(nestId).collection('members').doc(user.uid),
+      _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('members')
+          .doc(user.uid),
       {
         'name': memberName.trim(),
         'role': 'Member',
@@ -245,7 +251,7 @@ class AuthRepository {
 /// Last-write-wins sync between Drift and Firestore for one nest.
 class SyncService {
   SyncService(this._db, {FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final AppDatabase _db;
   final FirebaseFirestore _firestore;
@@ -262,12 +268,15 @@ class SyncService {
   }
 
   Future<void> _ensureDefaultShoppingList(String nestId) async {
-    final existing = await (_db.select(_db.shoppingLists)
-          ..where((l) => l.id.equals(ShoppingRepository.defaultListId)))
-        .getSingleOrNull();
+    final existing =
+        await (_db.select(_db.shoppingLists)
+              ..where((l) => l.id.equals(ShoppingRepository.defaultListId)))
+            .getSingleOrNull();
     if (existing != null) return;
     final now = DateTime.now();
-    await _db.into(_db.shoppingLists).insert(
+    await _db
+        .into(_db.shoppingLists)
+        .insert(
           ShoppingListsCompanion.insert(
             id: ShoppingRepository.defaultListId,
             nestId: Value(nestId),
@@ -291,14 +300,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.nestMembers)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.nestMembers,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.nestMembers).insertOnConflictUpdate(
+      await _db
+          .into(_db.nestMembers)
+          .insertOnConflictUpdate(
             NestMembersCompanion.insert(
               id: doc.id,
               nestId: nestId,
@@ -315,34 +326,31 @@ class SyncService {
     final locals = await _db.select(_db.nestMembers).get();
     for (final local in locals) {
       if (!remoteIds.contains(local.id) && !local.dirty) {
-        await (_db.delete(_db.nestMembers)..where((t) => t.id.equals(local.id)))
-            .go();
+        await (_db.delete(
+          _db.nestMembers,
+        )..where((t) => t.id.equals(local.id))).go();
       }
     }
   }
 
   Future<void> _pushMembers(String nestId) async {
-    final dirty = await (_db.select(_db.nestMembers)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.nestMembers,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final member in dirty) {
       await _firestore
           .collection('nests')
           .doc(nestId)
           .collection('members')
           .doc(member.id)
-          .set(
-        {
-          'name': member.name,
-          'role': member.role,
-          'initials': member.initials,
-          'colorValue': member.colorValue,
-          'updatedAt': Timestamp.fromDate(member.updatedAt),
-        },
-        SetOptions(merge: true),
-      );
-      await (_db.update(_db.nestMembers)
-            ..where((t) => t.id.equals(member.id)))
+          .set({
+            'name': member.name,
+            'role': member.role,
+            'initials': member.initials,
+            'colorValue': member.colorValue,
+            'updatedAt': Timestamp.fromDate(member.updatedAt),
+          }, SetOptions(merge: true));
+      await (_db.update(_db.nestMembers)..where((t) => t.id.equals(member.id)))
           .write(const NestMembersCompanion(dirty: Value(false)));
     }
   }
@@ -350,46 +358,63 @@ class SyncService {
   Future<void> syncAll() async {
     final nestId = await _db.getMeta('nestId');
     if (nestId == null || nestId.isEmpty) return;
+    if (FirebaseAuth.instance.currentUser == null) return;
+
+    Future<void> step(Future<void> Function() action) async {
+      if (FirebaseAuth.instance.currentUser == null) {
+        throw const _SignedOutDuringSync();
+      }
+      await action();
+    }
 
     final sw = Stopwatch()..start();
     try {
-      await _pushTasks(nestId);
-      await _pullTasks(nestId);
-      await _pushShopping(nestId);
-      await _pullShopping(nestId);
-      await _pushEvents(nestId);
-      await _pullEvents(nestId);
-      await _pushExpenses(nestId);
-      await _pullExpenses(nestId);
-      await _pushBills(nestId);
-      await _pullBills(nestId);
-      await _pushNestSettings(nestId);
-      await _pullNestSettings(nestId);
-      await _pushEmergency(nestId);
-      await _pullEmergency(nestId);
-      await _pushVault(nestId);
-      await _pullVault(nestId);
-      await _pushTimeline(nestId);
-      await _pullTimeline(nestId);
-      await _pushMeals(nestId);
-      await _pullMeals(nestId);
-      await _pushCare(nestId);
-      await _pullCare(nestId);
-      await _pushCareProfiles(nestId);
-      await _pullCareProfiles(nestId);
-      await _pushSchool(nestId);
-      await _pullSchool(nestId);
-      await _pushMembers(nestId);
-      await pullMembers(nestId);
+      await step(() => _pushTasks(nestId));
+      await step(() => _pullTasks(nestId));
+      await step(() => _pushShopping(nestId));
+      await step(() => _pullShopping(nestId));
+      await step(() => _pushEvents(nestId));
+      await step(() => _pullEvents(nestId));
+      await step(() => _pushExpenses(nestId));
+      await step(() => _pullExpenses(nestId));
+      await step(() => _pushBills(nestId));
+      await step(() => _pullBills(nestId));
+      await step(() => _pushNestSettings(nestId));
+      await step(() => _pullNestSettings(nestId));
+      await step(() => _pushEmergency(nestId));
+      await step(() => _pullEmergency(nestId));
+      await step(() => _pushVault(nestId));
+      await step(() => _pullVault(nestId));
+      await step(() => _pushTimeline(nestId));
+      await step(() => _pullTimeline(nestId));
+      await step(() => _pushMeals(nestId));
+      await step(() => _pullMeals(nestId));
+      await step(() => _pushCare(nestId));
+      await step(() => _pullCare(nestId));
+      await step(() => _pushCareProfiles(nestId));
+      await step(() => _pullCareProfiles(nestId));
+      await step(() => _pushSchool(nestId));
+      await step(() => _pullSchool(nestId));
+      await step(() => _pushMembers(nestId));
+      await step(() => pullMembers(nestId));
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
       sw.stop();
       await NestlyTelemetry.syncSuccess(durationMs: sw.elapsedMilliseconds);
+    } on _SignedOutDuringSync {
+      sw.stop();
+      debugPrint('Sync aborted: signed out');
     } catch (e, st) {
+      // Sign-out / auth race: rules deny unauthenticated reads.
+      if (e is FirebaseException &&
+          e.code == 'permission-denied' &&
+          FirebaseAuth.instance.currentUser == null) {
+        sw.stop();
+        debugPrint('Sync aborted: signed out during sync');
+        return;
+      }
       sw.stop();
       debugPrint('Sync failed: $e\n$st');
-      final reason = e is FirebaseException
-          ? e.code
-          : e.runtimeType.toString();
+      final reason = e is FirebaseException ? e.code : e.runtimeType.toString();
       await NestlyTelemetry.syncFail(
         reason: reason,
         durationMs: sw.elapsedMilliseconds,
@@ -400,9 +425,9 @@ class SyncService {
   }
 
   Future<void> _pushTasks(String nestId) async {
-    final dirty = await (_db.select(_db.tasks)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.tasks,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final task in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -438,14 +463,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.tasks)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.tasks,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.tasks).insertOnConflictUpdate(
+      await _db
+          .into(_db.tasks)
+          .insertOnConflictUpdate(
             TasksCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -466,9 +493,9 @@ class SyncService {
   }
 
   Future<void> _pushShopping(String nestId) async {
-    final dirtyLists = await (_db.select(_db.shoppingLists)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirtyLists = await (_db.select(
+      _db.shoppingLists,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final list in dirtyLists) {
       final ref = _firestore
           .collection('nests')
@@ -488,9 +515,9 @@ class SyncService {
           .write(const ShoppingListsCompanion(dirty: Value(false)));
     }
 
-    final dirtyItems = await (_db.select(_db.shoppingItems)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirtyItems = await (_db.select(
+      _db.shoppingItems,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirtyItems) {
       final ref = _firestore
           .collection('nests')
@@ -526,7 +553,9 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      await _db.into(_db.shoppingLists).insertOnConflictUpdate(
+      await _db
+          .into(_db.shoppingLists)
+          .insertOnConflictUpdate(
             ShoppingListsCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -549,14 +578,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.shoppingItems)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.shoppingItems,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.shoppingItems).insertOnConflictUpdate(
+      await _db
+          .into(_db.shoppingItems)
+          .insertOnConflictUpdate(
             ShoppingItemsCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -577,9 +608,9 @@ class SyncService {
   }
 
   Future<void> _pushEvents(String nestId) async {
-    final dirty = await (_db.select(_db.calendarEvents)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.calendarEvents,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final event in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -619,14 +650,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.calendarEvents)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.calendarEvents,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.calendarEvents).insertOnConflictUpdate(
+      await _db
+          .into(_db.calendarEvents)
+          .insertOnConflictUpdate(
             CalendarEventsCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -649,9 +682,9 @@ class SyncService {
   }
 
   Future<void> _pushExpenses(String nestId) async {
-    final dirty = await (_db.select(_db.expenses)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.expenses,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -686,14 +719,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.expenses)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.expenses,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.expenses).insertOnConflictUpdate(
+      await _db
+          .into(_db.expenses)
+          .insertOnConflictUpdate(
             ExpensesCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -715,9 +750,9 @@ class SyncService {
   }
 
   Future<void> _pushBills(String nestId) async {
-    final dirty = await (_db.select(_db.bills)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.bills,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -736,8 +771,9 @@ class SyncService {
           'createdAt': Timestamp.fromDate(item.createdAt),
         });
       }
-      await (_db.update(_db.bills)..where((t) => t.id.equals(item.id)))
-          .write(const BillsCompanion(dirty: Value(false)));
+      await (_db.update(_db.bills)..where((t) => t.id.equals(item.id))).write(
+        const BillsCompanion(dirty: Value(false)),
+      );
     }
   }
 
@@ -751,14 +787,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.bills)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.bills,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.bills).insertOnConflictUpdate(
+      await _db
+          .into(_db.bills)
+          .insertOnConflictUpdate(
             BillsCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -777,17 +815,14 @@ class SyncService {
   }
 
   Future<void> _pushNestSettings(String nestId) async {
-    final row = await (_db.select(_db.nestSettings)
-          ..where((s) => s.id.equals(nestId)))
-        .getSingleOrNull();
+    final row = await (_db.select(
+      _db.nestSettings,
+    )..where((s) => s.id.equals(nestId))).getSingleOrNull();
     if (row == null || !row.dirty) return;
-    await _firestore.collection('nests').doc(nestId).set(
-      {
-        'monthBudget': row.monthBudget,
-        'budgetUpdatedAt': Timestamp.fromDate(row.updatedAt),
-      },
-      SetOptions(merge: true),
-    );
+    await _firestore.collection('nests').doc(nestId).set({
+      'monthBudget': row.monthBudget,
+      'budgetUpdatedAt': Timestamp.fromDate(row.updatedAt),
+    }, SetOptions(merge: true));
     await (_db.update(_db.nestSettings)..where((s) => s.id.equals(nestId)))
         .write(const NestSettingsCompanion(dirty: Value(false)));
   }
@@ -798,16 +833,19 @@ class SyncService {
     if (data == null || data['monthBudget'] == null) return;
     final remoteUpdated =
         (data['budgetUpdatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-    final local = await (_db.select(_db.nestSettings)
-          ..where((s) => s.id.equals(nestId)))
-        .getSingleOrNull();
+    final local = await (_db.select(
+      _db.nestSettings,
+    )..where((s) => s.id.equals(nestId))).getSingleOrNull();
     if (local != null &&
         (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
       return;
     }
-    final budget = (data['monthBudget'] as num?)?.toDouble() ??
+    final budget =
+        (data['monthBudget'] as num?)?.toDouble() ??
         ExpenseRepository.defaultMonthBudget;
-    await _db.into(_db.nestSettings).insertOnConflictUpdate(
+    await _db
+        .into(_db.nestSettings)
+        .insertOnConflictUpdate(
           NestSettingsCompanion.insert(
             id: nestId,
             monthBudget: Value(budget),
@@ -818,9 +856,9 @@ class SyncService {
   }
 
   Future<void> _pushEmergency(String nestId) async {
-    final dirty = await (_db.select(_db.emergencyEntries)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.emergencyEntries,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -854,14 +892,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.emergencyEntries)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.emergencyEntries,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.emergencyEntries).insertOnConflictUpdate(
+      await _db
+          .into(_db.emergencyEntries)
+          .insertOnConflictUpdate(
             EmergencyEntriesCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -877,9 +917,9 @@ class SyncService {
   }
 
   Future<void> _pushVault(String nestId) async {
-    final dirty = await (_db.select(_db.vaultDocuments)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.vaultDocuments,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -919,14 +959,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.vaultDocuments)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.vaultDocuments,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.vaultDocuments).insertOnConflictUpdate(
+      await _db
+          .into(_db.vaultDocuments)
+          .insertOnConflictUpdate(
             VaultDocumentsCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -937,9 +979,7 @@ class SyncService {
               mimeType: Value(data['mimeType'] as String?),
               sizeBytes: Value(data['sizeBytes'] as int? ?? 0),
               notes: Value(data['notes'] as String? ?? ''),
-              expiresAt: Value(
-                (data['expiresAt'] as Timestamp?)?.toDate(),
-              ),
+              expiresAt: Value((data['expiresAt'] as Timestamp?)?.toDate()),
               uploadStatus: Value(
                 (data['storagePath'] as String?)?.isNotEmpty == true
                     ? VaultUploadStatus.synced
@@ -956,9 +996,9 @@ class SyncService {
   }
 
   Future<void> _pushTimeline(String nestId) async {
-    final dirty = await (_db.select(_db.timelineEvents)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.timelineEvents,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -992,17 +1032,18 @@ class SyncService {
       final data = doc.data();
       final created =
           (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.timelineEvents)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.timelineEvents,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null && local.dirty) continue;
-      await _db.into(_db.timelineEvents).insertOnConflictUpdate(
+      await _db
+          .into(_db.timelineEvents)
+          .insertOnConflictUpdate(
             TimelineEventsCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
-              message: data['message'] as String? ??
-                  data['text'] as String? ??
-                  '',
+              message:
+                  data['message'] as String? ?? data['text'] as String? ?? '',
               memberId: Value(data['memberId'] as String? ?? ''),
               memberName: Value(data['memberName'] as String? ?? 'Family'),
               dirty: const Value(false),
@@ -1013,9 +1054,9 @@ class SyncService {
   }
 
   Future<void> _pushMeals(String nestId) async {
-    final dirty = await (_db.select(_db.mealPlans)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.mealPlans,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -1049,14 +1090,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.mealPlans)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.mealPlans,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.mealPlans).insertOnConflictUpdate(
+      await _db
+          .into(_db.mealPlans)
+          .insertOnConflictUpdate(
             MealPlansCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -1075,9 +1118,9 @@ class SyncService {
   }
 
   Future<void> _pushCare(String nestId) async {
-    final dirty = await (_db.select(_db.careItems)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.careItems,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -1116,25 +1159,25 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.careItems)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.careItems,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.careItems).insertOnConflictUpdate(
+      await _db
+          .into(_db.careItems)
+          .insertOnConflictUpdate(
             CareItemsCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
               title: data['title'] as String? ?? '',
               category: Value(data['category'] as String? ?? 'Home'),
               cadenceDays: Value(data['cadenceDays'] as int? ?? 7),
-              lastDoneAt: Value(
-                (data['lastDoneAt'] as Timestamp?)?.toDate(),
-              ),
-              nextDueAt: (data['nextDueAt'] as Timestamp?)?.toDate() ??
-                  DateTime.now(),
+              lastDoneAt: Value((data['lastDoneAt'] as Timestamp?)?.toDate()),
+              nextDueAt:
+                  (data['nextDueAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
               notes: Value(data['notes'] as String? ?? ''),
               memberId: Value(data['memberId'] as String? ?? ''),
               dirty: const Value(false),
@@ -1148,9 +1191,9 @@ class SyncService {
   }
 
   Future<void> _pushCareProfiles(String nestId) async {
-    final dirty = await (_db.select(_db.careProfiles)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.careProfiles,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final profile in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -1171,7 +1214,8 @@ class SyncService {
           'createdAt': Timestamp.fromDate(profile.createdAt),
         });
       }
-      await (_db.update(_db.careProfiles)..where((t) => t.id.equals(profile.id)))
+      await (_db.update(_db.careProfiles)
+            ..where((t) => t.id.equals(profile.id)))
           .write(const CareProfilesCompanion(dirty: Value(false)));
     }
   }
@@ -1186,14 +1230,16 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.careProfiles)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.careProfiles,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.careProfiles).insertOnConflictUpdate(
+      await _db
+          .into(_db.careProfiles)
+          .insertOnConflictUpdate(
             CareProfilesCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
@@ -1214,9 +1260,9 @@ class SyncService {
   }
 
   Future<void> _pushSchool(String nestId) async {
-    final dirty = await (_db.select(_db.schoolActivities)
-          ..where((t) => t.dirty.equals(true)))
-        .get();
+    final dirty = await (_db.select(
+      _db.schoolActivities,
+    )..where((t) => t.dirty.equals(true))).get();
     for (final item in dirty) {
       final ref = _firestore
           .collection('nests')
@@ -1257,25 +1303,25 @@ class SyncService {
       final data = doc.data();
       final remoteUpdated =
           (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-      final local = await (_db.select(_db.schoolActivities)
-            ..where((t) => t.id.equals(doc.id)))
-          .getSingleOrNull();
+      final local = await (_db.select(
+        _db.schoolActivities,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
           (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
         continue;
       }
-      await _db.into(_db.schoolActivities).insertOnConflictUpdate(
+      await _db
+          .into(_db.schoolActivities)
+          .insertOnConflictUpdate(
             SchoolActivitiesCompanion.insert(
               id: doc.id,
               nestId: Value(nestId),
               title: data['title'] as String? ?? '',
               kind: Value(data['kind'] as String? ?? 'School'),
               cadenceDays: Value(data['cadenceDays'] as int? ?? 7),
-              lastDoneAt: Value(
-                (data['lastDoneAt'] as Timestamp?)?.toDate(),
-              ),
-              nextAt: (data['nextAt'] as Timestamp?)?.toDate() ??
-                  DateTime.now(),
+              lastDoneAt: Value((data['lastDoneAt'] as Timestamp?)?.toDate()),
+              nextAt:
+                  (data['nextAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
               location: Value(data['location'] as String? ?? ''),
               memberId: Value(data['memberId'] as String? ?? ''),
               notes: Value(data['notes'] as String? ?? ''),
@@ -1288,4 +1334,9 @@ class SyncService {
           );
     }
   }
+}
+
+/// Thrown internally when auth disappears mid-[SyncService.syncAll].
+class _SignedOutDuringSync implements Exception {
+  const _SignedOutDuringSync();
 }

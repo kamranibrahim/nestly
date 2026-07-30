@@ -34,10 +34,21 @@ class NotificationService {
     );
 
     await _messaging.requestPermission(alert: true, badge: true, sound: true);
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    final token = await _messaging.getToken();
-    await _saveToken(token);
+    // Simulator / first launch often has no APNS token yet — don't fail init.
+    try {
+      final token = await _messaging.getToken();
+      debugPrint('Firebase Token : $token');
+      await _saveToken(token);
+    } catch (e) {
+      final text = e.toString();
+      if (text.contains('apns-token-not-set') ||
+          text.contains('APNS token has not been received')) {
+        debugPrint('FCM token deferred until APNS is ready');
+      } else {
+        debugPrint('FCM getToken skipped: $e');
+      }
+    }
     _messaging.onTokenRefresh.listen(_saveToken);
 
     FirebaseMessaging.onMessage.listen((message) async {

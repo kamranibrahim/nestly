@@ -56,15 +56,16 @@ class MoreScreen extends ConsumerWidget {
     );
 
     try {
-      await ShowcaseSeedService(ref.read(databaseProvider)).seed(
-        nestId: nest.id,
-        ownerMemberId: user.uid,
-      );
+      await ShowcaseSeedService(
+        ref.read(databaseProvider),
+      ).seed(nestId: nest.id, ownerMemberId: user.uid);
       await syncAfterWrite(ref, context: context);
       ref.invalidate(nestInfoProvider);
       if (!context.mounted) return;
       messenger.showSnackBar(
-        const SnackBar(content: Text('Showcase data ready — open Home to review')),
+        const SnackBar(
+          content: Text('Showcase data ready — open Home to review'),
+        ),
       );
     } catch (e) {
       messenger.showSnackBar(
@@ -126,7 +127,10 @@ class MoreScreen extends ConsumerWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   trailing: role == current
-                      ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                      ? const Icon(
+                          Icons.check_rounded,
+                          color: AppColors.primary,
+                        )
                       : null,
                   onTap: () => Navigator.pop(context, role),
                 ),
@@ -171,9 +175,7 @@ class MoreScreen extends ConsumerWidget {
                         children: [
                           Text(
                             'Nest',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
+                            style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: -0.8,
@@ -184,8 +186,8 @@ class MoreScreen extends ConsumerWidget {
                             sync.isSyncing
                                 ? 'Syncing…'
                                 : sync.hasError
-                                    ? 'Sync needed · Retry'
-                                    : 'Last synced · ${formatLastSynced(sync.lastSyncAt)}',
+                                ? 'Sync needed · Retry'
+                                : 'Last synced · ${formatLastSynced(sync.lastSyncAt)}',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -201,8 +203,8 @@ class MoreScreen extends ConsumerWidget {
                       icon: sync.isSyncing
                           ? Icons.cloud_sync_rounded
                           : sync.hasError
-                              ? Icons.cloud_off_outlined
-                              : Icons.cloud_done_outlined,
+                          ? Icons.cloud_off_outlined
+                          : Icons.cloud_done_outlined,
                       background: AppColors.surfaceMuted,
                       foreground: AppColors.ink,
                       size: 38,
@@ -318,8 +320,9 @@ class MoreScreen extends ConsumerWidget {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content:
-                              Text('Invite code ${nest.inviteCode} copied'),
+                          content: Text(
+                            'Invite code ${nest.inviteCode} copied',
+                          ),
                         ),
                       );
                     }
@@ -374,10 +377,7 @@ class MoreScreen extends ConsumerWidget {
                 onTap: () => showChangePasswordSheet(context, ref),
                 child: const Row(
                   children: [
-                    Icon(
-                      Icons.lock_reset_rounded,
-                      color: AppColors.accentDeep,
-                    ),
+                    Icon(Icons.lock_reset_rounded, color: AppColors.accentDeep),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -552,13 +552,19 @@ class MoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             TextButton.icon(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+              onPressed: () async {
+                await ref.read(authRepositoryProvider).signOut();
+                ref.invalidate(nestInfoProvider);
+              },
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sign out'),
             ),
             TextButton.icon(
               onPressed: () => confirmAndDeleteAccount(context, ref),
-              icon: const Icon(Icons.delete_forever_rounded, color: AppColors.danger),
+              icon: const Icon(
+                Icons.delete_forever_rounded,
+                color: AppColors.danger,
+              ),
               label: const Text(
                 'Delete account',
                 style: TextStyle(color: AppColors.danger),

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,9 +20,7 @@ class AuthGate extends ConsumerWidget {
 
     return auth.when(
       loading: () => const HomeLoadingSkeleton(),
-      error: (e, _) => Scaffold(
-        body: Center(child: Text('Auth error: $e')),
-      ),
+      error: (e, _) => Scaffold(body: Center(child: Text('Auth error: $e'))),
       data: (user) {
         if (user == null) return const _PreAuthGate();
         return const _NestGate();
@@ -68,8 +67,7 @@ class _NestGate extends ConsumerWidget {
                   child: const Text('Retry'),
                 ),
                 TextButton(
-                  onPressed: () =>
-                      ref.read(authRepositoryProvider).signOut(),
+                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
                   child: const Text('Sign out'),
                 ),
               ],
@@ -115,11 +113,14 @@ class _SyncedShellState extends ConsumerState<_SyncedShell>
   }
 
   Future<void> _bootstrap() async {
+    if (FirebaseAuth.instance.currentUser == null) return;
     final nest = await ref.read(nestInfoProvider.future);
-    if (nest == null) return;
+    if (!mounted || nest == null) return;
+    if (FirebaseAuth.instance.currentUser == null) return;
     final sync = ref.read(syncServiceProvider);
     await sync.bindNest(nest.id);
     await ref.read(syncControllerProvider.notifier).syncNow(quiet: true);
+    if (!mounted || FirebaseAuth.instance.currentUser == null) return;
     try {
       await ref.read(notificationServiceProvider).init();
     } catch (_) {}
@@ -153,8 +154,11 @@ class SyncStatusBanner extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
-              const Icon(Icons.cloud_off_outlined,
-                  size: 16, color: AppColors.ink),
+              const Icon(
+                Icons.cloud_off_outlined,
+                size: 16,
+                color: AppColors.ink,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -172,8 +176,8 @@ class SyncStatusBanner extends ConsumerWidget {
                 onPressed: sync.isSyncing
                     ? null
                     : () => ref
-                        .read(syncControllerProvider.notifier)
-                        .syncNow(context: context),
+                          .read(syncControllerProvider.notifier)
+                          .syncNow(context: context),
                 child: Text(sync.isSyncing ? '…' : 'Retry'),
               ),
             ],
