@@ -297,6 +297,23 @@ class ShoppingRepository {
     final resolvedCategory = category == 'General' && habit != null
         ? habit.category
         : category;
+    var resolvedQty = qty.trim().isEmpty ? '1' : qty.trim();
+    if (resolvedQty == '1' && key.isNotEmpty) {
+      final priors =
+          await (_db.select(_db.shoppingItems)
+                ..where((i) => i.deleted.equals(false) & i.done.equals(true))
+                ..orderBy([(i) => OrderingTerm.desc(i.updatedAt)])
+                ..limit(40))
+              .get();
+      for (final prior in priors) {
+        if (normalizeName(prior.name) != key) continue;
+        final priorQty = prior.qty.trim();
+        if (priorQty.isNotEmpty) {
+          resolvedQty = priorQty;
+          break;
+        }
+      }
+    }
 
     final maxOrder =
         await (_db.selectOnly(_db.shoppingItems)
@@ -315,7 +332,7 @@ class ShoppingRepository {
             listId: listId,
             name: name.trim(),
             category: Value(resolvedCategory),
-            qty: Value(qty),
+            qty: Value(resolvedQty),
             sortOrder: Value(nextOrder),
             dirty: const Value(true),
             createdAt: Value(now),
@@ -355,6 +372,32 @@ class ShoppingRepository {
         updatedAt: Value(DateTime.now()),
       ),
     );
+  }
+
+  /// Soft-deletes checked-off items so the open list stays clean.
+  Future<int> clearCompleted({String listId = defaultListId}) async {
+    final done =
+        await (_db.select(_db.shoppingItems)..where(
+              (i) =>
+                  i.listId.equals(listId) &
+                  i.deleted.equals(false) &
+                  i.done.equals(true),
+            ))
+            .get();
+    if (done.isEmpty) return 0;
+    final now = DateTime.now();
+    for (final item in done) {
+      await (_db.update(
+        _db.shoppingItems,
+      )..where((i) => i.id.equals(item.id))).write(
+        ShoppingItemsCompanion(
+          deleted: const Value(true),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+    }
+    return done.length;
   }
 }
 
@@ -1188,37 +1231,50 @@ class MealRepository {
     return addMealsIngredientsToShopping([meal], label: meal.title);
   }
 
-  Future<int> addMealsIngredientsToShopping(
-    Iterable<MealPlan> meals, {
-    String? label,
-  }) async {
+  /// Ingredients that would be added (not already on the open list).
+  Future<List<String>> previewIngredientsToShopping(
+    Iterable<MealPlan> meals,
+  ) async {
     final raw = meals
         .expand((meal) => _parseIngredients(meal.ingredients))
         .toList();
-    if (raw.isEmpty) return 0;
+    if (raw.isEmpty) return const [];
 
     final shopping = ShoppingRepository(_db);
     final existing = await shopping.watchItems().first;
     final openNames = existing
         .where((i) => !i.done)
-        .map((i) => i.name.toLowerCase())
+        .map((i) => ShoppingRepository.normalizeName(i.name))
         .toSet();
 
-    var added = 0;
+    final toAdd = <String>[];
+    final seen = <String>{};
     for (final name in raw) {
-      if (openNames.contains(name.toLowerCase())) continue;
+      final key = ShoppingRepository.normalizeName(name);
+      if (key.isEmpty || openNames.contains(key) || !seen.add(key)) continue;
+      toAdd.add(name.trim());
+    }
+    return toAdd;
+  }
+
+  Future<int> addMealsIngredientsToShopping(
+    Iterable<MealPlan> meals, {
+    String? label,
+  }) async {
+    final toAdd = await previewIngredientsToShopping(meals);
+    if (toAdd.isEmpty) return 0;
+
+    final shopping = ShoppingRepository(_db);
+    for (final name in toAdd) {
       await shopping.addItem(name: name, category: 'Meals');
-      openNames.add(name.toLowerCase());
-      added++;
     }
-    if (added > 0) {
-      final target = label ?? 'meal plan';
-      await TimelineRepository(_db).add(
-        message: 'Added $added ingredient${added == 1 ? '' : 's'} for $target',
-        memberName: 'You',
-      );
-    }
-    return added;
+    final target = label ?? 'meal plan';
+    await TimelineRepository(_db).add(
+      message:
+          'Added ${toAdd.length} ingredient${toAdd.length == 1 ? '' : 's'} for $target',
+      memberName: 'You',
+    );
+    return toAdd.length;
   }
 
   List<String> _parseIngredients(String ingredients) {

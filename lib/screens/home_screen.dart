@@ -627,7 +627,14 @@ class HomeScreen extends ConsumerWidget {
                             value: dinnerSnapshot,
                             icon: Icons.restaurant_rounded,
                             tone: AppColors.tileTeal,
-                            onTap: () => nestPush(context, const MealsScreen()),
+                            onTap: () => nestPush(
+                              context,
+                              MealsScreen(
+                                entry: dinnerSnapshot == 'Plan dinner'
+                                    ? MealsEntry.addDinnerToday
+                                    : MealsEntry.browse,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -794,7 +801,14 @@ class HomeScreen extends ConsumerWidget {
                             subtitle: dinnerToday ? 'Dinner set' : 'Plan week',
                             icon: Icons.restaurant_rounded,
                             color: AppColors.tileTeal,
-                            onTap: () => nestPush(context, const MealsScreen()),
+                            onTap: () => nestPush(
+                              context,
+                              MealsScreen(
+                                entry: dinnerToday
+                                    ? MealsEntry.browse
+                                    : MealsEntry.planWeek,
+                              ),
+                            ),
                           ),
                           FeatureTile(
                             title: 'Care',
@@ -1084,25 +1098,19 @@ class HomeScreen extends ConsumerWidget {
         }
       case FamilyNeedKind.meals:
         if (dinnerMeal == null || dinnerMeal.ingredients.trim().isEmpty) {
-          nestPush(context, const MealsScreen());
+          nestPush(
+            context,
+            const MealsScreen(entry: MealsEntry.addDinnerToday),
+          );
           return;
         }
-        final added = await ref
-            .read(mealRepositoryProvider)
-            .addIngredientsToShopping(dinnerMeal);
-        await syncAfterWrite(ref, context: context);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                added == 0
-                    ? 'Ingredients already on the list'
-                    : 'Added $added item${added == 1 ? '' : 's'} to groceries',
-              ),
-            ),
-          );
-          if (added > 0) onOpenTab(3);
-        }
+        final added = await confirmAddMealIngredients(
+          context,
+          ref,
+          meals: [dinnerMeal],
+          label: dinnerMeal.title,
+        );
+        if (context.mounted && added > 0) onOpenTab(3);
       case FamilyNeedKind.shopping:
         final openCount = ref.read(openShoppingCountProvider).valueOrNull ?? 0;
         if (openCount == 0) {
@@ -1151,7 +1159,7 @@ class HomeScreen extends ConsumerWidget {
       case FamilyNeedKind.school:
         nestPush(context, const SchoolScreen());
       case FamilyNeedKind.meals:
-        nestPush(context, const MealsScreen());
+        nestPush(context, const MealsScreen(entry: MealsEntry.addDinnerToday));
       case FamilyNeedKind.vault:
         nestPush(context, const VaultScreen());
     }
