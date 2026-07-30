@@ -288,8 +288,8 @@
 				AB6E84EEBEF518AFCC06017D /* Embed Foundation Extensions */,
 				8DA9199D21D7E0FBA5C43E5C /* [CP] Embed Pods Frameworks */,
 				5F672BE6C42347A8F30ED20D /* [CP] Copy Pods Resources */,
-				C8A91F2E7B4D4E1A9F3C6D5E /* [firebase_crashlytics] Crashlytics Upload Symbols */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				C8A91F2E7B4D4E1A9F3C6D5E /* [firebase_crashlytics] Crashlytics Upload Symbols */,
 			);
 			buildRules = (
 			);
@@ -476,7 +476,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\" --build-phase --validate -ai 1:165083787847:ios:26d4d9aac40723297c7762 -- \"${DWARF_DSYM_FOLDER_PATH}/App.framework.dSYM\"\n\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\" --build-phase -ai 1:165083787847:ios:26d4d9aac40723297c7762 -- \"${DWARF_DSYM_FOLDER_PATH}/App.framework.dSYM\"\n";
+			shellScript = "if [ \"${PLATFORM_NAME}\" = \"iphonesimulator\" ]; then\n  echo \"Skipping Crashlytics upload-symbols on simulator\"\n  exit 0\nfi\n\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\" --build-phase --validate -ai 1:165083787847:ios:26d4d9aac40723297c7762 -- \"${DWARF_DSYM_FOLDER_PATH}/App.framework.dSYM\"\n\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\" --build-phase -ai 1:165083787847:ios:26d4d9aac40723297c7762 -- \"${DWARF_DSYM_FOLDER_PATH}/App.framework.dSYM\"\n";
 		};
 		D827734FE6F51F96E5DE45AC /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
