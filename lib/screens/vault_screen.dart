@@ -9,6 +9,7 @@ import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 import 'scan_document_flow.dart';
+import '../data/sync_controller.dart';
 
 class VaultScreen extends ConsumerStatefulWidget {
   const VaultScreen({super.key, this.initialCategory = 'All'});
@@ -51,9 +52,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Saved ${doc.title}')),
         );
-        try {
-          await ref.read(syncServiceProvider).syncAll();
-        } catch (_) {}
+        await syncAfterWrite(ref, context: context);
       }
     } catch (e) {
       if (!mounted) return;
@@ -387,9 +386,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
           id: widget.doc.id,
           expiresAt: DateTime(picked.year, picked.month, picked.day),
         );
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -404,9 +401,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
           id: widget.doc.id,
           clearExpiry: true,
         );
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Expiry cleared')),
@@ -423,9 +418,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
           category: _category,
           notes: _notes.text.trim(),
         );
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Document updated')),
@@ -453,9 +446,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
     );
     if (ok != true) return;
     await ref.read(vaultRepositoryProvider).delete(widget.doc.id);
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (!mounted) return;
     Navigator.pop(context);
   }

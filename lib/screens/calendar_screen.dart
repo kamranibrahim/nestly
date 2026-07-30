@@ -11,6 +11,7 @@ import '../theme/app_motion.dart';
 import '../widgets/common.dart';
 import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
+import '../data/sync_controller.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -499,9 +500,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     );
               }
 
-              try {
-                await ref.read(syncServiceProvider).syncAll();
-              } catch (_) {}
+              await syncAfterWrite(ref, context: context);
             }
 
             return StatefulBuilder(

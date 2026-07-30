@@ -350,6 +350,7 @@ class SyncService {
     final nestId = await _db.getMeta('nestId');
     if (nestId == null || nestId.isEmpty) return;
 
+    final sw = Stopwatch()..start();
     try {
       await _pushTasks(nestId);
       await _pullTasks(nestId);
@@ -378,13 +379,18 @@ class SyncService {
       await _pushMembers(nestId);
       await pullMembers(nestId);
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
-      await NestlyTelemetry.syncSuccess();
+      sw.stop();
+      await NestlyTelemetry.syncSuccess(durationMs: sw.elapsedMilliseconds);
     } catch (e, st) {
+      sw.stop();
       debugPrint('Sync failed: $e\n$st');
       final reason = e is FirebaseException
           ? e.code
           : e.runtimeType.toString();
-      await NestlyTelemetry.syncFail(reason: reason);
+      await NestlyTelemetry.syncFail(
+        reason: reason,
+        durationMs: sw.elapsedMilliseconds,
+      );
       await NestlyTelemetry.recordNonFatal(e, st, reason: reason);
       rethrow;
     }

@@ -9,6 +9,7 @@ import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
+import '../data/sync_controller.dart';
 
 class CareScreen extends ConsumerStatefulWidget {
   const CareScreen({super.key});
@@ -141,9 +142,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                               await ref
                                   .read(careRepositoryProvider)
                                   .markDone(due[i]);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
+                              await syncAfterWrite(ref, context: context);
                               try {
                                 await ref
                                     .read(notificationServiceProvider)
@@ -154,9 +153,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                               await ref
                                   .read(careRepositoryProvider)
                                   .delete(due[i].id);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
+                              await syncAfterWrite(ref, context: context);
                             },
                           ),
                           if (i != due.length - 1)
@@ -183,9 +180,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                               await ref
                                   .read(careRepositoryProvider)
                                   .markDone(upcoming[i]);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
+                              await syncAfterWrite(ref, context: context);
                               try {
                                 await ref
                                     .read(notificationServiceProvider)
@@ -196,9 +191,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                               await ref
                                   .read(careRepositoryProvider)
                                   .delete(upcoming[i].id);
-                              try {
-                                await ref.read(syncServiceProvider).syncAll();
-                              } catch (_) {}
+                              await syncAfterWrite(ref, context: context);
                             },
                           ),
                           if (i != upcoming.length - 1)
@@ -268,9 +261,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
           primaryDoctor: result.primaryDoctor,
           notes: result.notes,
         );
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Saved care profile for ${member.name}')),
@@ -435,9 +426,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
             cadenceDays: result.cadence,
             memberId: result.memberId,
           );
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+      await syncAfterWrite(ref, context: context);
       try {
         await ref.read(notificationServiceProvider).rescheduleReminders();
       } catch (_) {}

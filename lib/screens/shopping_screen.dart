@@ -6,6 +6,7 @@ import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/shimmer.dart';
+import '../data/sync_controller.dart';
 
 const _shopCategories = [
   'Produce',
@@ -43,9 +44,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     if (name.isEmpty) return;
     await ref.read(shoppingRepositoryProvider).addItem(name: name);
     _addController.clear();
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
   }
 
   @override
@@ -133,9 +132,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       const SizedBox(height: 6),
                       _SuggestionsStrip(
                         onAdded: () async {
-                          try {
-                            await ref.read(syncServiceProvider).syncAll();
-                          } catch (_) {}
+                          await syncAfterWrite(ref, context: context);
                         },
                       ),
                       const SizedBox(height: 6),
@@ -215,11 +212,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                                           await ref
                                               .read(shoppingRepositoryProvider)
                                               .toggleDone(categoryItems[i]);
-                                          try {
-                                            await ref
-                                                .read(syncServiceProvider)
-                                                .syncAll();
-                                          } catch (_) {}
+                                          await syncAfterWrite(ref, context: context);
                                         },
                                         onEdit: () => showItemSheet(
                                           context,
@@ -273,9 +266,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
 
     if (result.deleteItem) {
       await ref.read(shoppingRepositoryProvider).deleteItem(existing.id);
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+      await syncAfterWrite(ref, context: context);
       return;
     }
 
@@ -287,9 +278,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           category: result.category,
           qty: result.qty,
         );
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
   }
 }
 

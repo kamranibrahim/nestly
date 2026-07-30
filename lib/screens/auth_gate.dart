@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/sync_controller.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import 'app_shell.dart';
@@ -91,11 +92,26 @@ class _SyncedShell extends ConsumerStatefulWidget {
   ConsumerState<_SyncedShell> createState() => _SyncedShellState();
 }
 
-class _SyncedShellState extends ConsumerState<_SyncedShell> {
+class _SyncedShellState extends ConsumerState<_SyncedShell>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(syncControllerProvider.notifier).scheduleResumeSync();
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -103,11 +119,7 @@ class _SyncedShellState extends ConsumerState<_SyncedShell> {
     if (nest == null) return;
     final sync = ref.read(syncServiceProvider);
     await sync.bindNest(nest.id);
-    try {
-      await sync.syncAll();
-    } catch (_) {
-      // Offline is fine — local Drift data remains usable.
-    }
+    await ref.read(syncControllerProvider.notifier).syncNow(quiet: true);
     try {
       await ref.read(notificationServiceProvider).init();
     } catch (_) {}
@@ -115,31 +127,40 @@ class _SyncedShellState extends ConsumerState<_SyncedShell> {
 
   @override
   Widget build(BuildContext context) {
-    return const AppShell();
+    return const Column(
+      children: [
+        SyncStatusBanner(),
+        Expanded(child: AppShell()),
+      ],
+    );
   }
 }
 
+/// Shows only when the last sync failed — Retry + short status.
 class SyncStatusBanner extends ConsumerWidget {
   const SyncStatusBanner({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nest = ref.watch(nestInfoProvider).valueOrNull;
-    if (nest == null) return const SizedBox.shrink();
+    final sync = ref.watch(syncControllerProvider);
+    if (!sync.hasError) return const SizedBox.shrink();
+
     return Material(
-      color: AppColors.mint,
+      color: const Color(0xFFFFE8D6),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
-              const Icon(Icons.cloud_done_outlined,
+              const Icon(Icons.cloud_off_outlined,
                   size: 16, color: AppColors.ink),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${nest.name} · code ${nest.inviteCode}',
+                  sync.isSyncing
+                      ? 'Syncing…'
+                      : 'Last synced · ${formatLastSynced(sync.lastSyncAt)}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -148,23 +169,12 @@ class SyncStatusBanner extends ConsumerWidget {
                 ),
               ),
               TextButton(
-                onPressed: () async {
-                  try {
-                    await ref.read(syncServiceProvider).syncAll();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Synced')),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Sync failed: $e')),
-                      );
-                    }
-                  }
-                },
-                child: const Text('Sync'),
+                onPressed: sync.isSyncing
+                    ? null
+                    : () => ref
+                        .read(syncControllerProvider.notifier)
+                        .syncNow(context: context),
+                child: Text(sync.isSyncing ? '…' : 'Retry'),
               ),
             ],
           ),

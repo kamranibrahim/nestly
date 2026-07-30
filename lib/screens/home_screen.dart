@@ -7,6 +7,7 @@ import '../data/db/app_database.dart';
 import '../data/family_needs.dart';
 import '../data/home_tips.dart';
 import '../data/repositories.dart';
+import '../data/sync_controller.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
@@ -130,6 +131,7 @@ class HomeScreen extends ConsumerWidget {
     final tipDismissed =
         ref.watch(inviteTipDismissedProvider).valueOrNull ?? true;
     final showInviteTip = aloneInNest && showInvite && !tipDismissed;
+    final sync = ref.watch(syncControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -137,7 +139,7 @@ class HomeScreen extends ConsumerWidget {
         bottom: false,
         child: RefreshIndicator(
           color: AppColors.accentDeep,
-          onRefresh: () => _refreshToday(ref),
+          onRefresh: () => _refreshToday(context, ref),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
@@ -169,6 +171,25 @@ class HomeScreen extends ConsumerWidget {
                             color: Color(members.first.colorValue),
                             size: 38,
                           ),
+                        const SizedBox(width: 8),
+                        CircleIconButton(
+                          icon: sync.isSyncing
+                              ? Icons.cloud_sync_rounded
+                              : sync.hasError
+                                  ? Icons.cloud_off_outlined
+                                  : Icons.cloud_outlined,
+                          background: AppColors.surfaceMuted,
+                          foreground: sync.hasError
+                              ? AppColors.accentDeep
+                              : AppColors.ink,
+                          size: 38,
+                          onTap: () {
+                            if (sync.isSyncing) return;
+                            ref
+                                .read(syncControllerProvider.notifier)
+                                .syncNow(context: context);
+                          },
+                        ),
                         const SizedBox(width: 8),
                         CircleIconButton(
                           icon: Icons.notifications_none_rounded,
@@ -777,10 +798,8 @@ class HomeScreen extends ConsumerWidget {
     return '${trimmed.substring(0, max - 1)}…';
   }
 
-  Future<void> _refreshToday(WidgetRef ref) async {
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+  Future<void> _refreshToday(BuildContext context, WidgetRef ref) async {
+    await syncAfterWrite(ref, context: context);
     try {
       await ref.read(notificationServiceProvider).rescheduleReminders();
     } catch (_) {}
@@ -800,9 +819,7 @@ class HomeScreen extends ConsumerWidget {
     Task task,
   ) async {
     await ref.read(taskRepositoryProvider).toggleDone(task);
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
   }
 
   Future<void> _showTodayReminders(
@@ -823,7 +840,7 @@ class HomeScreen extends ConsumerWidget {
     ];
 
     try {
-      await ref.read(syncServiceProvider).syncAll();
+      await syncAfterWrite(ref, context: context);
       await ref.read(notificationServiceProvider).rescheduleReminders();
     } catch (_) {}
 
@@ -933,9 +950,7 @@ class HomeScreen extends ConsumerWidget {
           return;
         }
         await ref.read(taskRepositoryProvider).toggleDone(firstOpenTask);
-        try {
-          await ref.read(syncServiceProvider).syncAll();
-        } catch (_) {}
+        await syncAfterWrite(ref, context: context);
         if (context.mounted) {
           final note = firstOpenTask.recurring
               ? 'Done · next ${TaskRepository.nextDueLabel(firstOpenTask.dueLabel)}'
@@ -950,9 +965,7 @@ class HomeScreen extends ConsumerWidget {
           return;
         }
         await ref.read(careRepositoryProvider).markDone(firstCareDue);
-        try {
-          await ref.read(syncServiceProvider).syncAll();
-        } catch (_) {}
+        await syncAfterWrite(ref, context: context);
         try {
           await ref.read(notificationServiceProvider).rescheduleReminders();
         } catch (_) {}
@@ -967,9 +980,7 @@ class HomeScreen extends ConsumerWidget {
           return;
         }
         await ref.read(schoolRepositoryProvider).markDone(firstSchoolDue);
-        try {
-          await ref.read(syncServiceProvider).syncAll();
-        } catch (_) {}
+        await syncAfterWrite(ref, context: context);
         try {
           await ref.read(notificationServiceProvider).rescheduleReminders();
         } catch (_) {}
@@ -984,9 +995,7 @@ class HomeScreen extends ConsumerWidget {
           return;
         }
         await ref.read(billRepositoryProvider).togglePaid(firstBillDue);
-        try {
-          await ref.read(syncServiceProvider).syncAll();
-        } catch (_) {}
+        await syncAfterWrite(ref, context: context);
         try {
           await ref.read(notificationServiceProvider).rescheduleReminders();
         } catch (_) {}
@@ -1003,9 +1012,7 @@ class HomeScreen extends ConsumerWidget {
         final added = await ref
             .read(mealRepositoryProvider)
             .addIngredientsToShopping(dinnerMeal);
-        try {
-          await ref.read(syncServiceProvider).syncAll();
-        } catch (_) {}
+        await syncAfterWrite(ref, context: context);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1028,9 +1035,7 @@ class HomeScreen extends ConsumerWidget {
             for (final habit in suggestions.take(5)) {
               await ref.read(shoppingRepositoryProvider).addSuggestion(habit);
             }
-            try {
-              await ref.read(syncServiceProvider).syncAll();
-            } catch (_) {}
+            await syncAfterWrite(ref, context: context);
             if (context.mounted) {
               final n = suggestions.take(5).length;
               ScaffoldMessenger.of(context).showSnackBar(

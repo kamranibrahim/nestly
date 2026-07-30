@@ -12,6 +12,7 @@ import '../widgets/common.dart';
 import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
 import 'care_screen.dart';
+import '../data/sync_controller.dart';
 
 class EmergencyScreen extends ConsumerWidget {
   const EmergencyScreen({super.key});
@@ -294,9 +295,7 @@ class EmergencyScreen extends ConsumerWidget {
             label: result.label,
             value: result.value,
           );
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+      await syncAfterWrite(ref, context: context);
     }
   }
 }

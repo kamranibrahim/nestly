@@ -9,6 +9,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../data/db/app_database.dart';
 import '../data/member_roles.dart';
 import '../data/showcase_seed.dart';
+import '../data/sync_controller.dart';
 import '../data/telemetry.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
@@ -59,7 +60,7 @@ class MoreScreen extends ConsumerWidget {
         nestId: nest.id,
         ownerMemberId: user.uid,
       );
-      await ref.read(syncServiceProvider).syncAll();
+      await syncAfterWrite(ref, context: context);
       ref.invalidate(nestInfoProvider);
       if (!context.mounted) return;
       messenger.showSnackBar(
@@ -138,9 +139,7 @@ class MoreScreen extends ConsumerWidget {
       return;
     }
     await ref.read(memberRepositoryProvider).updateRole(member.id, selected);
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${member.name} is now $selected')),
@@ -152,6 +151,7 @@ class MoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final nest = ref.watch(nestInfoProvider).valueOrNull;
     final members = ref.watch(membersProvider).valueOrNull ?? [];
+    final sync = ref.watch(syncControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -166,30 +166,51 @@ class MoreScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'Nest',
-                        style:
-                            Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nest',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: -0.8,
                                 ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            sync.isSyncing
+                                ? 'Syncing…'
+                                : sync.hasError
+                                    ? 'Sync needed · Retry'
+                                    : 'Last synced · ${formatLastSynced(sync.lastSyncAt)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: sync.hasError
+                                  ? AppColors.accentDeep
+                                  : AppColors.inkMuted,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     CircleIconButton(
-                      icon: Icons.cloud_sync_outlined,
+                      icon: sync.isSyncing
+                          ? Icons.cloud_sync_rounded
+                          : sync.hasError
+                              ? Icons.cloud_off_outlined
+                              : Icons.cloud_done_outlined,
                       background: AppColors.surfaceMuted,
                       foreground: AppColors.ink,
                       size: 38,
-                      onTap: () async {
-                        try {
-                          await ref.read(syncServiceProvider).syncAll();
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Sync failed: $e')),
-                            );
-                          }
-                        }
+                      onTap: () {
+                        if (sync.isSyncing) return;
+                        ref
+                            .read(syncControllerProvider.notifier)
+                            .syncNow(context: context);
                       },
                     ),
                   ],

@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
+import '../data/sync_controller.dart';
 
 const _expenseCategories = [
   'Groceries',
@@ -175,9 +176,7 @@ class ExpensesScreen extends ConsumerWidget {
                             await ref
                                 .read(notificationServiceProvider)
                                 .rescheduleBillReminders();
-                            try {
-                              await ref.read(syncServiceProvider).syncAll();
-                            } catch (_) {}
+                            await syncAfterWrite(ref, context: context);
                           },
                           icon: Icon(
                             bills[i].paid
@@ -253,9 +252,7 @@ class ExpensesScreen extends ConsumerWidget {
 
     if (result.deleteExpense && existing != null) {
       await ref.read(expenseRepositoryProvider).deleteExpense(existing.id);
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+      await syncAfterWrite(ref, context: context);
       return;
     }
 
@@ -277,9 +274,7 @@ class ExpensesScreen extends ConsumerWidget {
             paidBy: result.paidBy,
           );
     }
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
   }
 
   static Future<void> showBillSheet(
@@ -308,9 +303,7 @@ class ExpensesScreen extends ConsumerWidget {
     if (result.deleteBill && existing != null) {
       await ref.read(billRepositoryProvider).deleteBill(existing.id);
       await ref.read(notificationServiceProvider).rescheduleBillReminders();
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+      await syncAfterWrite(ref, context: context);
       return;
     }
 
@@ -331,9 +324,7 @@ class ExpensesScreen extends ConsumerWidget {
           );
     }
     await ref.read(notificationServiceProvider).rescheduleBillReminders();
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
   }
 }
 

@@ -104,11 +104,23 @@ class NestlyTelemetry {
   static Future<void> changePasswordSuccess() =>
       _event('change_password_success');
 
-  static Future<void> syncSuccess() => _event('sync_success');
+  static Future<void> syncSuccess({int? durationMs}) => _event(
+        'sync_success',
+        {
+          'duration_ms': ?durationMs,
+        },
+      );
 
-  static Future<void> syncFail({required String reason}) => _event(
+  static Future<void> syncFail({
+    required String reason,
+    int? durationMs,
+  }) =>
+      _event(
         'sync_fail',
-        {'reason': _sanitizeReason(reason)},
+        {
+          'reason': _sanitizeReason(reason),
+          'duration_ms': ?durationMs,
+        },
       );
 
   static Future<void> homeOpen() => _event('home_open');

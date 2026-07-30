@@ -8,6 +8,7 @@ import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
+import '../data/sync_controller.dart';
 
 class MealsScreen extends ConsumerWidget {
   const MealsScreen({super.key});
@@ -133,9 +134,7 @@ class MealsScreen extends ConsumerWidget {
                     final added = await ref
                         .read(mealRepositoryProvider)
                         .addIngredientsToShopping(meal);
-                    try {
-                      await ref.read(syncServiceProvider).syncAll();
-                    } catch (_) {}
+                    await syncAfterWrite(ref, context: context);
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -154,9 +153,7 @@ class MealsScreen extends ConsumerWidget {
                   tooltip: 'Remove',
                   onPressed: () async {
                     await ref.read(mealRepositoryProvider).delete(meal.id);
-                    try {
-                      await ref.read(syncServiceProvider).syncAll();
-                    } catch (_) {}
+                    await syncAfterWrite(ref, context: context);
                   },
                   icon: const Icon(Icons.delete_outline_rounded,
                       color: AppColors.inkMuted),
@@ -337,9 +334,7 @@ class MealsScreen extends ConsumerWidget {
               ingredients: result.ingredients,
             );
       }
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+      await syncAfterWrite(ref, context: context);
     }
   }
 
@@ -360,9 +355,7 @@ class MealsScreen extends ConsumerWidget {
 
     if (result == null) return;
     await ref.read(mealRepositoryProvider).planDinnerWeek(result);
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Dinner week updated')),
@@ -380,9 +373,7 @@ class MealsScreen extends ConsumerWidget {
     final added = await ref
         .read(mealRepositoryProvider)
         .addMealsIngredientsToShopping(dinners, label: 'this week');
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

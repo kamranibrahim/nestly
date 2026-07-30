@@ -9,6 +9,7 @@ import '../theme/app_motion.dart';
 import '../widgets/common.dart';
 import '../widgets/motion.dart';
 import '../widgets/shimmer.dart';
+import '../data/sync_controller.dart';
 
 class TasksScreen extends ConsumerWidget {
   const TasksScreen({super.key});
@@ -128,11 +129,7 @@ class TasksScreen extends ConsumerWidget {
                                   await ref
                                       .read(taskRepositoryProvider)
                                       .toggleDone(open[i]);
-                                  try {
-                                    await ref
-                                        .read(syncServiceProvider)
-                                        .syncAll();
-                                  } catch (_) {}
+                                  await syncAfterWrite(ref, context: context);
                                 },
                                 onEdit: () => showTaskSheet(
                                   context,
@@ -160,11 +157,7 @@ class TasksScreen extends ConsumerWidget {
                                     await ref
                                         .read(taskRepositoryProvider)
                                         .toggleDone(done[i]);
-                                    try {
-                                      await ref
-                                          .read(syncServiceProvider)
-                                          .syncAll();
-                                    } catch (_) {}
+                                    await syncAfterWrite(ref, context: context);
                                   },
                                   onEdit: () => showTaskSheet(
                                     context,
@@ -232,9 +225,7 @@ class TasksScreen extends ConsumerWidget {
 
     if (result.deleteTask && existing != null) {
       await ref.read(taskRepositoryProvider).deleteTask(existing.id);
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+      await syncAfterWrite(ref, context: context);
       return;
     }
 
@@ -256,9 +247,7 @@ class TasksScreen extends ConsumerWidget {
             dueLabel: result.dueLabel,
           );
     }
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
   }
 }
 

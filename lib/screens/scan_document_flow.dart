@@ -14,6 +14,7 @@ import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/shimmer.dart';
 import '../widgets/sheet_form.dart';
+import '../data/sync_controller.dart';
 
 final documentAiServiceProvider = Provider<DocumentAiService>((ref) {
   return DocumentAiService();
@@ -432,9 +433,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
               );
       }
 
-      try {
-        await ref.read(syncServiceProvider).syncAll();
-      } catch (_) {}
+      await syncAfterWrite(ref, context: context);
 
       if (!mounted) return;
       Navigator.pop(context);

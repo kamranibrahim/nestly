@@ -9,6 +9,7 @@ import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
+import '../data/sync_controller.dart';
 
 class SchoolScreen extends ConsumerStatefulWidget {
   const SchoolScreen({super.key});
@@ -156,9 +157,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
 
   Future<void> _markDone(SchoolActivity item) async {
     await ref.read(schoolRepositoryProvider).markDone(item);
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     try {
       await ref.read(notificationServiceProvider).rescheduleReminders();
     } catch (_) {}
@@ -166,9 +165,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
 
   Future<void> _pickup(SchoolActivity item) async {
     await ref.read(schoolRepositoryProvider).createPickupTask(item);
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Pickup task added for today')),
@@ -177,9 +174,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
 
   Future<void> _delete(String id) async {
     await ref.read(schoolRepositoryProvider).delete(id);
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     try {
       await ref.read(notificationServiceProvider).rescheduleReminders();
     } catch (_) {}
@@ -437,9 +432,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
             nextAt: result.nextAt,
           );
     }
-    try {
-      await ref.read(syncServiceProvider).syncAll();
-    } catch (_) {}
+    await syncAfterWrite(ref, context: context);
     try {
       await ref.read(notificationServiceProvider).rescheduleReminders();
     } catch (_) {}
