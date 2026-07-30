@@ -380,6 +380,24 @@ void main() {
     expect(totals.first.total, greaterThanOrEqualTo(totals.last.total));
   });
 
+  test('zero or negative budget clamps to default', () async {
+    await database.setMeta('nestId', 'nest-budget-clamp');
+    final expenses = ExpenseRepository(database);
+    await expenses.setMonthBudget(0);
+    expect(await expenses.getMonthBudget(), 1800);
+    await expenses.setMonthBudget(-50);
+    expect(await expenses.getMonthBudget(), 1800);
+  });
+
+  test('tomorrow preview preference persists', () async {
+    await database.setMeta('nestId', 'nest-preview');
+    final expenses = ExpenseRepository(database);
+    expect(await expenses.getTomorrowPreviewEnabled(), isFalse);
+    await expenses.setTomorrowPreviewEnabled(true);
+    expect(await expenses.getTomorrowPreviewEnabled(), isTrue);
+    expect(await expenses.watchTomorrowPreviewEnabled().first, isTrue);
+  });
+
   test('bills sort overdue unpaid before later dues and paid', () async {
     final bills = BillRepository(database);
     final now = DateTime.now();

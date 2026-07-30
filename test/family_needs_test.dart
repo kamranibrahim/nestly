@@ -95,6 +95,84 @@ void main() {
     expect(vault.actionLabel, 'Review');
   });
 
+  test('caps needs list at five highest priority items', () {
+    final summary = buildFamilyNeeds(
+      openTasks: 2,
+      openShopping: 3,
+      unpaidBillsDueSoon: 1,
+      careDue: 1,
+      schoolDue: 1,
+      dinnerPlannedToday: false,
+      eventsToday: 2,
+      vaultExpiringSoon: 1,
+      grocerySuggestions: 4,
+    );
+
+    expect(summary.needs, hasLength(5));
+    expect(summary.needs.first.kind, FamilyNeedKind.care);
+    expect(
+      summary.needs.map((n) => n.kind),
+      isNot(contains(FamilyNeedKind.calendar)),
+    );
+  });
+
+  test('restock suggestions only when shopping list is empty', () {
+    final withOpen = buildFamilyNeeds(
+      openTasks: 0,
+      openShopping: 2,
+      unpaidBillsDueSoon: 0,
+      careDue: 0,
+      schoolDue: 0,
+      dinnerPlannedToday: true,
+      eventsToday: 0,
+      grocerySuggestions: 5,
+    );
+    expect(
+      withOpen.needs.where((n) => n.kind == FamilyNeedKind.shopping),
+      hasLength(1),
+    );
+    expect(
+      withOpen.needs.firstWhere((n) => n.kind == FamilyNeedKind.shopping).title,
+      contains('left'),
+    );
+
+    final restock = buildFamilyNeeds(
+      openTasks: 0,
+      openShopping: 0,
+      unpaidBillsDueSoon: 0,
+      careDue: 0,
+      schoolDue: 0,
+      dinnerPlannedToday: true,
+      eventsToday: 0,
+      grocerySuggestions: 5,
+    );
+    expect(
+      restock.needs.firstWhere((n) => n.kind == FamilyNeedKind.shopping).title,
+      contains('Restock'),
+    );
+  });
+
+  test('singular labels for one task and one bill', () {
+    final summary = buildFamilyNeeds(
+      openTasks: 1,
+      openShopping: 0,
+      unpaidBillsDueSoon: 1,
+      careDue: 0,
+      schoolDue: 0,
+      dinnerPlannedToday: true,
+      eventsToday: 0,
+    );
+
+    expect(
+      summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.tasks).title,
+      '1 open task',
+    );
+    expect(
+      summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.bills).title,
+      '1 bill due soon',
+    );
+  });
+
   test('due care ranks above missing dinner and open tasks', () {
     final summary = buildFamilyNeeds(
       openTasks: 3,

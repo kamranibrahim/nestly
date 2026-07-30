@@ -268,12 +268,25 @@ No companion features, deploys, or Netlify work unless a production hotfix is fo
 ### Week 16 — 16–22 Nov · Tests, Plus draft, retro
 | Build | Manual |
 |-------|--------|
-| Expand tests: sync resume helper, budget persist, family_needs edge cases, invite sheet smoke | Nestly Plus one-pager only — **no paywall code** |
+| Expand tests: sync resume helper, budget persist, family_needs edge cases, invite sheet smoke | Nestly Plus one-pager only — **no paywall code** → `store/NESTLY_PLUS_ONE_PAGER.md` |
 | Fix leftover P0s only | Update README / this plan checkboxes |
 | | Retro: buy domain? social auth timing? unpause web? |
 | | Appendix A ready when domain purchased |
 
 **Exit:** Stable free app; written next-quarter plan; Plus draft filed.
+
+#### Week 16 status
+- [x] Tests expanded (sync labels/state, budget + tomorrow preview, family_needs edges, invite sheet smoke, review eligibility)
+- [x] Nestly Plus one-pager filed (no IAP / paywall code)
+- [x] README + plan checkboxes / retro notes updated
+
+#### Retro (recorded)
+| Topic | Call for now |
+|-------|----------------|
+| Buy domain? | **Yes when ready** — unlocks Inbox reset mail (Appendix A). Not blocking free soft launch. |
+| Social auth timing? | **After** public listing / closed testing. Keep email/password + recovery path solid first. |
+| Unpause web? | **Hold** until mobile Day-7 and 2+ member nests look healthy; web stays companion, not the OS. |
+| Next quarter | Ship free soft launch metrics; only then prioritize Plus candidates from the one-pager. |
 
 ---
 
