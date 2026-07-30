@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'db/app_database.dart';
 import 'repositories.dart';
+import 'vault_upload_status.dart';
 
 class VaultService {
   VaultService(this._db);
@@ -16,13 +17,23 @@ class VaultService {
   final AppDatabase _db;
   final _storage = FirebaseStorage.instance;
 
+  VaultRepository get _vault => VaultRepository(_db);
+
   Future<VaultDocument?> pickAndUpload({
     required String category,
     String? actorName,
   }) async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const ['pdf', 'png', 'jpg', 'jpeg', 'heic', 'doc', 'docx'],
+      allowedExtensions: const [
+        'pdf',
+        'png',
+        'jpg',
+        'jpeg',
+        'heic',
+        'doc',
+        'docx',
+      ],
       withData: false,
     );
     if (result == null || result.files.isEmpty) return null;
@@ -31,12 +42,10 @@ class VaultService {
     final path = file.path;
     if (path == null) return null;
 
-    final nestId = await _db.getMeta('nestId');
     final title = p.basenameWithoutExtension(file.name);
-    final vault = VaultRepository(_db);
     final timeline = TimelineRepository(_db);
 
-    final doc = await vault.addLocalMeta(
+    final doc = await _vault.addLocalMeta(
       title: title,
       category: category,
       fileName: file.name,
@@ -50,17 +59,55 @@ class VaultService {
       memberName: actorName ?? 'Family',
     );
 
-    if (nestId != null && nestId.isNotEmpty) {
-      try {
-        final storagePath = 'nests/$nestId/vault/${doc.id}/${file.name}';
-        await _storage.ref(storagePath).putFile(File(path));
-        await vault.markUploaded(id: doc.id, storagePath: storagePath);
-      } catch (e) {
-        debugPrint('Vault upload deferred (offline?): $e');
-      }
+    await uploadDocument(doc.id);
+    return await _vault.getById(doc.id) ?? doc;
+  }
+
+  /// Upload (or re-upload) one doc's bytes to Storage. Returns true on success.
+  Future<bool> uploadDocument(String id) async {
+    final doc = await _vault.getById(id);
+    if (doc == null || doc.deleted) return false;
+
+    final nestId = (await _db.getMeta('nestId')) ?? doc.nestId;
+    if (nestId == null || nestId.isEmpty) return false;
+
+    final local = doc.localPath;
+    if (local == null || local.isEmpty) return false;
+    final file = File(local);
+    if (!await file.exists()) {
+      await _vault.markUploadFailed(id);
+      return false;
     }
 
-    return doc;
+    // Already on Storage — just normalize status.
+    if (doc.storagePath != null && doc.storagePath!.isNotEmpty) {
+      if (doc.uploadStatus != VaultUploadStatus.synced) {
+        await _vault.setUploadStatus(id, VaultUploadStatus.synced);
+      }
+      return true;
+    }
+
+    await _vault.setUploadStatus(id, VaultUploadStatus.uploading);
+    try {
+      final storagePath = 'nests/$nestId/vault/${doc.id}/${doc.fileName}';
+      await _storage.ref(storagePath).putFile(file);
+      await _vault.markUploaded(id: id, storagePath: storagePath);
+      return true;
+    } catch (e) {
+      debugPrint('Vault upload failed: $e');
+      await _vault.markUploadFailed(id);
+      return false;
+    }
+  }
+
+  /// Retry every pending / failed local file. Returns count uploaded.
+  Future<int> retryAllFailed() async {
+    final pending = await _vault.listPendingUploads();
+    var ok = 0;
+    for (final doc in pending) {
+      if (await uploadDocument(doc.id)) ok++;
+    }
+    return ok;
   }
 
   /// Prefer local file; otherwise download from Storage into cache.
@@ -76,11 +123,12 @@ class VaultService {
 
     try {
       final dir = await getTemporaryDirectory();
-      final out = File(p.join(dir.path, 'nestly_vault_${doc.id}_${doc.fileName}'));
+      final out =
+          File(p.join(dir.path, 'nestly_vault_${doc.id}_${doc.fileName}'));
       if (!await out.exists()) {
         await _storage.ref(remote).writeToFile(out);
       }
-      await VaultRepository(_db).setLocalPath(id: doc.id, localPath: out.path);
+      await _vault.setLocalPath(id: doc.id, localPath: out.path);
       return out;
     } catch (e) {
       debugPrint('Vault download failed: $e');
@@ -100,5 +148,27 @@ class VaultService {
         text: doc.notes.trim().isEmpty ? doc.title : '${doc.title}\n${doc.notes}',
       ),
     );
+  }
+
+  /// Share multiple docs as a pack (skips files that can't be resolved).
+  Future<int> shareDocuments(List<VaultDocument> docs) async {
+    final files = <XFile>[];
+    for (final doc in docs) {
+      final file = await resolveFile(doc);
+      if (file != null) {
+        files.add(XFile(file.path, name: doc.fileName));
+      }
+    }
+    if (files.isEmpty) {
+      throw StateError('No files available to share yet.');
+    }
+    await SharePlus.instance.share(
+      ShareParams(
+        files: files,
+        subject: 'Nestly vault pack (${files.length})',
+        text: 'Shared from Nestly vault',
+      ),
+    );
+    return files.length;
   }
 }

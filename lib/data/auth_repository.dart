@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import 'db/app_database.dart';
 import 'repositories.dart';
 import 'telemetry.dart';
+import 'vault_upload_status.dart';
 
 class NestInfo {
   const NestInfo({
@@ -895,6 +896,11 @@ class SyncService {
               notes: Value(data['notes'] as String? ?? ''),
               expiresAt: Value(
                 (data['expiresAt'] as Timestamp?)?.toDate(),
+              ),
+              uploadStatus: Value(
+                (data['storagePath'] as String?)?.isNotEmpty == true
+                    ? VaultUploadStatus.synced
+                    : VaultUploadStatus.local,
               ),
               dirty: const Value(false),
               createdAt: Value(

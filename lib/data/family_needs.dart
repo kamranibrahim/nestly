@@ -114,11 +114,12 @@ FamilyNeedsSummary buildFamilyNeeds({
   if (vaultExpiringSoon > 0) {
     needs.add(
       FamilyNeed(
-        title:
-            '$vaultExpiringSoon vault doc${vaultExpiringSoon == 1 ? '' : 's'} expiring',
-        detail: 'IDs, insurance, or licenses need a look',
+        title: vaultExpiringSoon == 1
+            ? '1 document expires soon'
+            : '$vaultExpiringSoon documents expire soon',
+        detail: 'Passports, insurance, or licenses — renew before they lapse',
         kind: FamilyNeedKind.vault,
-        actionLabel: 'Open',
+        actionLabel: 'Review',
         priority: 65,
       ),
     );

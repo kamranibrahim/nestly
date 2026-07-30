@@ -156,6 +156,9 @@ class VaultDocuments extends Table {
   TextColumn get notes => text().withDefault(const Constant(''))();
   /// Optional expiry for IDs / insurance / licenses.
   DateTimeColumn get expiresAt => dateTime().nullable()();
+  /// Storage upload: local | uploading | synced | failed ([VaultUploadStatus]).
+  TextColumn get uploadStatus =>
+      text().withDefault(const Constant('local'))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -299,7 +302,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -359,6 +362,23 @@ class AppDatabase extends _$AppDatabase {
               m,
               vaultDocuments,
               vaultDocuments.expiresAt,
+            );
+          }
+          if (from < 11) {
+            await _addColumnIfMissing(
+              m,
+              vaultDocuments,
+              vaultDocuments.uploadStatus,
+            );
+            await customStatement(
+              "UPDATE vault_documents SET upload_status = 'synced' "
+              "WHERE storage_path IS NOT NULL AND storage_path != ''",
+            );
+            await customStatement(
+              "UPDATE vault_documents SET upload_status = 'failed' "
+              "WHERE (storage_path IS NULL OR storage_path = '') "
+              "AND local_path IS NOT NULL AND local_path != '' "
+              "AND nest_id IS NOT NULL AND nest_id != ''",
             );
           }
         },

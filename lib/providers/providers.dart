@@ -135,6 +135,14 @@ final vaultExpiringSoonProvider = StreamProvider<List<VaultDocument>>((ref) {
   return ref.watch(vaultRepositoryProvider).watchExpiringSoon();
 });
 
+final vaultFailedUploadsProvider = StreamProvider<List<VaultDocument>>((ref) {
+  return ref.watch(vaultRepositoryProvider).watchFailedUploads();
+});
+
+final vaultFailedUploadCountProvider = StreamProvider<int>((ref) {
+  return ref.watch(vaultRepositoryProvider).watchFailedUploadCount();
+});
+
 final mealRepositoryProvider = Provider<MealRepository>((ref) {
   return MealRepository(ref.watch(databaseProvider));
 });

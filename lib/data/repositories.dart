@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
 import 'member_roles.dart';
+import 'vault_upload_status.dart';
 
 class TaskRepository {
   TaskRepository(this._db);
@@ -761,6 +762,7 @@ class VaultRepository {
       localPath: Value(localPath),
       mimeType: Value(mimeType),
       sizeBytes: Value(sizeBytes),
+      uploadStatus: const Value(VaultUploadStatus.local),
       dirty: const Value(true),
       createdAt: Value(now),
       updatedAt: Value(now),
@@ -771,6 +773,16 @@ class VaultRepository {
         .getSingle());
   }
 
+  Future<void> setUploadStatus(String id, String status) {
+    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
+        .write(
+      VaultDocumentsCompanion(
+        uploadStatus: Value(status),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<void> markUploaded({
     required String id,
     required String storagePath,
@@ -779,10 +791,63 @@ class VaultRepository {
         .write(
       VaultDocumentsCompanion(
         storagePath: Value(storagePath),
+        uploadStatus: const Value(VaultUploadStatus.synced),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
     );
+  }
+
+  Future<void> markUploadFailed(String id) {
+    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
+        .write(
+      VaultDocumentsCompanion(
+        uploadStatus: const Value(VaultUploadStatus.failed),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<VaultDocument?> getById(String id) {
+    return (_db.select(_db.vaultDocuments)..where((d) => d.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  /// Docs with a local file that still need Storage upload.
+  Future<List<VaultDocument>> listPendingUploads() {
+    return (_db.select(_db.vaultDocuments)
+          ..where(
+            (d) =>
+                d.deleted.equals(false) &
+                d.localPath.isNotNull() &
+                (d.uploadStatus.equals(VaultUploadStatus.local) |
+                    d.uploadStatus.equals(VaultUploadStatus.failed) |
+                    d.uploadStatus.equals(VaultUploadStatus.uploading)),
+          )
+          ..orderBy([(d) => OrderingTerm(expression: d.createdAt)]))
+        .get();
+  }
+
+  Stream<List<VaultDocument>> watchFailedUploads() {
+    return (_db.select(_db.vaultDocuments)
+          ..where(
+            (d) =>
+                d.deleted.equals(false) &
+                d.uploadStatus.equals(VaultUploadStatus.failed),
+          )
+          ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
+        .watch();
+  }
+
+  Stream<int> watchFailedUploadCount() {
+    final count = _db.vaultDocuments.id.count();
+    final query = _db.selectOnly(_db.vaultDocuments)
+      ..addColumns([count])
+      ..where(
+        _db.vaultDocuments.deleted.equals(false) &
+            _db.vaultDocuments.uploadStatus.equals(VaultUploadStatus.failed),
+      );
+    return query.watchSingle().map((row) => row.read(count) ?? 0);
   }
 
   Future<void> setLocalPath({

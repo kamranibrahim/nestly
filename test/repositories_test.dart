@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
 import 'package:nestly/data/repositories.dart';
+import 'package:nestly/data/vault_upload_status.dart';
 
 void main() {
   late AppDatabase database;
@@ -223,6 +224,33 @@ void main() {
     final soon = await vault.watchExpiringSoon().first;
     expect(soon.any((d) => d.id == doc.id), isTrue);
     expect(soon.firstWhere((d) => d.id == doc.id).notes, 'Renew online');
+  });
+
+  test('vault upload status moves local → failed → synced', () async {
+    final vault = VaultRepository(database);
+    final doc = await vault.addLocalMeta(
+      title: 'Insurance',
+      category: 'Health',
+      fileName: 'card.pdf',
+      localPath: '/tmp/card.pdf',
+    );
+    expect(doc.uploadStatus, VaultUploadStatus.local);
+
+    await vault.markUploadFailed(doc.id);
+    final failed = await vault.getById(doc.id);
+    expect(failed?.uploadStatus, VaultUploadStatus.failed);
+
+    final pending = await vault.listPendingUploads();
+    expect(pending.any((d) => d.id == doc.id), isTrue);
+
+    await vault.markUploaded(id: doc.id, storagePath: 'nests/x/vault/y/card.pdf');
+    final synced = await vault.getById(doc.id);
+    expect(synced?.uploadStatus, VaultUploadStatus.synced);
+    expect(synced?.storagePath, isNot(null));
+    expect(synced!.storagePath!.isNotEmpty, isTrue);
+
+    final stillPending = await vault.listPendingUploads();
+    expect(stillPending.any((d) => d.id == doc.id), isFalse);
   });
 
   test('vault docs can be renamed and moved between folders', () async {

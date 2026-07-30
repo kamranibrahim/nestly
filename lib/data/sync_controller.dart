@@ -89,6 +89,12 @@ class SyncController extends StateNotifier<SyncUiState> {
     if (!mounted) return false;
     state = state.copyWith(isSyncing: true, clearError: true);
     try {
+      // Storage uploads first so Firestore meta includes storagePath.
+      try {
+        await _ref.read(vaultServiceProvider).retryAllFailed();
+      } catch (e) {
+        debugPrint('Vault retry skipped: $e');
+      }
       await _ref.read(syncServiceProvider).syncAll();
       final at = DateTime.now();
       if (!mounted) return true;

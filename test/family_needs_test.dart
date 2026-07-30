@@ -91,8 +91,8 @@ void main() {
 
     final vault =
         summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.vault);
-    expect(vault.title, contains('vault'));
-    expect(vault.actionLabel, 'Open');
+    expect(vault.title, contains('expire'));
+    expect(vault.actionLabel, 'Review');
   });
 
   test('due care ranks above missing dinner and open tasks', () {
