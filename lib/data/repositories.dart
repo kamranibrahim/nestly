@@ -485,7 +485,9 @@ class ExpenseRepository {
 
   final AppDatabase _db;
   static const _uuid = Uuid();
-  static const monthBudget = 1800.0;
+
+  /// Default when the nest has never set a budget.
+  static const defaultMonthBudget = 1800.0;
 
   Stream<List<Expense>> watchAll() {
     return (_db.select(_db.expenses)
@@ -507,6 +509,61 @@ class ExpenseRepository {
             _db.expenses.spentAt.isSmallerThanValue(end),
       );
     return query.watchSingle().map((row) => row.read(sum) ?? 0);
+  }
+
+  /// Category → spend for the current calendar month (non-zero only).
+  Stream<List<({String category, double total})>> watchMonthCategoryTotals() {
+    return watchAll().map((items) {
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, 1);
+      final end = DateTime(now.year, now.month + 1, 1);
+      final map = <String, double>{};
+      for (final e in items) {
+        if (e.spentAt.isBefore(start) || !e.spentAt.isBefore(end)) continue;
+        final key = e.category.trim().isEmpty ? 'General' : e.category.trim();
+        map[key] = (map[key] ?? 0) + e.amount;
+      }
+      final list = map.entries
+          .map((e) => (category: e.key, total: e.value))
+          .toList()
+        ..sort((a, b) => b.total.compareTo(a.total));
+      return list;
+    });
+  }
+
+  Stream<double> watchMonthBudget() {
+    return _db.select(_db.nestSettings).watch().asyncMap((rows) async {
+      final nestId = await _db.getMeta('nestId');
+      if (nestId == null || nestId.isEmpty) return defaultMonthBudget;
+      for (final row in rows) {
+        if (row.id == nestId) return row.monthBudget;
+      }
+      return defaultMonthBudget;
+    });
+  }
+
+  Future<double> getMonthBudget() async {
+    final nestId = await _db.getMeta('nestId');
+    if (nestId == null || nestId.isEmpty) return defaultMonthBudget;
+    final row = await (_db.select(_db.nestSettings)
+          ..where((s) => s.id.equals(nestId)))
+        .getSingleOrNull();
+    return row?.monthBudget ?? defaultMonthBudget;
+  }
+
+  Future<void> setMonthBudget(double amount) async {
+    final nestId = await _db.getMeta('nestId');
+    if (nestId == null || nestId.isEmpty) return;
+    final budget = amount <= 0 ? defaultMonthBudget : amount;
+    final now = DateTime.now();
+    await _db.into(_db.nestSettings).insertOnConflictUpdate(
+          NestSettingsCompanion.insert(
+            id: nestId,
+            monthBudget: Value(budget),
+            dirty: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
   }
 
   Future<void> addExpense({
@@ -573,12 +630,29 @@ class BillRepository {
 
   Stream<List<Bill>> watchAll() {
     return (_db.select(_db.bills)
-          ..where((b) => b.deleted.equals(false))
-          ..orderBy([
-            (b) => OrderingTerm(expression: b.paid),
-            (b) => OrderingTerm(expression: b.dueAt),
-          ]))
-        .watch();
+          ..where((b) => b.deleted.equals(false)))
+        .watch()
+        .map(_sortBills);
+  }
+
+  /// Unpaid overdue first, then due soon, then paid.
+  static List<Bill> _sortBills(List<Bill> bills) {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+    int rank(Bill b) {
+      if (b.paid) return 2;
+      final due = DateTime(b.dueAt.year, b.dueAt.month, b.dueAt.day);
+      if (due.isBefore(start)) return 0;
+      return 1;
+    }
+
+    final copy = List<Bill>.from(bills);
+    copy.sort((a, b) {
+      final r = rank(a).compareTo(rank(b));
+      if (r != 0) return r;
+      return a.dueAt.compareTo(b.dueAt);
+    });
+    return copy;
   }
 
   Future<List<Bill>> getUnpaidUpcoming() {

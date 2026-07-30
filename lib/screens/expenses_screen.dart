@@ -30,13 +30,30 @@ class ExpensesScreen extends ConsumerWidget {
     final currency = NumberFormat.simpleCurrency();
     final expensesAsync = ref.watch(expensesProvider);
     final spent = ref.watch(monthSpendProvider).valueOrNull ?? 0;
+    final budget = ref.watch(monthBudgetProvider).valueOrNull ??
+        ExpenseRepository.defaultMonthBudget;
+    final categoryTotals =
+        ref.watch(monthCategoryTotalsProvider).valueOrNull ?? const [];
     final billsAsync = ref.watch(billsProvider);
-    final progress =
-        (spent / ExpenseRepository.monthBudget).clamp(0.0, 1.0).toDouble();
+    final safeBudget = budget <= 0 ? ExpenseRepository.defaultMonthBudget : budget;
+    final progress = (spent / safeBudget).clamp(0.0, 1.0).toDouble();
+    final over = spent > safeBudget;
+    final remaining = safeBudget - spent;
+    final expenses = expensesAsync.valueOrNull ?? const <Expense>[];
+    final bills = billsAsync.valueOrNull ?? const <Bill>[];
+    final emptyNest = expenses.isEmpty && bills.isEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Budget')),
+      appBar: AppBar(
+        title: const Text('Budget'),
+        actions: [
+          TextButton(
+            onPressed: () => showBudgetSheet(context, ref, current: safeBudget),
+            child: const Text('Edit'),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showExpenseSheet(context, ref),
         child: const Icon(Icons.add_rounded),
@@ -45,17 +62,33 @@ class ExpensesScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
         children: [
           NestCard(
-            color: AppColors.primary,
+            color: over ? AppColors.danger : AppColors.primary,
+            bordered: false,
+            onTap: () => showBudgetSheet(context, ref, current: safeBudget),
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'This month',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'This month',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Tap to edit budget',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -67,10 +100,12 @@ class ExpensesScreen extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  'of ${currency.format(ExpenseRepository.monthBudget)}',
+                  over
+                      ? '${currency.format(spent - safeBudget)} over · of ${currency.format(safeBudget)}'
+                      : '${currency.format(remaining)} left · of ${currency.format(safeBudget)}',
                   style: const TextStyle(
                     color: Colors.white70,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -86,6 +121,56 @@ class ExpensesScreen extends ConsumerWidget {
               ],
             ),
           ),
+          if (categoryTotals.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            const SectionLabel('By category'),
+            NestCard(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final row in categoryTotals.take(6))
+                    SoftPill(
+                      label: '${row.category} · ${currency.format(row.total)}',
+                      selected: false,
+                      background: AppColors.surfaceMuted,
+                    ),
+                ],
+              ),
+            ),
+          ],
+          if (emptyNest) ...[
+            const SizedBox(height: 6),
+            NestCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Set up your nest budget',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Pick a monthly spending target, log a few expenses, and track bills so nothing slips.',
+                    style: TextStyle(color: AppColors.inkMuted),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () =>
+                        showBudgetSheet(context, ref, current: safeBudget),
+                    child: const Text('Set month budget'),
+                  ),
+                  const SizedBox(height: 6),
+                  OutlinedButton(
+                    onPressed: () => showBillSheet(context, ref),
+                    child: const Text('Add a bill'),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           const SectionLabel('Recent'),
           expensesAsync.when(
@@ -93,10 +178,12 @@ class ExpensesScreen extends ConsumerWidget {
             error: (e, _) => NestCard(child: Text('$e')),
             data: (items) {
               if (items.isEmpty) {
-                return const NestCard(
+                return NestCard(
                   child: Text(
-                    'No expenses yet. Tap + to add one.',
-                    style: TextStyle(color: AppColors.inkMuted),
+                    emptyNest
+                        ? 'No expenses yet — tap + when you spend.'
+                        : 'No expenses this nest yet. Tap + to add one.',
+                    style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 );
               }
@@ -150,12 +237,14 @@ class ExpensesScreen extends ConsumerWidget {
           billsAsync.when(
             loading: () => const SizedBox.shrink(),
             error: (e, _) => Text('$e'),
-            data: (bills) {
-              if (bills.isEmpty) {
-                return const NestCard(
+            data: (billsList) {
+              if (billsList.isEmpty) {
+                return NestCard(
                   child: Text(
-                    'No bills tracked yet.',
-                    style: TextStyle(color: AppColors.inkMuted),
+                    emptyNest
+                        ? 'Track rent, utilities, and subscriptions here.'
+                        : 'No bills tracked yet.',
+                    style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 );
               }
@@ -163,41 +252,22 @@ class ExpensesScreen extends ConsumerWidget {
                 padding: EdgeInsets.zero,
                 child: Column(
                   children: [
-                    for (var i = 0; i < bills.length; i++) ...[
-                      ListTile(
-                        onTap: () =>
-                            showBillSheet(context, ref, existing: bills[i]),
-                        leading: IconButton(
-                          tooltip: bills[i].paid ? 'Mark unpaid' : 'Mark paid',
-                          onPressed: () async {
-                            await ref
-                                .read(billRepositoryProvider)
-                                .togglePaid(bills[i]);
-                            await ref
-                                .read(notificationServiceProvider)
-                                .rescheduleBillReminders();
-                            await syncAfterWrite(ref, context: context);
-                          },
-                          icon: Icon(
-                            bills[i].paid
-                                ? Icons.check_circle_rounded
-                                : Icons.schedule_rounded,
-                            color: bills[i].paid
-                                ? AppColors.tileGreen
-                                : AppColors.tileOrange,
-                          ),
+                    for (var i = 0; i < billsList.length; i++) ...[
+                      _BillTile(
+                        bill: billsList[i],
+                        currency: currency,
+                        onOpen: () => showBillSheet(
+                          context,
+                          ref,
+                          existing: billsList[i],
                         ),
-                        title: Text(
-                          bills[i].title,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(_dueLabel(bills[i])),
-                        trailing: Text(
-                          currency.format(bills[i].amount),
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        onToggle: () => _toggleBillPaid(
+                          context,
+                          ref,
+                          billsList[i],
                         ),
                       ),
-                      if (i != bills.length - 1)
+                      if (i != billsList.length - 1)
                         const Divider(height: 1, indent: 56),
                     ],
                   ],
@@ -210,13 +280,156 @@ class ExpensesScreen extends ConsumerWidget {
     );
   }
 
+  static bool _isOverdue(Bill bill) {
+    if (bill.paid) return false;
+    final now = DateTime.now();
+    final due = DateTime(bill.dueAt.year, bill.dueAt.month, bill.dueAt.day);
+    final today = DateTime(now.year, now.month, now.day);
+    return due.isBefore(today);
+  }
+
   static String _dueLabel(Bill bill) {
     if (bill.paid) return 'Paid';
-    final days = bill.dueAt.difference(DateTime.now()).inDays;
-    if (days < 0) return 'Overdue';
+    final now = DateTime.now();
+    final due = DateTime(bill.dueAt.year, bill.dueAt.month, bill.dueAt.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final days = due.difference(today).inDays;
+    if (days < 0) {
+      final n = -days;
+      return n == 1
+          ? 'Overdue · 1 day · ${DateFormat.MMMd().format(bill.dueAt)}'
+          : 'Overdue · $n days · ${DateFormat.MMMd().format(bill.dueAt)}';
+    }
     if (days == 0) return 'Due today';
     if (days == 1) return 'Due tomorrow';
     return 'Due in $days days · ${DateFormat.MMMd().format(bill.dueAt)}';
+  }
+
+  static Future<void> _toggleBillPaid(
+    BuildContext context,
+    WidgetRef ref,
+    Bill bill,
+  ) async {
+    final markingPaid = !bill.paid;
+    await ref.read(billRepositoryProvider).togglePaid(bill);
+    try {
+      await ref.read(notificationServiceProvider).rescheduleBillReminders();
+    } catch (_) {}
+    await syncAfterWrite(ref, context: context, quiet: true);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          markingPaid ? 'Marked “${bill.title}” paid' : 'Marked unpaid',
+        ),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            final latest = (await ref.read(billsProvider.future))
+                .where((b) => b.id == bill.id)
+                .firstOrNull;
+            final target = latest ?? bill.copyWith(paid: markingPaid);
+            await ref.read(billRepositoryProvider).togglePaid(target);
+            try {
+              await ref
+                  .read(notificationServiceProvider)
+                  .rescheduleBillReminders();
+            } catch (_) {}
+            await syncAfterWrite(ref, context: context, quiet: true);
+          },
+        ),
+      ),
+    );
+  }
+
+  static Future<void> showBudgetSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    required double current,
+  }) async {
+    final controller = TextEditingController(
+      text: current == current.roundToDouble()
+          ? current.toStringAsFixed(0)
+          : current.toStringAsFixed(2),
+    );
+    final result = await showModalBottomSheet<double>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return sheetBody(
+          context: context,
+          children: [
+            sheetHandle(),
+            const SizedBox(height: 6),
+            const Text(
+              'Month budget',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Your family’s spending target for this calendar month.',
+              style: TextStyle(color: AppColors.inkMuted),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+                prefixText: '\$ ',
+              ),
+              onSubmitted: (value) {
+                final parsed = double.tryParse(value.trim());
+                if (parsed != null && parsed > 0) {
+                  Navigator.pop(context, parsed);
+                }
+              },
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final amount in const [1000.0, 1500.0, 1800.0, 2500.0, 3000.0])
+                  SoftPill(
+                    label: NumberFormat.simpleCurrency().format(amount),
+                    selected: current == amount,
+                    onTap: () => Navigator.pop(context, amount),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            FilledButton(
+              onPressed: () {
+                final parsed = double.tryParse(controller.text.trim());
+                if (parsed == null || parsed <= 0) return;
+                Navigator.pop(context, parsed);
+              },
+              child: const Text('Save budget'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (result == null) return;
+    await ref.read(expenseRepositoryProvider).setMonthBudget(result);
+    await syncAfterWrite(ref, context: context);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Month budget set to ${NumberFormat.simpleCurrency().format(result)}',
+        ),
+      ),
+    );
   }
 
   static Future<void> showExpenseSheet(
@@ -325,6 +538,61 @@ class ExpensesScreen extends ConsumerWidget {
     }
     await ref.read(notificationServiceProvider).rescheduleBillReminders();
     await syncAfterWrite(ref, context: context);
+  }
+}
+
+class _BillTile extends StatelessWidget {
+  const _BillTile({
+    required this.bill,
+    required this.currency,
+    required this.onOpen,
+    required this.onToggle,
+  });
+
+  final Bill bill;
+  final NumberFormat currency;
+  final VoidCallback onOpen;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final overdue = ExpensesScreen._isOverdue(bill);
+    return ListTile(
+      onTap: onOpen,
+      leading: IconButton(
+        tooltip: bill.paid ? 'Mark unpaid' : 'Mark paid',
+        onPressed: onToggle,
+        icon: Icon(
+          bill.paid ? Icons.check_circle_rounded : Icons.schedule_rounded,
+          color: bill.paid
+              ? AppColors.tileGreen
+              : overdue
+                  ? AppColors.danger
+                  : AppColors.tileOrange,
+        ),
+      ),
+      title: Text(
+        bill.title,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: overdue ? AppColors.danger : AppColors.ink,
+        ),
+      ),
+      subtitle: Text(
+        ExpensesScreen._dueLabel(bill),
+        style: TextStyle(
+          fontWeight: overdue ? FontWeight.w700 : FontWeight.w500,
+          color: overdue ? AppColors.danger : AppColors.inkMuted,
+        ),
+      ),
+      trailing: Text(
+        currency.format(bill.amount),
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: overdue ? AppColors.danger : AppColors.ink,
+        ),
+      ),
+    );
   }
 }
 

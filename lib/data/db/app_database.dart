@@ -278,6 +278,18 @@ class GroceryHabits extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// Per-nest settings (month budget, etc.). Cleared with household data on nest bind.
+class NestSettings extends Table {
+  /// Same as nest id — one row per nest.
+  TextColumn get id => text()();
+  RealColumn get monthBudget => real().withDefault(const Constant(1800.0))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     NestMembers,
@@ -296,13 +308,14 @@ class GroceryHabits extends Table {
     CareProfiles,
     SchoolActivities,
     GroceryHabits,
+    NestSettings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -380,6 +393,9 @@ class AppDatabase extends _$AppDatabase {
               "AND local_path IS NOT NULL AND local_path != '' "
               "AND nest_id IS NOT NULL AND nest_id != ''",
             );
+          }
+          if (from < 12) {
+            await _createTableIfMissing(m, nestSettings);
           }
         },
       );
@@ -466,6 +482,7 @@ class AppDatabase extends _$AppDatabase {
       b.deleteAll(schoolActivities);
       b.deleteAll(groceryHabits);
       b.deleteAll(nestMembers);
+      b.deleteAll(nestSettings);
     });
   }
 

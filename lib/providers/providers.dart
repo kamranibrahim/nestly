@@ -106,6 +106,15 @@ final monthSpendProvider = StreamProvider<double>((ref) {
   return ref.watch(expenseRepositoryProvider).watchMonthTotal();
 });
 
+final monthBudgetProvider = StreamProvider<double>((ref) {
+  return ref.watch(expenseRepositoryProvider).watchMonthBudget();
+});
+
+final monthCategoryTotalsProvider =
+    StreamProvider<List<({String category, double total})>>((ref) {
+  return ref.watch(expenseRepositoryProvider).watchMonthCategoryTotals();
+});
+
 final billsProvider = StreamProvider<List<Bill>>((ref) {
   return ref.watch(billRepositoryProvider).watchAll();
 });

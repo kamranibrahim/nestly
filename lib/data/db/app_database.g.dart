@@ -9737,6 +9737,317 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
   }
 }
 
+class $NestSettingsTable extends NestSettings
+    with TableInfo<$NestSettingsTable, NestSetting> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NestSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _monthBudgetMeta = const VerificationMeta(
+    'monthBudget',
+  );
+  @override
+  late final GeneratedColumn<double> monthBudget = GeneratedColumn<double>(
+    'month_budget',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1800.0),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, monthBudget, dirty, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'nest_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NestSetting> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('month_budget')) {
+      context.handle(
+        _monthBudgetMeta,
+        monthBudget.isAcceptableOrUnknown(
+          data['month_budget']!,
+          _monthBudgetMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  NestSetting map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NestSetting(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      monthBudget: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}month_budget'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $NestSettingsTable createAlias(String alias) {
+    return $NestSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class NestSetting extends DataClass implements Insertable<NestSetting> {
+  /// Same as nest id — one row per nest.
+  final String id;
+  final double monthBudget;
+  final bool dirty;
+  final DateTime updatedAt;
+  const NestSetting({
+    required this.id,
+    required this.monthBudget,
+    required this.dirty,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['month_budget'] = Variable<double>(monthBudget);
+    map['dirty'] = Variable<bool>(dirty);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  NestSettingsCompanion toCompanion(bool nullToAbsent) {
+    return NestSettingsCompanion(
+      id: Value(id),
+      monthBudget: Value(monthBudget),
+      dirty: Value(dirty),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory NestSetting.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NestSetting(
+      id: serializer.fromJson<String>(json['id']),
+      monthBudget: serializer.fromJson<double>(json['monthBudget']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'monthBudget': serializer.toJson<double>(monthBudget),
+      'dirty': serializer.toJson<bool>(dirty),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  NestSetting copyWith({
+    String? id,
+    double? monthBudget,
+    bool? dirty,
+    DateTime? updatedAt,
+  }) => NestSetting(
+    id: id ?? this.id,
+    monthBudget: monthBudget ?? this.monthBudget,
+    dirty: dirty ?? this.dirty,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  NestSetting copyWithCompanion(NestSettingsCompanion data) {
+    return NestSetting(
+      id: data.id.present ? data.id.value : this.id,
+      monthBudget: data.monthBudget.present
+          ? data.monthBudget.value
+          : this.monthBudget,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NestSetting(')
+          ..write('id: $id, ')
+          ..write('monthBudget: $monthBudget, ')
+          ..write('dirty: $dirty, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, monthBudget, dirty, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NestSetting &&
+          other.id == this.id &&
+          other.monthBudget == this.monthBudget &&
+          other.dirty == this.dirty &&
+          other.updatedAt == this.updatedAt);
+}
+
+class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
+  final Value<String> id;
+  final Value<double> monthBudget;
+  final Value<bool> dirty;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const NestSettingsCompanion({
+    this.id = const Value.absent(),
+    this.monthBudget = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NestSettingsCompanion.insert({
+    required String id,
+    this.monthBudget = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<NestSetting> custom({
+    Expression<String>? id,
+    Expression<double>? monthBudget,
+    Expression<bool>? dirty,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (monthBudget != null) 'month_budget': monthBudget,
+      if (dirty != null) 'dirty': dirty,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NestSettingsCompanion copyWith({
+    Value<String>? id,
+    Value<double>? monthBudget,
+    Value<bool>? dirty,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return NestSettingsCompanion(
+      id: id ?? this.id,
+      monthBudget: monthBudget ?? this.monthBudget,
+      dirty: dirty ?? this.dirty,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (monthBudget.present) {
+      map['month_budget'] = Variable<double>(monthBudget.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NestSettingsCompanion(')
+          ..write('id: $id, ')
+          ..write('monthBudget: $monthBudget, ')
+          ..write('dirty: $dirty, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -9760,6 +10071,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $GroceryHabitsTable groceryHabits = $GroceryHabitsTable(this);
+  late final $NestSettingsTable nestSettings = $NestSettingsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -9781,6 +10093,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     careProfiles,
     schoolActivities,
     groceryHabits,
+    nestSettings,
   ];
 }
 
@@ -14801,6 +15114,189 @@ typedef $$GroceryHabitsTableProcessedTableManager =
       GroceryHabit,
       PrefetchHooks Function()
     >;
+typedef $$NestSettingsTableCreateCompanionBuilder =
+    NestSettingsCompanion Function({
+      required String id,
+      Value<double> monthBudget,
+      Value<bool> dirty,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$NestSettingsTableUpdateCompanionBuilder =
+    NestSettingsCompanion Function({
+      Value<String> id,
+      Value<double> monthBudget,
+      Value<bool> dirty,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$NestSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $NestSettingsTable> {
+  $$NestSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get monthBudget => $composableBuilder(
+    column: $table.monthBudget,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NestSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $NestSettingsTable> {
+  $$NestSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get monthBudget => $composableBuilder(
+    column: $table.monthBudget,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NestSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NestSettingsTable> {
+  $$NestSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<double> get monthBudget => $composableBuilder(
+    column: $table.monthBudget,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$NestSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NestSettingsTable,
+          NestSetting,
+          $$NestSettingsTableFilterComposer,
+          $$NestSettingsTableOrderingComposer,
+          $$NestSettingsTableAnnotationComposer,
+          $$NestSettingsTableCreateCompanionBuilder,
+          $$NestSettingsTableUpdateCompanionBuilder,
+          (
+            NestSetting,
+            BaseReferences<_$AppDatabase, $NestSettingsTable, NestSetting>,
+          ),
+          NestSetting,
+          PrefetchHooks Function()
+        > {
+  $$NestSettingsTableTableManager(_$AppDatabase db, $NestSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NestSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NestSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NestSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<double> monthBudget = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NestSettingsCompanion(
+                id: id,
+                monthBudget: monthBudget,
+                dirty: dirty,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<double> monthBudget = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NestSettingsCompanion.insert(
+                id: id,
+                monthBudget: monthBudget,
+                dirty: dirty,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NestSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NestSettingsTable,
+      NestSetting,
+      $$NestSettingsTableFilterComposer,
+      $$NestSettingsTableOrderingComposer,
+      $$NestSettingsTableAnnotationComposer,
+      $$NestSettingsTableCreateCompanionBuilder,
+      $$NestSettingsTableUpdateCompanionBuilder,
+      (
+        NestSetting,
+        BaseReferences<_$AppDatabase, $NestSettingsTable, NestSetting>,
+      ),
+      NestSetting,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -14837,4 +15333,6 @@ class $AppDatabaseManager {
       $$SchoolActivitiesTableTableManager(_db, _db.schoolActivities);
   $$GroceryHabitsTableTableManager get groceryHabits =>
       $$GroceryHabitsTableTableManager(_db, _db.groceryHabits);
+  $$NestSettingsTableTableManager get nestSettings =>
+      $$NestSettingsTableTableManager(_db, _db.nestSettings);
 }

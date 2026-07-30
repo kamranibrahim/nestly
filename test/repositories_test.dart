@@ -353,6 +353,62 @@ void main() {
     expect(updated.nextAt.month, 8);
   });
 
+  test('month budget persists per nest and defaults to 1800', () async {
+    await database.setMeta('nestId', 'nest-budget');
+    final expenses = ExpenseRepository(database);
+
+    expect(await expenses.getMonthBudget(), 1800);
+
+    await expenses.setMonthBudget(2200);
+    expect(await expenses.getMonthBudget(), 2200);
+    expect(await expenses.watchMonthBudget().first, 2200);
+
+    await expenses.addExpense(
+      title: 'Week7 milk',
+      amount: 40,
+      category: 'W7Groceries',
+    );
+    await expenses.addExpense(
+      title: 'Week7 gas',
+      amount: 30,
+      category: 'W7Transport',
+    );
+    final totals = await expenses.watchMonthCategoryTotals().first;
+    final byCat = {for (final t in totals) t.category: t.total};
+    expect(byCat['W7Groceries'], 40);
+    expect(byCat['W7Transport'], 30);
+    expect(totals.first.total, greaterThanOrEqualTo(totals.last.total));
+  });
+
+  test('bills sort overdue unpaid before later dues and paid', () async {
+    final bills = BillRepository(database);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    await bills.addBill(
+      title: 'Paid net',
+      amount: 10,
+      dueAt: today.subtract(const Duration(days: 2)),
+    );
+    final paid = (await bills.watchAll().first).first;
+    await bills.togglePaid(paid);
+
+    await bills.addBill(
+      title: 'Future',
+      amount: 20,
+      dueAt: today.add(const Duration(days: 5)),
+    );
+    await bills.addBill(
+      title: 'Overdue power',
+      amount: 90,
+      dueAt: today.subtract(const Duration(days: 3)),
+    );
+
+    final ordered = await bills.watchAll().first;
+    expect(ordered.first.title, 'Overdue power');
+    expect(ordered.last.paid, isTrue);
+  });
+
   test('expenses and bills can be updated and deleted', () async {
     final expenses = ExpenseRepository(database);
     final bills = BillRepository(database);

@@ -363,6 +363,8 @@ class SyncService {
       await _pullExpenses(nestId);
       await _pushBills(nestId);
       await _pullBills(nestId);
+      await _pushNestSettings(nestId);
+      await _pullNestSettings(nestId);
       await _pushEmergency(nestId);
       await _pullEmergency(nestId);
       await _pushVault(nestId);
@@ -772,6 +774,47 @@ class SyncService {
             ),
           );
     }
+  }
+
+  Future<void> _pushNestSettings(String nestId) async {
+    final row = await (_db.select(_db.nestSettings)
+          ..where((s) => s.id.equals(nestId)))
+        .getSingleOrNull();
+    if (row == null || !row.dirty) return;
+    await _firestore.collection('nests').doc(nestId).set(
+      {
+        'monthBudget': row.monthBudget,
+        'budgetUpdatedAt': Timestamp.fromDate(row.updatedAt),
+      },
+      SetOptions(merge: true),
+    );
+    await (_db.update(_db.nestSettings)..where((s) => s.id.equals(nestId)))
+        .write(const NestSettingsCompanion(dirty: Value(false)));
+  }
+
+  Future<void> _pullNestSettings(String nestId) async {
+    final snap = await _firestore.collection('nests').doc(nestId).get();
+    final data = snap.data();
+    if (data == null || data['monthBudget'] == null) return;
+    final remoteUpdated =
+        (data['budgetUpdatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final local = await (_db.select(_db.nestSettings)
+          ..where((s) => s.id.equals(nestId)))
+        .getSingleOrNull();
+    if (local != null &&
+        (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+      return;
+    }
+    final budget = (data['monthBudget'] as num?)?.toDouble() ??
+        ExpenseRepository.defaultMonthBudget;
+    await _db.into(_db.nestSettings).insertOnConflictUpdate(
+          NestSettingsCompanion.insert(
+            id: nestId,
+            monthBudget: Value(budget),
+            dirty: const Value(false),
+            updatedAt: Value(remoteUpdated),
+          ),
+        );
   }
 
   Future<void> _pushEmergency(String nestId) async {
