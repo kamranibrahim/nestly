@@ -9764,6 +9764,21 @@ class $NestSettingsTable extends NestSettings
     requiredDuringInsert: false,
     defaultValue: const Constant(1800.0),
   );
+  static const VerificationMeta _tomorrowPreviewEnabledMeta =
+      const VerificationMeta('tomorrowPreviewEnabled');
+  @override
+  late final GeneratedColumn<bool> tomorrowPreviewEnabled =
+      GeneratedColumn<bool>(
+        'tomorrow_preview_enabled',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("tomorrow_preview_enabled" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
   late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
@@ -9790,7 +9805,13 @@ class $NestSettingsTable extends NestSettings
     defaultValue: currentDateAndTime,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, monthBudget, dirty, updatedAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    monthBudget,
+    tomorrowPreviewEnabled,
+    dirty,
+    updatedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -9814,6 +9835,15 @@ class $NestSettingsTable extends NestSettings
         monthBudget.isAcceptableOrUnknown(
           data['month_budget']!,
           _monthBudgetMeta,
+        ),
+      );
+    }
+    if (data.containsKey('tomorrow_preview_enabled')) {
+      context.handle(
+        _tomorrowPreviewEnabledMeta,
+        tomorrowPreviewEnabled.isAcceptableOrUnknown(
+          data['tomorrow_preview_enabled']!,
+          _tomorrowPreviewEnabledMeta,
         ),
       );
     }
@@ -9846,6 +9876,10 @@ class $NestSettingsTable extends NestSettings
         DriftSqlType.double,
         data['${effectivePrefix}month_budget'],
       )!,
+      tomorrowPreviewEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tomorrow_preview_enabled'],
+      )!,
       dirty: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
@@ -9867,11 +9901,13 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
   /// Same as nest id — one row per nest.
   final String id;
   final double monthBudget;
+  final bool tomorrowPreviewEnabled;
   final bool dirty;
   final DateTime updatedAt;
   const NestSetting({
     required this.id,
     required this.monthBudget,
+    required this.tomorrowPreviewEnabled,
     required this.dirty,
     required this.updatedAt,
   });
@@ -9880,6 +9916,7 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['month_budget'] = Variable<double>(monthBudget);
+    map['tomorrow_preview_enabled'] = Variable<bool>(tomorrowPreviewEnabled);
     map['dirty'] = Variable<bool>(dirty);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -9889,6 +9926,7 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
     return NestSettingsCompanion(
       id: Value(id),
       monthBudget: Value(monthBudget),
+      tomorrowPreviewEnabled: Value(tomorrowPreviewEnabled),
       dirty: Value(dirty),
       updatedAt: Value(updatedAt),
     );
@@ -9902,6 +9940,9 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
     return NestSetting(
       id: serializer.fromJson<String>(json['id']),
       monthBudget: serializer.fromJson<double>(json['monthBudget']),
+      tomorrowPreviewEnabled: serializer.fromJson<bool>(
+        json['tomorrowPreviewEnabled'],
+      ),
       dirty: serializer.fromJson<bool>(json['dirty']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -9912,6 +9953,7 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'monthBudget': serializer.toJson<double>(monthBudget),
+      'tomorrowPreviewEnabled': serializer.toJson<bool>(tomorrowPreviewEnabled),
       'dirty': serializer.toJson<bool>(dirty),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -9920,11 +9962,14 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
   NestSetting copyWith({
     String? id,
     double? monthBudget,
+    bool? tomorrowPreviewEnabled,
     bool? dirty,
     DateTime? updatedAt,
   }) => NestSetting(
     id: id ?? this.id,
     monthBudget: monthBudget ?? this.monthBudget,
+    tomorrowPreviewEnabled:
+        tomorrowPreviewEnabled ?? this.tomorrowPreviewEnabled,
     dirty: dirty ?? this.dirty,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -9934,6 +9979,9 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
       monthBudget: data.monthBudget.present
           ? data.monthBudget.value
           : this.monthBudget,
+      tomorrowPreviewEnabled: data.tomorrowPreviewEnabled.present
+          ? data.tomorrowPreviewEnabled.value
+          : this.tomorrowPreviewEnabled,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -9944,6 +9992,7 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
     return (StringBuffer('NestSetting(')
           ..write('id: $id, ')
           ..write('monthBudget: $monthBudget, ')
+          ..write('tomorrowPreviewEnabled: $tomorrowPreviewEnabled, ')
           ..write('dirty: $dirty, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -9951,13 +10000,15 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
   }
 
   @override
-  int get hashCode => Object.hash(id, monthBudget, dirty, updatedAt);
+  int get hashCode =>
+      Object.hash(id, monthBudget, tomorrowPreviewEnabled, dirty, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is NestSetting &&
           other.id == this.id &&
           other.monthBudget == this.monthBudget &&
+          other.tomorrowPreviewEnabled == this.tomorrowPreviewEnabled &&
           other.dirty == this.dirty &&
           other.updatedAt == this.updatedAt);
 }
@@ -9965,12 +10016,14 @@ class NestSetting extends DataClass implements Insertable<NestSetting> {
 class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
   final Value<String> id;
   final Value<double> monthBudget;
+  final Value<bool> tomorrowPreviewEnabled;
   final Value<bool> dirty;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const NestSettingsCompanion({
     this.id = const Value.absent(),
     this.monthBudget = const Value.absent(),
+    this.tomorrowPreviewEnabled = const Value.absent(),
     this.dirty = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -9978,6 +10031,7 @@ class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
   NestSettingsCompanion.insert({
     required String id,
     this.monthBudget = const Value.absent(),
+    this.tomorrowPreviewEnabled = const Value.absent(),
     this.dirty = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -9985,6 +10039,7 @@ class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
   static Insertable<NestSetting> custom({
     Expression<String>? id,
     Expression<double>? monthBudget,
+    Expression<bool>? tomorrowPreviewEnabled,
     Expression<bool>? dirty,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -9992,6 +10047,8 @@ class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (monthBudget != null) 'month_budget': monthBudget,
+      if (tomorrowPreviewEnabled != null)
+        'tomorrow_preview_enabled': tomorrowPreviewEnabled,
       if (dirty != null) 'dirty': dirty,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -10001,6 +10058,7 @@ class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
   NestSettingsCompanion copyWith({
     Value<String>? id,
     Value<double>? monthBudget,
+    Value<bool>? tomorrowPreviewEnabled,
     Value<bool>? dirty,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -10008,6 +10066,8 @@ class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
     return NestSettingsCompanion(
       id: id ?? this.id,
       monthBudget: monthBudget ?? this.monthBudget,
+      tomorrowPreviewEnabled:
+          tomorrowPreviewEnabled ?? this.tomorrowPreviewEnabled,
       dirty: dirty ?? this.dirty,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -10022,6 +10082,11 @@ class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
     }
     if (monthBudget.present) {
       map['month_budget'] = Variable<double>(monthBudget.value);
+    }
+    if (tomorrowPreviewEnabled.present) {
+      map['tomorrow_preview_enabled'] = Variable<bool>(
+        tomorrowPreviewEnabled.value,
+      );
     }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
@@ -10040,6 +10105,7 @@ class NestSettingsCompanion extends UpdateCompanion<NestSetting> {
     return (StringBuffer('NestSettingsCompanion(')
           ..write('id: $id, ')
           ..write('monthBudget: $monthBudget, ')
+          ..write('tomorrowPreviewEnabled: $tomorrowPreviewEnabled, ')
           ..write('dirty: $dirty, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -15118,6 +15184,7 @@ typedef $$NestSettingsTableCreateCompanionBuilder =
     NestSettingsCompanion Function({
       required String id,
       Value<double> monthBudget,
+      Value<bool> tomorrowPreviewEnabled,
       Value<bool> dirty,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -15126,6 +15193,7 @@ typedef $$NestSettingsTableUpdateCompanionBuilder =
     NestSettingsCompanion Function({
       Value<String> id,
       Value<double> monthBudget,
+      Value<bool> tomorrowPreviewEnabled,
       Value<bool> dirty,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -15147,6 +15215,11 @@ class $$NestSettingsTableFilterComposer
 
   ColumnFilters<double> get monthBudget => $composableBuilder(
     column: $table.monthBudget,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get tomorrowPreviewEnabled => $composableBuilder(
+    column: $table.tomorrowPreviewEnabled,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15180,6 +15253,11 @@ class $$NestSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get tomorrowPreviewEnabled => $composableBuilder(
+    column: $table.tomorrowPreviewEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get dirty => $composableBuilder(
     column: $table.dirty,
     builder: (column) => ColumnOrderings(column),
@@ -15205,6 +15283,11 @@ class $$NestSettingsTableAnnotationComposer
 
   GeneratedColumn<double> get monthBudget => $composableBuilder(
     column: $table.monthBudget,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get tomorrowPreviewEnabled => $composableBuilder(
+    column: $table.tomorrowPreviewEnabled,
     builder: (column) => column,
   );
 
@@ -15248,12 +15331,14 @@ class $$NestSettingsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<double> monthBudget = const Value.absent(),
+                Value<bool> tomorrowPreviewEnabled = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NestSettingsCompanion(
                 id: id,
                 monthBudget: monthBudget,
+                tomorrowPreviewEnabled: tomorrowPreviewEnabled,
                 dirty: dirty,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -15262,12 +15347,14 @@ class $$NestSettingsTableTableManager
               ({
                 required String id,
                 Value<double> monthBudget = const Value.absent(),
+                Value<bool> tomorrowPreviewEnabled = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NestSettingsCompanion.insert(
                 id: id,
                 monthBudget: monthBudget,
+                tomorrowPreviewEnabled: tomorrowPreviewEnabled,
                 dirty: dirty,
                 updatedAt: updatedAt,
                 rowid: rowid,

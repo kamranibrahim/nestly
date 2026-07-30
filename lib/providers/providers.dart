@@ -85,8 +85,7 @@ final openShoppingCountProvider = StreamProvider<int>((ref) {
   return ref.watch(shoppingRepositoryProvider).watchOpenCount();
 });
 
-final grocerySuggestionsProvider =
-    StreamProvider<List<GroceryHabit>>((ref) {
+final grocerySuggestionsProvider = StreamProvider<List<GroceryHabit>>((ref) {
   return ref.watch(shoppingRepositoryProvider).watchSuggestions();
 });
 
@@ -110,10 +109,14 @@ final monthBudgetProvider = StreamProvider<double>((ref) {
   return ref.watch(expenseRepositoryProvider).watchMonthBudget();
 });
 
+final tomorrowPreviewEnabledProvider = StreamProvider<bool>((ref) {
+  return ref.watch(expenseRepositoryProvider).watchTomorrowPreviewEnabled();
+});
+
 final monthCategoryTotalsProvider =
     StreamProvider<List<({String category, double total})>>((ref) {
-  return ref.watch(expenseRepositoryProvider).watchMonthCategoryTotals();
-});
+      return ref.watch(expenseRepositoryProvider).watchMonthCategoryTotals();
+    });
 
 final billsProvider = StreamProvider<List<Bill>>((ref) {
   return ref.watch(billRepositoryProvider).watchAll();
@@ -137,8 +140,8 @@ final vaultCountProvider = StreamProvider<int>((ref) {
 
 final vaultDocumentsProvider =
     StreamProvider.family<List<VaultDocument>, String>((ref, category) {
-  return ref.watch(vaultRepositoryProvider).watchAll(category: category);
-});
+      return ref.watch(vaultRepositoryProvider).watchAll(category: category);
+    });
 
 final vaultExpiringSoonProvider = StreamProvider<List<VaultDocument>>((ref) {
   return ref.watch(vaultRepositoryProvider).watchExpiringSoon();
@@ -180,8 +183,7 @@ final careDueCountProvider = StreamProvider<int>((ref) {
   return ref.watch(careRepositoryProvider).watchDueCount();
 });
 
-final schoolActivitiesProvider =
-    StreamProvider<List<SchoolActivity>>((ref) {
+final schoolActivitiesProvider = StreamProvider<List<SchoolActivity>>((ref) {
   return ref.watch(schoolRepositoryProvider).watchAll();
 });
 

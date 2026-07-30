@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/auth_errors.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/invite_family_sheet.dart';
 import '../../widgets/shimmer.dart';
 
 /// Fast onboarding: one screen, sensible defaults, under ~30 seconds.
@@ -28,11 +29,14 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = ref.read(authRepositoryProvider).currentUser;
-      if (_memberName.text.isEmpty && (user?.displayName?.isNotEmpty ?? false)) {
+      if (_memberName.text.isEmpty &&
+          (user?.displayName?.isNotEmpty ?? false)) {
         _memberName.text = user!.displayName!;
       }
       final email = user?.email;
-      if (_nestName.text == 'Our Nest' && email != null && email.contains('@')) {
+      if (_nestName.text == 'Our Nest' &&
+          email != null &&
+          email.contains('@')) {
         final local = email.split('@').first;
         if (local.isNotEmpty) {
           _nestName.text =
@@ -50,6 +54,24 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
     super.dispose();
   }
 
+  Future<void> _pasteInviteCode() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final pasted = data?.text;
+    if (pasted == null || pasted.trim().isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Clipboard is empty')));
+      return;
+    }
+    final code = normalizeInviteCode(pasted);
+    setState(() {
+      _inviteCode.text = code;
+      _inviteCode.selection = TextSelection.collapsed(offset: code.length);
+      _error = null;
+    });
+  }
+
   Future<void> _submit() async {
     setState(() {
       _busy = true;
@@ -61,11 +83,9 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
       final name = _memberName.text.trim().isEmpty
           ? 'Parent'
           : _memberName.text.trim();
+      final created = !_joining;
       final nest = _joining
-          ? await auth.joinNest(
-              inviteCode: _inviteCode.text,
-              memberName: name,
-            )
+          ? await auth.joinNest(inviteCode: _inviteCode.text, memberName: name)
           : await auth.createNest(
               nestName: _nestName.text.trim().isEmpty
                   ? 'Our Nest'
@@ -82,6 +102,14 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
       } catch (e, st) {
         // Nest is already created — don't block entry on FCM / permission issues.
         debugPrint('Notification init skipped after nest setup: $e\n$st');
+      }
+      if (created && mounted) {
+        await showInviteFamilySheet(
+          context,
+          inviteCode: nest.inviteCode,
+          nestName: nest.name,
+          isPostCreate: true,
+        );
       }
       ref.invalidate(nestInfoProvider);
     } catch (e, st) {
@@ -110,7 +138,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
         children: [
           Text(
             _joining
-                ? 'Enter the 6-character code from your family.'
+                ? 'Paste or type the 6-character code from your family.'
                 : 'Create your household nest — calendars, lists, and tasks stay in sync.',
             style: const TextStyle(
               color: AppColors.inkSecondary,
@@ -128,11 +156,30 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
             TextField(
               controller: _inviteCode,
               textCapitalization: TextCapitalization.characters,
+              textInputAction: TextInputAction.done,
+              autocorrect: false,
+              enableSuggestions: false,
+              onChanged: (value) {
+                final normalized = normalizeInviteCode(value);
+                if (normalized == value) return;
+                _inviteCode.value = TextEditingValue(
+                  text: normalized,
+                  selection: TextSelection.collapsed(offset: normalized.length),
+                );
+              },
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
                 LengthLimitingTextInputFormatter(6),
               ],
-              decoration: const InputDecoration(labelText: 'Invite code'),
+              decoration: InputDecoration(
+                labelText: 'Invite code',
+                hintText: 'ABC123',
+                suffixIcon: IconButton(
+                  tooltip: 'Paste',
+                  onPressed: _busy ? null : _pasteInviteCode,
+                  icon: const Icon(Icons.content_paste_rounded),
+                ),
+              ),
             )
           else
             TextField(
@@ -166,13 +213,11 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
             onPressed: _busy
                 ? null
                 : () => setState(() {
-                      _joining = !_joining;
-                      _error = null;
-                    }),
+                    _joining = !_joining;
+                    _error = null;
+                  }),
             child: Text(
-              _joining
-                  ? 'Create a new nest instead'
-                  : 'Have an invite code?',
+              _joining ? 'Create a new nest instead' : 'Have an invite code?',
             ),
           ),
         ],

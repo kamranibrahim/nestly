@@ -8,11 +8,7 @@ import 'db/app_database.dart';
 
 /// UI-facing sync state (last sync time, in-flight, last error).
 class SyncUiState {
-  const SyncUiState({
-    this.isSyncing = false,
-    this.lastSyncAt,
-    this.lastError,
-  });
+  const SyncUiState({this.isSyncing = false, this.lastSyncAt, this.lastError});
 
   final bool isSyncing;
   final DateTime? lastSyncAt;
@@ -66,10 +62,7 @@ class SyncController extends StateNotifier<SyncUiState> {
   ///
   /// Returns `true` on success. When [quiet] is false and [context] is mounted,
   /// shows a SnackBar on failure.
-  Future<bool> syncNow({
-    BuildContext? context,
-    bool quiet = false,
-  }) {
+  Future<bool> syncNow({BuildContext? context, bool quiet = false}) {
     final existing = _inFlight;
     if (existing != null) return existing;
 
@@ -82,10 +75,7 @@ class SyncController extends StateNotifier<SyncUiState> {
     });
   }
 
-  Future<bool> _run({
-    BuildContext? context,
-    required bool quiet,
-  }) async {
+  Future<bool> _run({BuildContext? context, required bool quiet}) async {
     if (!mounted) return false;
     state = state.copyWith(isSyncing: true, clearError: true);
     try {
@@ -96,6 +86,11 @@ class SyncController extends StateNotifier<SyncUiState> {
         debugPrint('Vault retry skipped: $e');
       }
       await _ref.read(syncServiceProvider).syncAll();
+      try {
+        await _ref.read(notificationServiceProvider).rescheduleReminders();
+      } catch (e) {
+        debugPrint('Reminder reschedule skipped: $e');
+      }
       final at = DateTime.now();
       if (!mounted) return true;
       state = SyncUiState(isSyncing: false, lastSyncAt: at);
@@ -106,9 +101,9 @@ class SyncController extends StateNotifier<SyncUiState> {
         state = state.copyWith(isSyncing: false, lastError: message);
       }
       if (!quiet && context != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
       return false;
     }
@@ -133,8 +128,8 @@ class SyncController extends StateNotifier<SyncUiState> {
 
 final syncControllerProvider =
     StateNotifierProvider<SyncController, SyncUiState>((ref) {
-  return SyncController(ref);
-});
+      return SyncController(ref);
+    });
 
 /// After a local write: push to cloud and SnackBar on fail (unless [quiet]).
 Future<bool> syncAfterWrite(
@@ -142,10 +137,9 @@ Future<bool> syncAfterWrite(
   BuildContext? context,
   bool quiet = false,
 }) {
-  return ref.read(syncControllerProvider.notifier).syncNow(
-        context: context,
-        quiet: quiet,
-      );
+  return ref
+      .read(syncControllerProvider.notifier)
+      .syncNow(context: context, quiet: quiet);
 }
 
 /// Relative label for Nest / banner (“Just now”, “5m ago”, …).

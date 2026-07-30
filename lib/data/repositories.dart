@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
+import 'home_tips.dart';
 import 'member_roles.dart';
 import 'vault_upload_status.dart';
 
@@ -47,6 +48,7 @@ class TaskRepository {
         message: 'Completed "${task.title}" · next $nextLabel',
         memberName: 'You',
       );
+      await maybeLogFirstSharedCheckoff(_db, kind: 'task');
       return;
     }
 
@@ -58,10 +60,10 @@ class TaskRepository {
       ),
     );
     if (markingDone) {
-      await TimelineRepository(_db).add(
-        message: 'Completed "${task.title}"',
-        memberName: 'You',
-      );
+      await TimelineRepository(
+        _db,
+      ).add(message: 'Completed "${task.title}"', memberName: 'You');
+      await maybeLogFirstSharedCheckoff(_db, kind: 'task');
     }
   }
 
@@ -87,9 +89,10 @@ class TaskRepository {
     String? nestId,
   }) async {
     final now = DateTime.now();
-    final resolvedNest =
-        nestId ?? await _db.getMeta('nestId');
-    await _db.into(_db.tasks).insert(
+    final resolvedNest = nestId ?? await _db.getMeta('nestId');
+    await _db
+        .into(_db.tasks)
+        .insert(
           TasksCompanion.insert(
             id: _uuid.v4(),
             nestId: Value(resolvedNest),
@@ -146,9 +149,7 @@ class ShoppingRepository {
 
   Stream<List<ShoppingItem>> watchItems({String listId = defaultListId}) {
     return (_db.select(_db.shoppingItems)
-          ..where(
-            (i) => i.listId.equals(listId) & i.deleted.equals(false),
-          )
+          ..where((i) => i.listId.equals(listId) & i.deleted.equals(false))
           ..orderBy([
             (i) => OrderingTerm(expression: i.done),
             (i) => OrderingTerm(expression: i.sortOrder),
@@ -169,37 +170,33 @@ class ShoppingRepository {
   }
 
   /// Habits ready to restock: bought 2+ times, past learned cadence, not open.
-  Stream<List<GroceryHabit>> watchSuggestions({
-    String listId = defaultListId,
-  }) {
+  Stream<List<GroceryHabit>> watchSuggestions({String listId = defaultListId}) {
     return _db.select(_db.groceryHabits).watch().asyncMap((habits) async {
-      final open = await (_db.select(_db.shoppingItems)
-            ..where(
-              (i) =>
-                  i.listId.equals(listId) &
-                  i.deleted.equals(false) &
-                  i.done.equals(false),
-            ))
-          .get();
-      final openNames = {
-        for (final i in open) normalizeName(i.name),
-      };
+      final open =
+          await (_db.select(_db.shoppingItems)..where(
+                (i) =>
+                    i.listId.equals(listId) &
+                    i.deleted.equals(false) &
+                    i.done.equals(false),
+              ))
+              .get();
+      final openNames = {for (final i in open) normalizeName(i.name)};
       final now = DateTime.now();
-      final due = habits.where((h) {
-        if (h.buyCount < 2) return false;
-        if (openNames.contains(h.id)) return false;
-        final staleDays = h.cadenceDays.clamp(2, 60);
-        return now.difference(h.lastBoughtAt).inDays >= staleDays;
-      }).toList()
-        ..sort((a, b) {
-          final aOverdue =
-              now.difference(a.lastBoughtAt).inDays - a.cadenceDays;
-          final bOverdue =
-              now.difference(b.lastBoughtAt).inDays - b.cadenceDays;
-          final byOverdue = bOverdue.compareTo(aOverdue);
-          if (byOverdue != 0) return byOverdue;
-          return b.buyCount.compareTo(a.buyCount);
-        });
+      final due =
+          habits.where((h) {
+            if (h.buyCount < 2) return false;
+            if (openNames.contains(h.id)) return false;
+            final staleDays = h.cadenceDays.clamp(2, 60);
+            return now.difference(h.lastBoughtAt).inDays >= staleDays;
+          }).toList()..sort((a, b) {
+            final aOverdue =
+                now.difference(a.lastBoughtAt).inDays - a.cadenceDays;
+            final bOverdue =
+                now.difference(b.lastBoughtAt).inDays - b.cadenceDays;
+            final byOverdue = bOverdue.compareTo(aOverdue);
+            if (byOverdue != 0) return byOverdue;
+            return b.buyCount.compareTo(a.buyCount);
+          });
       return due.take(8).toList();
     });
   }
@@ -220,9 +217,9 @@ class ShoppingRepository {
 
   Future<void> toggleDone(ShoppingItem item) async {
     final markingDone = !item.done;
-    await (_db.update(_db.shoppingItems)
-          ..where((i) => i.id.equals(item.id)))
-        .write(
+    await (_db.update(
+      _db.shoppingItems,
+    )..where((i) => i.id.equals(item.id))).write(
       ShoppingItemsCompanion(
         done: Value(markingDone),
         dirty: const Value(true),
@@ -231,10 +228,10 @@ class ShoppingRepository {
     );
     if (markingDone) {
       await _recordPurchase(item);
-      await TimelineRepository(_db).add(
-        message: 'Checked off ${item.name}',
-        memberName: 'You',
-      );
+      await TimelineRepository(
+        _db,
+      ).add(message: 'Checked off ${item.name}', memberName: 'You');
+      await maybeLogFirstSharedCheckoff(_db, kind: 'shopping');
     }
   }
 
@@ -242,11 +239,13 @@ class ShoppingRepository {
     final key = normalizeName(item.name);
     if (key.isEmpty) return;
     final now = DateTime.now();
-    final existing = await (_db.select(_db.groceryHabits)
-          ..where((h) => h.id.equals(key)))
-        .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.groceryHabits,
+    )..where((h) => h.id.equals(key))).getSingleOrNull();
     if (existing == null) {
-      await _db.into(_db.groceryHabits).insert(
+      await _db
+          .into(_db.groceryHabits)
+          .insert(
             GroceryHabitsCompanion.insert(
               id: key,
               name: item.name.trim(),
@@ -265,8 +264,9 @@ class ShoppingRepository {
         gapDays: gapDays <= 0 ? existing.cadenceDays : gapDays,
         buyCount: nextCount,
       );
-      await (_db.update(_db.groceryHabits)..where((h) => h.id.equals(key)))
-          .write(
+      await (_db.update(
+        _db.groceryHabits,
+      )..where((h) => h.id.equals(key))).write(
         GroceryHabitsCompanion(
           name: Value(item.name.trim()),
           category: Value(item.category),
@@ -291,19 +291,24 @@ class ShoppingRepository {
     final key = normalizeName(name);
     final habit = key.isEmpty
         ? null
-        : await (_db.select(_db.groceryHabits)..where((h) => h.id.equals(key)))
-            .getSingleOrNull();
-    final resolvedCategory =
-        category == 'General' && habit != null ? habit.category : category;
+        : await (_db.select(
+            _db.groceryHabits,
+          )..where((h) => h.id.equals(key))).getSingleOrNull();
+    final resolvedCategory = category == 'General' && habit != null
+        ? habit.category
+        : category;
 
-    final maxOrder = await (_db.selectOnly(_db.shoppingItems)
-          ..addColumns([_db.shoppingItems.sortOrder.max()])
-          ..where(_db.shoppingItems.listId.equals(listId)))
-        .getSingle();
+    final maxOrder =
+        await (_db.selectOnly(_db.shoppingItems)
+              ..addColumns([_db.shoppingItems.sortOrder.max()])
+              ..where(_db.shoppingItems.listId.equals(listId)))
+            .getSingle();
     final nextOrder =
         (maxOrder.read(_db.shoppingItems.sortOrder.max()) ?? -1) + 1;
 
-    await _db.into(_db.shoppingItems).insert(
+    await _db
+        .into(_db.shoppingItems)
+        .insert(
           ShoppingItemsCompanion.insert(
             id: _uuid.v4(),
             nestId: Value(resolvedNest),
@@ -331,8 +336,7 @@ class ShoppingRepository {
   }) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return Future.value();
-    return (_db.update(_db.shoppingItems)..where((i) => i.id.equals(id)))
-        .write(
+    return (_db.update(_db.shoppingItems)..where((i) => i.id.equals(id))).write(
       ShoppingItemsCompanion(
         name: Value(trimmed),
         category: Value(category.trim().isEmpty ? 'General' : category.trim()),
@@ -344,8 +348,7 @@ class ShoppingRepository {
   }
 
   Future<void> deleteItem(String id) {
-    return (_db.update(_db.shoppingItems)..where((i) => i.id.equals(id)))
-        .write(
+    return (_db.update(_db.shoppingItems)..where((i) => i.id.equals(id))).write(
       ShoppingItemsCompanion(
         deleted: const Value(true),
         dirty: const Value(true),
@@ -394,7 +397,9 @@ class EventRepository {
   }) async {
     final now = DateTime.now();
     final resolvedNest = nestId ?? await _db.getMeta('nestId');
-    await _db.into(_db.calendarEvents).insert(
+    await _db
+        .into(_db.calendarEvents)
+        .insert(
           CalendarEventsCompanion.insert(
             id: _uuid.v4(),
             nestId: Value(resolvedNest),
@@ -422,7 +427,9 @@ class EventRepository {
     bool allDay = false,
     DateTime? endsAt,
   }) {
-    return (_db.update(_db.calendarEvents)..where((e) => e.id.equals(id))).write(
+    return (_db.update(
+      _db.calendarEvents,
+    )..where((e) => e.id.equals(id))).write(
       CalendarEventsCompanion(
         title: Value(title.trim()),
         memberId: Value(memberId),
@@ -438,7 +445,9 @@ class EventRepository {
   }
 
   Future<void> deleteEvent(String id) {
-    return (_db.update(_db.calendarEvents)..where((e) => e.id.equals(id))).write(
+    return (_db.update(
+      _db.calendarEvents,
+    )..where((e) => e.id.equals(id))).write(
       CalendarEventsCompanion(
         deleted: const Value(true),
         dirty: const Value(true),
@@ -454,9 +463,9 @@ class MemberRepository {
   final AppDatabase _db;
 
   Stream<List<NestMember>> watchAll() {
-    return (_db.select(_db.nestMembers)
-          ..orderBy([(m) => OrderingTerm(expression: m.name)]))
-        .watch();
+    return (_db.select(
+      _db.nestMembers,
+    )..orderBy([(m) => OrderingTerm(expression: m.name)])).watch();
   }
 
   Future<List<NestMember>> getAll() {
@@ -464,13 +473,15 @@ class MemberRepository {
   }
 
   Future<NestMember?> byId(String id) {
-    return (_db.select(_db.nestMembers)..where((m) => m.id.equals(id)))
-        .getSingleOrNull();
+    return (_db.select(
+      _db.nestMembers,
+    )..where((m) => m.id.equals(id))).getSingleOrNull();
   }
 
   Future<void> updateRole(String memberId, String role) {
-    return (_db.update(_db.nestMembers)..where((m) => m.id.equals(memberId)))
-        .write(
+    return (_db.update(
+      _db.nestMembers,
+    )..where((m) => m.id.equals(memberId))).write(
       NestMembersCompanion(
         role: Value(role),
         dirty: const Value(true),
@@ -523,10 +534,9 @@ class ExpenseRepository {
         final key = e.category.trim().isEmpty ? 'General' : e.category.trim();
         map[key] = (map[key] ?? 0) + e.amount;
       }
-      final list = map.entries
-          .map((e) => (category: e.key, total: e.value))
-          .toList()
-        ..sort((a, b) => b.total.compareTo(a.total));
+      final list =
+          map.entries.map((e) => (category: e.key, total: e.value)).toList()
+            ..sort((a, b) => b.total.compareTo(a.total));
       return list;
     });
   }
@@ -545,9 +555,9 @@ class ExpenseRepository {
   Future<double> getMonthBudget() async {
     final nestId = await _db.getMeta('nestId');
     if (nestId == null || nestId.isEmpty) return defaultMonthBudget;
-    final row = await (_db.select(_db.nestSettings)
-          ..where((s) => s.id.equals(nestId)))
-        .getSingleOrNull();
+    final row = await (_db.select(
+      _db.nestSettings,
+    )..where((s) => s.id.equals(nestId))).getSingleOrNull();
     return row?.monthBudget ?? defaultMonthBudget;
   }
 
@@ -556,10 +566,50 @@ class ExpenseRepository {
     if (nestId == null || nestId.isEmpty) return;
     final budget = amount <= 0 ? defaultMonthBudget : amount;
     final now = DateTime.now();
-    await _db.into(_db.nestSettings).insertOnConflictUpdate(
+    await _db
+        .into(_db.nestSettings)
+        .insertOnConflictUpdate(
           NestSettingsCompanion.insert(
             id: nestId,
             monthBudget: Value(budget),
+            dirty: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  Stream<bool> watchTomorrowPreviewEnabled() {
+    return _db.select(_db.nestSettings).watch().asyncMap((rows) async {
+      final nestId = await _db.getMeta('nestId');
+      if (nestId == null || nestId.isEmpty) return false;
+      for (final row in rows) {
+        if (row.id == nestId) return row.tomorrowPreviewEnabled;
+      }
+      return false;
+    });
+  }
+
+  Future<bool> getTomorrowPreviewEnabled() async {
+    final nestId = await _db.getMeta('nestId');
+    if (nestId == null || nestId.isEmpty) return false;
+    final row = await (_db.select(
+      _db.nestSettings,
+    )..where((s) => s.id.equals(nestId))).getSingleOrNull();
+    return row?.tomorrowPreviewEnabled ?? false;
+  }
+
+  Future<void> setTomorrowPreviewEnabled(bool enabled) async {
+    final nestId = await _db.getMeta('nestId');
+    if (nestId == null || nestId.isEmpty) return;
+    final currentBudget = await getMonthBudget();
+    final now = DateTime.now();
+    await _db
+        .into(_db.nestSettings)
+        .insertOnConflictUpdate(
+          NestSettingsCompanion.insert(
+            id: nestId,
+            monthBudget: Value(currentBudget),
+            tomorrowPreviewEnabled: Value(enabled),
             dirty: const Value(true),
             updatedAt: Value(now),
           ),
@@ -574,7 +624,9 @@ class ExpenseRepository {
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
-    await _db.into(_db.expenses).insert(
+    await _db
+        .into(_db.expenses)
+        .insert(
           ExpensesCompanion.insert(
             id: _uuid.v4(),
             nestId: Value(nestId),
@@ -629,10 +681,9 @@ class BillRepository {
   static const _uuid = Uuid();
 
   Stream<List<Bill>> watchAll() {
-    return (_db.select(_db.bills)
-          ..where((b) => b.deleted.equals(false)))
-        .watch()
-        .map(_sortBills);
+    return (_db.select(
+      _db.bills,
+    )..where((b) => b.deleted.equals(false))).watch().map(_sortBills);
   }
 
   /// Unpaid overdue first, then due soon, then paid.
@@ -656,9 +707,9 @@ class BillRepository {
   }
 
   Future<List<Bill>> getUnpaidUpcoming() {
-    return (_db.select(_db.bills)
-          ..where((b) => b.deleted.equals(false) & b.paid.equals(false)))
-        .get();
+    return (_db.select(
+      _db.bills,
+    )..where((b) => b.deleted.equals(false) & b.paid.equals(false))).get();
   }
 
   Future<void> togglePaid(Bill bill) {
@@ -678,7 +729,9 @@ class BillRepository {
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
-    await _db.into(_db.bills).insert(
+    await _db
+        .into(_db.bills)
+        .insert(
           BillsCompanion.insert(
             id: _uuid.v4(),
             nestId: Value(nestId),
@@ -744,7 +797,9 @@ class EmergencyRepository {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
     final entryId = id ?? _uuid.v4();
-    await _db.into(_db.emergencyEntries).insertOnConflictUpdate(
+    await _db
+        .into(_db.emergencyEntries)
+        .insertOnConflictUpdate(
           EmergencyEntriesCompanion.insert(
             id: entryId,
             nestId: Value(nestId),
@@ -778,7 +833,9 @@ class TimelineRepository {
     String memberName = 'Family',
   }) async {
     final nestId = await _db.getMeta('nestId');
-    await _db.into(_db.timelineEvents).insert(
+    await _db
+        .into(_db.timelineEvents)
+        .insert(
           TimelineEventsCompanion.insert(
             id: _uuid.v4(),
             nestId: Value(nestId),
@@ -842,14 +899,15 @@ class VaultRepository {
       updatedAt: Value(now),
     );
     await _db.into(_db.vaultDocuments).insert(companion);
-    return (await (_db.select(_db.vaultDocuments)
-          ..where((d) => d.id.equals(id)))
-        .getSingle());
+    return (await (_db.select(
+      _db.vaultDocuments,
+    )..where((d) => d.id.equals(id))).getSingle());
   }
 
   Future<void> setUploadStatus(String id, String status) {
-    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
-        .write(
+    return (_db.update(
+      _db.vaultDocuments,
+    )..where((d) => d.id.equals(id))).write(
       VaultDocumentsCompanion(
         uploadStatus: Value(status),
         updatedAt: Value(DateTime.now()),
@@ -857,12 +915,10 @@ class VaultRepository {
     );
   }
 
-  Future<void> markUploaded({
-    required String id,
-    required String storagePath,
-  }) {
-    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
-        .write(
+  Future<void> markUploaded({required String id, required String storagePath}) {
+    return (_db.update(
+      _db.vaultDocuments,
+    )..where((d) => d.id.equals(id))).write(
       VaultDocumentsCompanion(
         storagePath: Value(storagePath),
         uploadStatus: const Value(VaultUploadStatus.synced),
@@ -873,8 +929,9 @@ class VaultRepository {
   }
 
   Future<void> markUploadFailed(String id) {
-    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
-        .write(
+    return (_db.update(
+      _db.vaultDocuments,
+    )..where((d) => d.id.equals(id))).write(
       VaultDocumentsCompanion(
         uploadStatus: const Value(VaultUploadStatus.failed),
         updatedAt: Value(DateTime.now()),
@@ -883,8 +940,9 @@ class VaultRepository {
   }
 
   Future<VaultDocument?> getById(String id) {
-    return (_db.select(_db.vaultDocuments)..where((d) => d.id.equals(id)))
-        .getSingleOrNull();
+    return (_db.select(
+      _db.vaultDocuments,
+    )..where((d) => d.id.equals(id))).getSingleOrNull();
   }
 
   /// Docs with a local file that still need Storage upload.
@@ -924,12 +982,10 @@ class VaultRepository {
     return query.watchSingle().map((row) => row.read(count) ?? 0);
   }
 
-  Future<void> setLocalPath({
-    required String id,
-    required String localPath,
-  }) {
-    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
-        .write(
+  Future<void> setLocalPath({required String id, required String localPath}) {
+    return (_db.update(
+      _db.vaultDocuments,
+    )..where((d) => d.id.equals(id))).write(
       VaultDocumentsCompanion(
         localPath: Value(localPath),
         updatedAt: Value(DateTime.now()),
@@ -945,18 +1001,18 @@ class VaultRepository {
     DateTime? expiresAt,
     bool clearExpiry = false,
   }) {
-    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
-        .write(
+    return (_db.update(
+      _db.vaultDocuments,
+    )..where((d) => d.id.equals(id))).write(
       VaultDocumentsCompanion(
         title: title == null ? const Value.absent() : Value(title.trim()),
-        category:
-            category == null ? const Value.absent() : Value(category.trim()),
+        category: category == null
+            ? const Value.absent()
+            : Value(category.trim()),
         notes: notes == null ? const Value.absent() : Value(notes),
         expiresAt: clearExpiry
             ? const Value(null)
-            : (expiresAt == null
-                ? const Value.absent()
-                : Value(expiresAt)),
+            : (expiresAt == null ? const Value.absent() : Value(expiresAt)),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
@@ -964,8 +1020,9 @@ class VaultRepository {
   }
 
   Future<void> delete(String id) {
-    return (_db.update(_db.vaultDocuments)..where((d) => d.id.equals(id)))
-        .write(
+    return (_db.update(
+      _db.vaultDocuments,
+    )..where((d) => d.id.equals(id))).write(
       VaultDocumentsCompanion(
         deleted: const Value(true),
         dirty: const Value(true),
@@ -976,8 +1033,9 @@ class VaultRepository {
 
   /// Docs expiring within [withinDays] (includes already expired).
   Stream<List<VaultDocument>> watchExpiringSoon({int withinDays = 45}) {
-    final cutoff =
-        DateTime.now().add(Duration(days: withinDays)).add(const Duration(days: 1));
+    final cutoff = DateTime.now()
+        .add(Duration(days: withinDays))
+        .add(const Duration(days: 1));
     return (_db.select(_db.vaultDocuments)
           ..where(
             (d) =>
@@ -1018,9 +1076,7 @@ class MealRepository {
 
   Stream<List<MealPlan>> watchForWeekday(int weekday) {
     return (_db.select(_db.mealPlans)
-          ..where(
-            (m) => m.deleted.equals(false) & m.weekday.equals(weekday),
-          )
+          ..where((m) => m.deleted.equals(false) & m.weekday.equals(weekday))
           ..orderBy([(m) => OrderingTerm(expression: m.mealType)]))
         .watch();
   }
@@ -1035,7 +1091,9 @@ class MealRepository {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
     final mealId = id ?? _uuid.v4();
-    await _db.into(_db.mealPlans).insertOnConflictUpdate(
+    await _db
+        .into(_db.mealPlans)
+        .insertOnConflictUpdate(
           MealPlansCompanion.insert(
             id: mealId,
             nestId: Value(nestId),
@@ -1063,12 +1121,11 @@ class MealRepository {
   Future<void> planDinnerWeek(Map<int, String> titlesByWeekday) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
-    final existingDinners = await (_db.select(_db.mealPlans)
-          ..where(
-            (m) =>
-                m.deleted.equals(false) & m.mealType.equals('Dinner'),
-          ))
-        .get();
+    final existingDinners =
+        await (_db.select(_db.mealPlans)..where(
+              (m) => m.deleted.equals(false) & m.mealType.equals('Dinner'),
+            ))
+            .get();
 
     final byWeekday = <int, List<MealPlan>>{};
     for (final meal in existingDinners) {
@@ -1094,8 +1151,9 @@ class MealRepository {
       }
 
       if (primary != null) {
-        await (_db.update(_db.mealPlans)..where((m) => m.id.equals(primary.id)))
-            .write(
+        await (_db.update(
+          _db.mealPlans,
+        )..where((m) => m.id.equals(primary.id))).write(
           MealPlansCompanion(
             title: Value(title),
             dirty: const Value(true),
@@ -1103,7 +1161,9 @@ class MealRepository {
           ),
         );
       } else {
-        await _db.into(_db.mealPlans).insert(
+        await _db
+            .into(_db.mealPlans)
+            .insert(
               MealPlansCompanion.insert(
                 id: _uuid.v4(),
                 nestId: Value(nestId),
@@ -1118,10 +1178,9 @@ class MealRepository {
       }
     }
 
-    await TimelineRepository(_db).add(
-      message: 'Planned dinner week',
-      memberName: 'You',
-    );
+    await TimelineRepository(
+      _db,
+    ).add(message: 'Planned dinner week', memberName: 'You');
   }
 
   /// Parses ingredients (comma or newline) and adds missing ones to groceries.
@@ -1206,9 +1265,14 @@ class CareRepository {
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
-    final due = DateTime(now.year, now.month, now.day)
-        .add(Duration(days: cadenceDays));
-    await _db.into(_db.careItems).insert(
+    final due = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(Duration(days: cadenceDays));
+    await _db
+        .into(_db.careItems)
+        .insert(
           CareItemsCompanion.insert(
             id: _uuid.v4(),
             nestId: Value(nestId),
@@ -1227,10 +1291,12 @@ class CareRepository {
 
   Future<void> markDone(CareItem item) async {
     final now = DateTime.now();
-    final next = DateTime(now.year, now.month, now.day)
-        .add(Duration(days: item.cadenceDays));
-    await (_db.update(_db.careItems)..where((c) => c.id.equals(item.id)))
-        .write(
+    final next = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(Duration(days: item.cadenceDays));
+    await (_db.update(_db.careItems)..where((c) => c.id.equals(item.id))).write(
       CareItemsCompanion(
         lastDoneAt: Value(now),
         nextDueAt: Value(next),
@@ -1238,10 +1304,9 @@ class CareRepository {
         updatedAt: Value(now),
       ),
     );
-    await TimelineRepository(_db).add(
-      message: 'Completed care: ${item.title}',
-      memberName: 'You',
-    );
+    await TimelineRepository(
+      _db,
+    ).add(message: 'Completed care: ${item.title}', memberName: 'You');
   }
 
   Future<void> delete(String id) {
@@ -1277,11 +1342,13 @@ class CareRepository {
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
-    final existing = await (_db.select(_db.careProfiles)
-          ..where((p) => p.id.equals(memberId)))
-        .getSingleOrNull();
+    final existing = await (_db.select(
+      _db.careProfiles,
+    )..where((p) => p.id.equals(memberId))).getSingleOrNull();
     if (existing == null) {
-      await _db.into(_db.careProfiles).insert(
+      await _db
+          .into(_db.careProfiles)
+          .insert(
             CareProfilesCompanion.insert(
               id: memberId,
               nestId: Value(nestId),
@@ -1297,8 +1364,9 @@ class CareRepository {
             ),
           );
     } else {
-      await (_db.update(_db.careProfiles)..where((p) => p.id.equals(memberId)))
-          .write(
+      await (_db.update(
+        _db.careProfiles,
+      )..where((p) => p.id.equals(memberId))).write(
         CareProfilesCompanion(
           nestId: Value(nestId),
           medications: Value(medications.trim()),
@@ -1352,10 +1420,12 @@ class SchoolRepository {
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
-    final next = nextAt ??
-        DateTime(now.year, now.month, now.day)
-            .add(Duration(days: cadenceDays));
-    await _db.into(_db.schoolActivities).insert(
+    final next =
+        nextAt ??
+        DateTime(now.year, now.month, now.day).add(Duration(days: cadenceDays));
+    await _db
+        .into(_db.schoolActivities)
+        .insert(
           SchoolActivitiesCompanion.insert(
             id: _uuid.v4(),
             nestId: Value(nestId),
@@ -1375,10 +1445,14 @@ class SchoolRepository {
 
   Future<void> markDone(SchoolActivity item) async {
     final now = DateTime.now();
-    final next = DateTime(now.year, now.month, now.day)
-        .add(Duration(days: item.cadenceDays));
-    await (_db.update(_db.schoolActivities)..where((s) => s.id.equals(item.id)))
-        .write(
+    final next = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(Duration(days: item.cadenceDays));
+    await (_db.update(
+      _db.schoolActivities,
+    )..where((s) => s.id.equals(item.id))).write(
       SchoolActivitiesCompanion(
         lastDoneAt: Value(now),
         nextAt: Value(next),
@@ -1386,10 +1460,9 @@ class SchoolRepository {
         updatedAt: Value(now),
       ),
     );
-    await TimelineRepository(_db).add(
-      message: 'Done: ${item.title}',
-      memberName: 'You',
-    );
+    await TimelineRepository(
+      _db,
+    ).add(message: 'Done: ${item.title}', memberName: 'You');
   }
 
   Future<void> update({
@@ -1402,8 +1475,9 @@ class SchoolRepository {
     String notes = '',
     DateTime? nextAt,
   }) {
-    return (_db.update(_db.schoolActivities)..where((s) => s.id.equals(id)))
-        .write(
+    return (_db.update(
+      _db.schoolActivities,
+    )..where((s) => s.id.equals(id))).write(
       SchoolActivitiesCompanion(
         title: Value(title.trim()),
         kind: Value(kind),
@@ -1435,20 +1509,18 @@ class SchoolRepository {
     if (assigneeId.isEmpty && members.isNotEmpty) {
       assigneeId = members.first.id;
     }
-    await TaskRepository(_db).addTask(
-      title: title,
-      dueLabel: 'Today',
-      assigneeId: assigneeId,
-    );
-    await TimelineRepository(_db).add(
-      message: 'Added pickup task for ${item.title}',
-      memberName: 'You',
-    );
+    await TaskRepository(
+      _db,
+    ).addTask(title: title, dueLabel: 'Today', assigneeId: assigneeId);
+    await TimelineRepository(
+      _db,
+    ).add(message: 'Added pickup task for ${item.title}', memberName: 'You');
   }
 
   Future<void> delete(String id) {
-    return (_db.update(_db.schoolActivities)..where((s) => s.id.equals(id)))
-        .write(
+    return (_db.update(
+      _db.schoolActivities,
+    )..where((s) => s.id.equals(id))).write(
       SchoolActivitiesCompanion(
         deleted: const Value(true),
         dirty: const Value(true),

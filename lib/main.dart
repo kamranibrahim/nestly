@@ -6,9 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/db/app_database.dart';
-import 'data/telemetry.dart';
 import 'data/notification_service.dart';
+import 'data/telemetry.dart';
 import 'firebase_options.dart';
+import 'navigation/app_navigator.dart';
 import 'screens/auth_gate.dart';
 import 'theme/app_theme.dart';
 import 'web/web_app.dart';
@@ -54,6 +55,7 @@ class NestlyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: rootNavigatorKey,
       title: 'Nestly',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),

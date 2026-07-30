@@ -152,13 +152,15 @@ class VaultDocuments extends Table {
   TextColumn get localPath => text().nullable()();
   TextColumn get mimeType => text().nullable()();
   IntColumn get sizeBytes => integer().withDefault(const Constant(0))();
+
   /// Optional note (e.g. passport numbers last-4, renewal tips).
   TextColumn get notes => text().withDefault(const Constant(''))();
+
   /// Optional expiry for IDs / insurance / licenses.
   DateTimeColumn get expiresAt => dateTime().nullable()();
+
   /// Storage upload: local | uploading | synced | failed ([VaultUploadStatus]).
-  TextColumn get uploadStatus =>
-      text().withDefault(const Constant('local'))();
+  TextColumn get uploadStatus => text().withDefault(const Constant('local'))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -209,6 +211,7 @@ class CareItems extends Table {
   DateTimeColumn get lastDoneAt => dateTime().nullable()();
   DateTimeColumn get nextDueAt => dateTime()();
   TextColumn get notes => text().withDefault(const Constant(''))();
+
   /// Optional link to a nest member (elder care routines).
   TextColumn get memberId => text().withDefault(const Constant(''))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
@@ -245,6 +248,7 @@ class SchoolActivities extends Table {
   TextColumn get id => text()();
   TextColumn get nestId => text().nullable()();
   TextColumn get title => text()();
+
   /// School | Sports | Pickup | Club
   TextColumn get kind => text().withDefault(const Constant('School'))();
   IntColumn get cadenceDays => integer().withDefault(const Constant(7))();
@@ -269,6 +273,7 @@ class GroceryHabits extends Table {
   TextColumn get name => text()();
   TextColumn get category => text().withDefault(const Constant('General'))();
   IntColumn get buyCount => integer().withDefault(const Constant(0))();
+
   /// Learned restock interval in days (updated from purchase gaps).
   IntColumn get cadenceDays => integer().withDefault(const Constant(7))();
   DateTimeColumn get lastBoughtAt => dateTime()();
@@ -283,6 +288,8 @@ class NestSettings extends Table {
   /// Same as nest id — one row per nest.
   TextColumn get id => text()();
   RealColumn get monthBudget => real().withDefault(const Constant(1800.0))();
+  BoolColumn get tomorrowPreviewEnabled =>
+      boolean().withDefault(const Constant(false))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -315,90 +322,89 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-        },
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await _createTableIfMissing(m, nestMembers);
-            await _createTableIfMissing(m, calendarEvents);
-            await _createTableIfMissing(m, syncMeta);
-            // Constant defaults are fine for ALTER TABLE; currentDateAndTime is not.
-            await _addColumnIfMissing(m, tasks, tasks.nestId);
-            await _addColumnIfMissing(m, tasks, tasks.dirty);
-            await _addColumnIfMissing(m, tasks, tasks.deleted);
-            await _addColumnIfMissing(m, shoppingLists, shoppingLists.nestId);
-            await _addColumnIfMissing(m, shoppingLists, shoppingLists.dirty);
-            await _addColumnIfMissing(m, shoppingLists, shoppingLists.deleted);
-            await _addUpdatedAtIfMissing('shopping_lists');
-            await _addColumnIfMissing(m, shoppingItems, shoppingItems.nestId);
-            await _addColumnIfMissing(m, shoppingItems, shoppingItems.dirty);
-            await _addColumnIfMissing(m, shoppingItems, shoppingItems.deleted);
-          }
-          if (from < 3) {
-            await _createTableIfMissing(m, expenses);
-            await _createTableIfMissing(m, bills);
-            await _createTableIfMissing(m, emergencyEntries);
-          }
-          if (from < 4) {
-            await _createTableIfMissing(m, vaultDocuments);
-            await _createTableIfMissing(m, timelineEvents);
-          }
-          if (from < 5) {
-            await _createTableIfMissing(m, mealPlans);
-            await _createTableIfMissing(m, careItems);
-          }
-          if (from < 6) {
-            await _createTableIfMissing(m, schoolActivities);
-          }
-          if (from < 7) {
-            await _createTableIfMissing(m, groceryHabits);
-          }
-          if (from < 8) {
-            await _addColumnIfMissing(
-              m,
-              groceryHabits,
-              groceryHabits.cadenceDays,
-            );
-          }
-          if (from < 9) {
-            await _createTableIfMissing(m, careProfiles);
-            await _addColumnIfMissing(m, careItems, careItems.memberId);
-          }
-          if (from < 10) {
-            await _addColumnIfMissing(m, vaultDocuments, vaultDocuments.notes);
-            await _addColumnIfMissing(
-              m,
-              vaultDocuments,
-              vaultDocuments.expiresAt,
-            );
-          }
-          if (from < 11) {
-            await _addColumnIfMissing(
-              m,
-              vaultDocuments,
-              vaultDocuments.uploadStatus,
-            );
-            await customStatement(
-              "UPDATE vault_documents SET upload_status = 'synced' "
-              "WHERE storage_path IS NOT NULL AND storage_path != ''",
-            );
-            await customStatement(
-              "UPDATE vault_documents SET upload_status = 'failed' "
-              "WHERE (storage_path IS NULL OR storage_path = '') "
-              "AND local_path IS NOT NULL AND local_path != '' "
-              "AND nest_id IS NOT NULL AND nest_id != ''",
-            );
-          }
-          if (from < 12) {
-            await _createTableIfMissing(m, nestSettings);
-          }
-        },
-      );
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await _createTableIfMissing(m, nestMembers);
+        await _createTableIfMissing(m, calendarEvents);
+        await _createTableIfMissing(m, syncMeta);
+        // Constant defaults are fine for ALTER TABLE; currentDateAndTime is not.
+        await _addColumnIfMissing(m, tasks, tasks.nestId);
+        await _addColumnIfMissing(m, tasks, tasks.dirty);
+        await _addColumnIfMissing(m, tasks, tasks.deleted);
+        await _addColumnIfMissing(m, shoppingLists, shoppingLists.nestId);
+        await _addColumnIfMissing(m, shoppingLists, shoppingLists.dirty);
+        await _addColumnIfMissing(m, shoppingLists, shoppingLists.deleted);
+        await _addUpdatedAtIfMissing('shopping_lists');
+        await _addColumnIfMissing(m, shoppingItems, shoppingItems.nestId);
+        await _addColumnIfMissing(m, shoppingItems, shoppingItems.dirty);
+        await _addColumnIfMissing(m, shoppingItems, shoppingItems.deleted);
+      }
+      if (from < 3) {
+        await _createTableIfMissing(m, expenses);
+        await _createTableIfMissing(m, bills);
+        await _createTableIfMissing(m, emergencyEntries);
+      }
+      if (from < 4) {
+        await _createTableIfMissing(m, vaultDocuments);
+        await _createTableIfMissing(m, timelineEvents);
+      }
+      if (from < 5) {
+        await _createTableIfMissing(m, mealPlans);
+        await _createTableIfMissing(m, careItems);
+      }
+      if (from < 6) {
+        await _createTableIfMissing(m, schoolActivities);
+      }
+      if (from < 7) {
+        await _createTableIfMissing(m, groceryHabits);
+      }
+      if (from < 8) {
+        await _addColumnIfMissing(m, groceryHabits, groceryHabits.cadenceDays);
+      }
+      if (from < 9) {
+        await _createTableIfMissing(m, careProfiles);
+        await _addColumnIfMissing(m, careItems, careItems.memberId);
+      }
+      if (from < 10) {
+        await _addColumnIfMissing(m, vaultDocuments, vaultDocuments.notes);
+        await _addColumnIfMissing(m, vaultDocuments, vaultDocuments.expiresAt);
+      }
+      if (from < 11) {
+        await _addColumnIfMissing(
+          m,
+          vaultDocuments,
+          vaultDocuments.uploadStatus,
+        );
+        await customStatement(
+          "UPDATE vault_documents SET upload_status = 'synced' "
+          "WHERE storage_path IS NOT NULL AND storage_path != ''",
+        );
+        await customStatement(
+          "UPDATE vault_documents SET upload_status = 'failed' "
+          "WHERE (storage_path IS NULL OR storage_path = '') "
+          "AND local_path IS NOT NULL AND local_path != '' "
+          "AND nest_id IS NOT NULL AND nest_id != ''",
+        );
+      }
+      if (from < 12) {
+        await _createTableIfMissing(m, nestSettings);
+      }
+      if (from < 13) {
+        await _addColumnIfMissing(
+          m,
+          nestSettings,
+          nestSettings.tomorrowPreviewEnabled,
+        );
+      }
+    },
+  );
 
   Future<bool> _tableExists(String tableName) async {
     final row = await customSelect(
@@ -453,15 +459,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<String?> getMeta(String key) async {
-    final row = await (select(syncMeta)..where((t) => t.key.equals(key)))
-        .getSingleOrNull();
+    final row = await (select(
+      syncMeta,
+    )..where((t) => t.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
 
   Future<void> setMeta(String key, String value) {
-    return into(syncMeta).insertOnConflictUpdate(
-      SyncMetaCompanion.insert(key: key, value: value),
-    );
+    return into(
+      syncMeta,
+    ).insertOnConflictUpdate(SyncMetaCompanion.insert(key: key, value: value));
   }
 
   /// Wipes local household rows so demo/seed data never leaks into a real nest.

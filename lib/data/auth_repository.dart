@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
+import 'invite_code.dart';
 import 'repositories.dart';
 import 'telemetry.dart';
 import 'vault_upload_status.dart';
@@ -16,11 +17,13 @@ class NestInfo {
     required this.id,
     required this.name,
     required this.inviteCode,
+    this.createdAt,
   });
 
   final String id;
   final String name;
   final String inviteCode;
+  final DateTime? createdAt;
 }
 
 class AuthRepository {
@@ -124,6 +127,7 @@ class AuthRepository {
       id: nestId,
       name: data['name'] as String? ?? 'Family',
       inviteCode: data['inviteCode'] as String? ?? '',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -180,6 +184,7 @@ class AuthRepository {
       id: nestId,
       name: nestName.trim(),
       inviteCode: inviteCode,
+      createdAt: DateTime.now(),
     );
     await NestlyTelemetry.nestCreated();
     return info;
@@ -194,7 +199,10 @@ class AuthRepository {
       throw StateError('Must be signed in to join a nest');
     }
 
-    final code = inviteCode.trim().toUpperCase();
+    final code = normalizeInviteCode(inviteCode);
+    if (code.length < 6) {
+      throw StateError('Invite code not found');
+    }
     final invite = await _firestore.collection('inviteCodes').doc(code).get();
     if (!invite.exists) {
       throw StateError('Invite code not found');
@@ -229,8 +237,14 @@ class AuthRepository {
     }, SetOptions(merge: true));
     await batch.commit();
 
-    final info = NestInfo(id: nestId, name: nestName, inviteCode: code);
+    final info = NestInfo(
+      id: nestId,
+      name: nestName,
+      inviteCode: code,
+      createdAt: (nest.data()?['createdAt'] as Timestamp?)?.toDate(),
+    );
     await NestlyTelemetry.nestJoined();
+    await NestlyTelemetry.secondMemberJoined();
     return info;
   }
 
@@ -821,6 +835,7 @@ class SyncService {
     if (row == null || !row.dirty) return;
     await _firestore.collection('nests').doc(nestId).set({
       'monthBudget': row.monthBudget,
+      'tomorrowPreviewEnabled': row.tomorrowPreviewEnabled,
       'budgetUpdatedAt': Timestamp.fromDate(row.updatedAt),
     }, SetOptions(merge: true));
     await (_db.update(_db.nestSettings)..where((s) => s.id.equals(nestId)))
@@ -843,12 +858,15 @@ class SyncService {
     final budget =
         (data['monthBudget'] as num?)?.toDouble() ??
         ExpenseRepository.defaultMonthBudget;
+    final tomorrowPreviewEnabled =
+        data['tomorrowPreviewEnabled'] as bool? ?? false;
     await _db
         .into(_db.nestSettings)
         .insertOnConflictUpdate(
           NestSettingsCompanion.insert(
             id: nestId,
             monthBudget: Value(budget),
+            tomorrowPreviewEnabled: Value(tomorrowPreviewEnabled),
             dirty: const Value(false),
             updatedAt: Value(remoteUpdated),
           ),

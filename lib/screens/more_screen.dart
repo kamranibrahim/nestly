@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +13,7 @@ import '../data/telemetry.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/invite_family_sheet.dart';
 import '../widgets/motion.dart';
 import 'about_screen.dart';
 import 'auth/reset_password_screen.dart';
@@ -59,6 +59,7 @@ class MoreScreen extends ConsumerWidget {
       await ShowcaseSeedService(
         ref.read(databaseProvider),
       ).seed(nestId: nest.id, ownerMemberId: user.uid);
+      if (!context.mounted) return;
       await syncAfterWrite(ref, context: context);
       ref.invalidate(nestInfoProvider);
       if (!context.mounted) return;
@@ -143,6 +144,7 @@ class MoreScreen extends ConsumerWidget {
       return;
     }
     await ref.read(memberRepositoryProvider).updateRole(member.id, selected);
+    if (!context.mounted) return;
     await syncAfterWrite(ref, context: context);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -156,6 +158,8 @@ class MoreScreen extends ConsumerWidget {
     final nest = ref.watch(nestInfoProvider).valueOrNull;
     final members = ref.watch(membersProvider).valueOrNull ?? [];
     final sync = ref.watch(syncControllerProvider);
+    final tomorrowPreviewEnabled =
+        ref.watch(tomorrowPreviewEnabledProvider).valueOrNull ?? false;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -313,20 +317,11 @@ class MoreScreen extends ConsumerWidget {
               Appear(
                 delay: const Duration(milliseconds: 70),
                 child: NestCard(
-                  onTap: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: nest.inviteCode),
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Invite code ${nest.inviteCode} copied',
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                  onTap: () => showInviteFamilySheet(
+                    context,
+                    inviteCode: nest.inviteCode,
+                    nestName: nest.name,
+                  ),
                   child: Row(
                     children: [
                       const Icon(
@@ -358,7 +353,7 @@ class MoreScreen extends ConsumerWidget {
                         ),
                       ),
                       const Text(
-                        'Copy',
+                        'Share',
                         style: TextStyle(
                           color: AppColors.accentDeep,
                           fontWeight: FontWeight.w700,
@@ -410,6 +405,52 @@ class MoreScreen extends ConsumerWidget {
             Appear(
               delay: const Duration(milliseconds: 100),
               child: NestCard(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.nights_stay_outlined,
+                      color: AppColors.accentDeep,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tomorrow preview',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Quiet evening reminder for tomorrow’s bills, care, and school',
+                            style: TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: tomorrowPreviewEnabled,
+                      onChanged: (value) async {
+                        await ref
+                            .read(expenseRepositoryProvider)
+                            .setTomorrowPreviewEnabled(value);
+                        await ref
+                            .read(notificationServiceProvider)
+                            .rescheduleReminders();
+                        await syncAfterWrite(ref, quiet: true);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Appear(
+              delay: const Duration(milliseconds: 110),
+              child: NestCard(
                 onTap: () => nestPush(context, const PrivacyScreen()),
                 child: const Row(
                   children: [
@@ -434,7 +475,7 @@ class MoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Appear(
-              delay: const Duration(milliseconds: 120),
+              delay: const Duration(milliseconds: 130),
               child: NestCard(
                 onTap: () => nestPush(context, const AboutScreen()),
                 child: const Row(
@@ -461,7 +502,7 @@ class MoreScreen extends ConsumerWidget {
             if (nest != null && (kDebugMode || kProfileMode)) ...[
               const SizedBox(height: 6),
               Appear(
-                delay: const Duration(milliseconds: 140),
+                delay: const Duration(milliseconds: 150),
                 child: NestCard(
                   onTap: () => _loadShowcase(context, ref),
                   child: const Row(
@@ -501,7 +542,7 @@ class MoreScreen extends ConsumerWidget {
               if (NestlyTelemetry.crashlyticsReady) ...[
                 const SizedBox(height: 6),
                 Appear(
-                  delay: const Duration(milliseconds: 150),
+                  delay: const Duration(milliseconds: 160),
                   child: NestCard(
                     onTap: () => FirebaseCrashlytics.instance.crash(),
                     child: const Row(

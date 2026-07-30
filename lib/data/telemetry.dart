@@ -57,8 +57,9 @@ class NestlyTelemetry {
   static Future<bool> _probeCrashlytics() async {
     try {
       const disable = bool.fromEnvironment('DISABLE_CRASHLYTICS');
-      await FirebaseCrashlytics.instance
-          .setCrashlyticsCollectionEnabled(!disable);
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+        !disable,
+      );
       return true;
     } catch (e, st) {
       debugPrint('Crashlytics probe failed: $e\n$st');
@@ -87,12 +88,12 @@ class NestlyTelemetry {
   }
 
   static Future<void> signUp() => _safeAnalytics(() async {
-        await FirebaseAnalytics.instance.logSignUp(signUpMethod: 'email');
-      });
+    await FirebaseAnalytics.instance.logSignUp(signUpMethod: 'email');
+  });
 
   static Future<void> login() => _safeAnalytics(() async {
-        await FirebaseAnalytics.instance.logLogin(loginMethod: 'email');
-      });
+    await FirebaseAnalytics.instance.logLogin(loginMethod: 'email');
+  });
 
   static Future<void> nestCreated() => _event('nest_created');
 
@@ -104,26 +105,28 @@ class NestlyTelemetry {
   static Future<void> changePasswordSuccess() =>
       _event('change_password_success');
 
-  static Future<void> syncSuccess({int? durationMs}) => _event(
-        'sync_success',
-        {
-          'duration_ms': ?durationMs,
-        },
-      );
+  static Future<void> syncSuccess({int? durationMs}) =>
+      _event('sync_success', {'duration_ms': ?durationMs});
 
-  static Future<void> syncFail({
-    required String reason,
-    int? durationMs,
-  }) =>
-      _event(
-        'sync_fail',
-        {
-          'reason': _sanitizeReason(reason),
-          'duration_ms': ?durationMs,
-        },
-      );
+  static Future<void> syncFail({required String reason, int? durationMs}) =>
+      _event('sync_fail', {
+        'reason': _sanitizeReason(reason),
+        'duration_ms': ?durationMs,
+      });
 
   static Future<void> homeOpen() => _event('home_open');
+
+  static Future<void> inviteCopied({String method = 'copy'}) =>
+      _event('invite_copied', {'method': method == 'share' ? 'share' : 'copy'});
+
+  /// Fired when someone successfully joins an existing nest (funnel: 2nd member).
+  static Future<void> secondMemberJoined() => _event('second_member_joined');
+
+  /// First check-off while the nest already has 2+ members (once per install).
+  static Future<void> firstSharedCheckoff({String kind = 'task'}) => _event(
+    'first_shared_checkoff',
+    {'kind': kind == 'shopping' ? 'shopping' : 'task'},
+  );
 
   /// Non-fatal sync (or other) failure — never pass emails, nest names, or row content.
   static Future<void> recordNonFatal(
@@ -143,10 +146,7 @@ class NestlyTelemetry {
     });
   }
 
-  static Future<void> _event(
-    String name, [
-    Map<String, Object>? parameters,
-  ]) =>
+  static Future<void> _event(String name, [Map<String, Object>? parameters]) =>
       _safeAnalytics(() async {
         if (!_analyticsReady) return;
         await FirebaseAnalytics.instance.logEvent(
