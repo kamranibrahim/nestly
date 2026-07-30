@@ -285,10 +285,10 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				AB6E84EEBEF518AFCC06017D /* Embed Foundation Extensions */,
 				8DA9199D21D7E0FBA5C43E5C /* [CP] Embed Pods Frameworks */,
 				5F672BE6C42347A8F30ED20D /* [CP] Copy Pods Resources */,
 				C8A91F2E7B4D4E1A9F3C6D5E /* [firebase_crashlytics] Crashlytics Upload Symbols */,
-				AB6E84EEBEF518AFCC06017D /* Embed Foundation Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 			);
 			buildRules = (
