@@ -154,14 +154,14 @@ class HomeScreen extends ConsumerWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
-                  child: Stagger(
-                    step: AppMotion.stagger,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: Text(
-                              'Hello 👋, $greetingName!',
+                              'Hello, $greetingName!',
                               style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(
                                     fontWeight: FontWeight.w800,
@@ -187,6 +187,11 @@ class HomeScreen extends ConsumerWidget {
                                 ? AppColors.accentDeep
                                 : AppColors.ink,
                             size: 38,
+                            semanticLabel: sync.isSyncing
+                                ? 'Syncing'
+                                : sync.hasError
+                                ? 'Sync failed, retry'
+                                : 'Sync now',
                             onTap: () {
                               if (sync.isSyncing) return;
                               ref
@@ -200,6 +205,7 @@ class HomeScreen extends ConsumerWidget {
                             background: AppColors.surfaceMuted,
                             foreground: AppColors.ink,
                             size: 38,
+                            semanticLabel: 'Today reminders',
                             onTap: () => _showTodayReminders(
                               context,
                               ref,
@@ -741,15 +747,8 @@ class HomeScreen extends ConsumerWidget {
                           ),
                       ],
                       const SizedBox(height: 2),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 6,
-                        crossAxisSpacing: 6,
-                        childAspectRatio: 1.55,
-                        children: [
+                      _FeatureGrid(
+                        tiles: [
                           FeatureTile(
                             title: 'Calendar',
                             subtitle: todayEvents.isEmpty
@@ -1339,6 +1338,37 @@ class _TodayEventCard extends StatelessWidget {
   }
 }
 
+class _FeatureGrid extends StatelessWidget {
+  const _FeatureGrid({required this.tiles});
+
+  final List<Widget> tiles;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[];
+    for (var i = 0; i < tiles.length; i += 2) {
+      final left = tiles[i];
+      final right = i + 1 < tiles.length ? tiles[i + 1] : null;
+      rows.add(
+        Padding(
+          padding: EdgeInsets.only(bottom: i + 2 < tiles.length ? 6 : 0),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: left),
+                const SizedBox(width: 6),
+                Expanded(child: right ?? const SizedBox.shrink()),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Column(children: rows);
+  }
+}
+
 class _NeedRow extends StatelessWidget {
   const _NeedRow({
     required this.need,
@@ -1354,29 +1384,27 @@ class _NeedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final detail = detailOverride ?? need.detail;
     return ListTile(
       onTap: onOpen,
       title: Text(
         need.title,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
       ),
       subtitle: Text(
-        detailOverride ?? need.detail,
-        style: const TextStyle(color: AppColors.inkMuted, fontSize: 12.5),
+        detail,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppColors.inkMuted,
+        ),
       ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SoftPill(
-            label: need.actionLabel,
-            selected:
-                need.kind == FamilyNeedKind.tasks ||
-                need.kind == FamilyNeedKind.care,
-            onTap: onAction,
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
-        ],
+      trailing: SoftPill(
+        label: need.actionLabel,
+        selected:
+            need.kind == FamilyNeedKind.tasks ||
+            need.kind == FamilyNeedKind.care,
+        onTap: onAction,
       ),
     );
   }

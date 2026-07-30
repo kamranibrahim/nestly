@@ -13,6 +13,7 @@ class NestCard extends StatelessWidget {
     this.color,
     this.borderRadius = 18,
     this.bordered = true,
+    this.semanticLabel,
   });
 
   final Widget child;
@@ -21,6 +22,7 @@ class NestCard extends StatelessWidget {
   final Color? color;
   final double borderRadius;
   final bool bordered;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +44,7 @@ class NestCard extends StatelessWidget {
 
     return Pressable(
       onTap: onTap,
+      semanticLabel: semanticLabel,
       borderRadius: BorderRadius.circular(borderRadius),
       child: card,
     );
@@ -94,7 +97,12 @@ class SoftPill extends StatelessWidget {
     );
 
     if (onTap == null) return pill;
-    return Pressable(onTap: onTap, child: pill);
+    return Pressable(
+      onTap: onTap,
+      semanticLabel: label,
+      selected: selected,
+      child: pill,
+    );
   }
 }
 
@@ -106,6 +114,7 @@ class CircleIconButton extends StatelessWidget {
     this.background = AppColors.primary,
     this.foreground = AppColors.onDark,
     this.size = 40,
+    this.semanticLabel,
   });
 
   final IconData icon;
@@ -113,11 +122,13 @@ class CircleIconButton extends StatelessWidget {
   final Color background;
   final Color foreground;
   final double size;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     return Pressable(
       onTap: onTap,
+      semanticLabel: semanticLabel ?? 'Action',
       child: AnimatedContainer(
         duration: AppMotion.fast,
         curve: AppMotion.standard,
@@ -210,6 +221,7 @@ class FeatureTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return NestCard(
       onTap: onTap,
+      semanticLabel: subtitle == null ? title : '$title, $subtitle',
       color: color,
       bordered: false,
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -230,11 +242,10 @@ class FeatureTile extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             title,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
-              fontSize: 13,
               color: AppColors.ink,
               letterSpacing: -0.2,
               height: 1.1,
@@ -244,16 +255,14 @@ class FeatureTile extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               subtitle!,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.inkSecondary,
-                height: 1.15,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ]
+          ],
         ],
       ),
     );

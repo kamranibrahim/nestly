@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../theme/app_motion.dart';
+import 'nest_a11y.dart';
 
 /// Scale-down press feedback for tappable surfaces.
 class Pressable extends StatefulWidget {
@@ -12,12 +13,16 @@ class Pressable extends StatefulWidget {
     this.onTap,
     this.enabled = true,
     this.borderRadius,
+    this.semanticLabel,
+    this.selected,
   });
 
   final Widget child;
   final VoidCallback? onTap;
   final bool enabled;
   final BorderRadius? borderRadius;
+  final String? semanticLabel;
+  final bool? selected;
 
   @override
   State<Pressable> createState() => _PressableState();
@@ -34,18 +39,30 @@ class _PressableState extends State<Pressable> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final reduce = NestA11y.reduceMotion(context);
+    final core = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => _setPressed(true),
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
       onTap: widget.enabled ? widget.onTap : null,
       child: AnimatedScale(
-        scale: _pressed ? AppMotion.pressScale : 1,
-        duration: AppMotion.instant,
+        scale: (!reduce && _pressed) ? AppMotion.pressScale : 1,
+        duration: reduce ? Duration.zero : AppMotion.instant,
         curve: AppMotion.standard,
         child: widget.child,
       ),
+    );
+
+    if (widget.onTap == null && widget.semanticLabel == null) return core;
+
+    return Semantics(
+      button: widget.onTap != null,
+      enabled: widget.enabled && widget.onTap != null,
+      selected: widget.selected,
+      label: widget.semanticLabel,
+      onTap: widget.enabled ? widget.onTap : null,
+      child: core,
     );
   }
 }
@@ -79,6 +96,7 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
   late final Animation<Offset> _slide;
   Object? _lastKey;
   Timer? _delayTimer;
+  bool _started = false;
 
   @override
   void initState() {
@@ -89,7 +107,21 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
     _slide = Tween<Offset>(begin: widget.offset, end: Offset.zero).animate(
       CurvedAnimation(parent: _controller, curve: widget.curve),
     );
-    _play();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (NestA11y.reduceMotion(context)) {
+      _delayTimer?.cancel();
+      _controller.value = 1;
+      _started = true;
+      return;
+    }
+    if (!_started) {
+      _started = true;
+      _play();
+    }
   }
 
   @override
@@ -97,6 +129,10 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
     super.didUpdateWidget(oldWidget);
     if (widget.replayKey != null && widget.replayKey != _lastKey) {
       _lastKey = widget.replayKey;
+      if (NestA11y.reduceMotion(context)) {
+        _controller.value = 1;
+        return;
+      }
       _controller.reset();
       _play();
     }
@@ -123,6 +159,7 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    if (NestA11y.reduceMotion(context)) return widget.child;
     return FadeTransition(
       opacity: _opacity,
       child: SlideTransition(
@@ -152,6 +189,12 @@ class Stagger extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (NestA11y.reduceMotion(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -168,7 +211,7 @@ class Stagger extends StatelessWidget {
   }
 }
 
-/// Keeps [IndexedStack] state while fading/sliding the active tab.
+/// Keeps tab state while fading/sliding the active tab.
 class AnimatedTabBody extends StatelessWidget {
   const AnimatedTabBody({
     super.key,
@@ -181,6 +224,9 @@ class AnimatedTabBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (NestA11y.reduceMotion(context)) {
+      return IndexedStack(index: index, children: children);
+    }
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -231,6 +277,8 @@ class NestPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    if (NestA11y.reduceMotion(context)) return child;
+
     final curved = CurvedAnimation(
       parent: animation,
       curve: AppMotion.standard,

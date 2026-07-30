@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../widgets/nest_a11y.dart';
+
 import '../../theme/app_colors.dart';
 import '../../theme/app_motion.dart';
 
@@ -35,7 +37,18 @@ class _OnboardHeroOrganizeState extends State<OnboardHeroOrganize>
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3200),
-    )..repeat(reverse: true);
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (NestA11y.reduceMotion(context)) {
+      _pulse.stop();
+      _pulse.value = 0;
+    } else if (!_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
   }
 
   @override
@@ -49,7 +62,9 @@ class _OnboardHeroOrganizeState extends State<OnboardHeroOrganize>
     return AnimatedBuilder(
       animation: _pulse,
       builder: (context, child) {
-        final t = Curves.easeInOut.transform(_pulse.value);
+        final t = NestA11y.reduceMotion(context)
+            ? 0.0
+            : Curves.easeInOut.transform(_pulse.value);
         return Transform.scale(scale: 1 + t * 0.02, child: child);
       },
       child: SizedBox(
@@ -250,7 +265,18 @@ class _OnboardHeroConnectState extends State<OnboardHeroConnect>
     _drift = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 4200),
-    )..repeat(reverse: true);
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (NestA11y.reduceMotion(context)) {
+      _drift.stop();
+      _drift.value = 0;
+    } else if (!_drift.isAnimating) {
+      _drift.repeat(reverse: true);
+    }
   }
 
   @override
@@ -585,7 +611,18 @@ class _SparkleState extends State<_Sparkle> with SingleTickerProviderStateMixin 
     _controller = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 1400 + widget.size.toInt() * 40),
-    )..repeat(reverse: true);
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (NestA11y.reduceMotion(context)) {
+      _controller.stop();
+      _controller.value = 0.5;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat(reverse: true);
+    }
   }
 
   @override

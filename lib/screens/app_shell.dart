@@ -59,6 +59,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: CircleIconButton(
           icon: Icons.add_rounded,
           size: 46,
+          semanticLabel: 'Add to Nestly',
           onTap: () => _showAddSheet(context),
         ),
       ),
@@ -76,7 +77,10 @@ class _AppShellState extends ConsumerState<AppShell> {
               color: AppColors.navBar,
               borderRadius: BorderRadius.circular(999),
             ),
-            child: Row(
+            child: Semantics(
+              container: true,
+              label: 'Main navigation',
+              child: Row(
               children: [
                 _NavItem(
                   icon: Icons.home_rounded,
@@ -109,6 +113,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 onTap: () => _go(4),
               ),
               ],
+            ),
             ),
           ),
         ),
@@ -240,8 +245,11 @@ class _NavItem extends StatelessWidget {
     return Expanded(
       child: Pressable(
         onTap: onTap,
+        semanticLabel: label,
+        selected: selected,
         child: Tooltip(
           message: label,
+          excludeFromSemantics: true,
           child: Center(
             child: AnimatedContainer(
               duration: AppMotion.medium,
@@ -290,6 +298,7 @@ class _AddOption extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: NestCard(
         onTap: onTap,
+        semanticLabel: label,
         color: color,
         bordered: false,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -308,9 +317,8 @@ class _AddOption extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  fontSize: 15,
                 ),
               ),
             ),

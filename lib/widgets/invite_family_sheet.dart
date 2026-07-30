@@ -72,20 +72,21 @@ Future<void> showInviteFamilySheet(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(4),
+              child: ExcludeSemantics(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 14),
             Text(
               isPostCreate ? 'Nest ready — invite family' : 'Invite family',
-              style: const TextStyle(
-                fontSize: 18,
+              style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.3,
               ),
@@ -95,38 +96,40 @@ Future<void> showInviteFamilySheet(
               isPostCreate
                   ? 'Share this code so someone can join in under a minute.'
                   : 'Anyone with Nestly can join using this 6-character code.',
-              style: const TextStyle(
+              style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                 color: AppColors.inkSecondary,
                 fontWeight: FontWeight.w600,
                 height: 1.35,
               ),
             ),
             const SizedBox(height: 16),
-            NestCard(
-              color: AppColors.surfaceMuted,
-              bordered: false,
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-              child: Column(
-                children: [
-                  const Text(
-                    'Invite code',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.inkMuted,
+            Semantics(
+              label: 'Invite code $code',
+              readOnly: true,
+              child: NestCard(
+                color: AppColors.surfaceMuted,
+                bordered: false,
+                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                child: Column(
+                  children: [
+                    Text(
+                      'Invite code',
+                      style: Theme.of(sheetContext).textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.inkMuted,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  SelectableText(
-                    code,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 4,
+                    const SizedBox(height: 6),
+                    SelectableText(
+                      code,
+                      style: Theme.of(sheetContext).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 4,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 14),

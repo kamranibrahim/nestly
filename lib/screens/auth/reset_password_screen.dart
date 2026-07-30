@@ -155,7 +155,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               const SizedBox(height: 10),
               Text(
                 _error!,
-                style: const TextStyle(color: AppColors.danger, fontSize: 13),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.danger),
               ),
             ],
             const SizedBox(height: 16),
@@ -201,7 +201,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               const SizedBox(height: 10),
               Text(
                 _error!,
-                style: const TextStyle(color: AppColors.danger, fontSize: 13),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.danger),
               ),
             ],
             const SizedBox(height: 20),
@@ -211,7 +211,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 minimumSize: const Size.fromHeight(52),
               ),
               child: _busy
-                  ? const NestShimmerCircle(size: 22)
+                  ? Semantics(
+                      label: 'Sending',
+                      child: const NestShimmerCircle(size: 22),
+                    )
                   : const Text('Send reset link'),
             ),
             const SizedBox(height: 8),
@@ -378,14 +381,17 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
             const SizedBox(height: 10),
             Text(
               _error!,
-              style: const TextStyle(color: AppColors.danger, fontSize: 13),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.danger),
             ),
           ],
           const SizedBox(height: 14),
           FilledButton(
             onPressed: _busy ? null : _save,
             child: _busy
-                ? const NestShimmerCircle(size: 22)
+                ? Semantics(
+                    label: 'Working',
+                    child: const NestShimmerCircle(size: 22),
+                  )
                 : const Text('Update password'),
           ),
         ],

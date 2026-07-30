@@ -196,12 +196,11 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
             ),
           if (!_joining) ...[
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'After you start, Nestly will offer an invite code so someone can join.',
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.inkMuted,
                 fontWeight: FontWeight.w600,
-                fontSize: 12.5,
                 height: 1.35,
               ),
             ),
@@ -210,7 +209,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
             const SizedBox(height: 12),
             Text(
               _error!,
-              style: const TextStyle(color: AppColors.danger, fontSize: 13),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.danger),
             ),
           ],
           const SizedBox(height: 24),
@@ -221,10 +220,13 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
               backgroundColor: AppColors.primary,
             ),
             child: _busy
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: NestShimmerCircle(size: 22),
+                ? Semantics(
+                    label: 'Working',
+                    child: const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: NestShimmerCircle(size: 22),
+                    ),
                   )
                 : Text(_joining ? 'Join nest' : 'Start nest'),
           ),

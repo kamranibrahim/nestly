@@ -87,13 +87,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
               ),
             ),
-            const Appear(
-              delay: Duration(milliseconds: 60),
+            Appear(
+              delay: const Duration(milliseconds: 60),
               child: Text(
                 'nestly',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 36,
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.ink,
                   letterSpacing: -0.8,
@@ -106,8 +105,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: Text(
                 _signUp ? 'Create your family account' : 'Welcome back',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppColors.inkSecondary,
                 ),

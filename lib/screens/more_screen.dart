@@ -110,7 +110,6 @@ class MoreScreen extends ConsumerWidget {
               Text(
                 'Role for ${member.name}',
                 style: const TextStyle(
-                  fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
               ),

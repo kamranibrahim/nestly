@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'nest_a11y.dart';
 
 /// Small inline shimmer used inside buttons/actions.
 class NestShimmerCircle extends StatelessWidget {
@@ -41,12 +42,26 @@ class ShimmerScope extends StatefulWidget {
 class _ShimmerScopeState extends State<ShimmerScope>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _reduce = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: widget.duration)
-      ..repeat();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = NestA11y.reduceMotion(context);
+    if (reduce == _reduce && (_reduce || _controller.isAnimating)) return;
+    _reduce = reduce;
+    if (reduce) {
+      _controller.stop();
+      _controller.value = 0.5;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override
@@ -98,10 +113,18 @@ class _ShimmerBoxState extends State<ShimmerBox>
     with SingleTickerProviderStateMixin {
   AnimationController? _local;
   Animation<double>? _animation;
+  bool _static = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (NestA11y.reduceMotion(context)) {
+      _static = true;
+      _local?.stop();
+      _animation = null;
+      return;
+    }
+    _static = false;
     final shared = ShimmerScope.of(context);
     if (shared != null) {
       _animation = shared;
@@ -111,6 +134,7 @@ class _ShimmerBoxState extends State<ShimmerBox>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
+    if (!_local!.isAnimating) _local!.repeat();
     _animation = _local;
   }
 
@@ -122,6 +146,17 @@ class _ShimmerBoxState extends State<ShimmerBox>
 
   @override
   Widget build(BuildContext context) {
+    if (_static) {
+      return Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+        ),
+      );
+    }
+
     final animation = _animation;
     if (animation == null) {
       return SizedBox(width: widget.width, height: widget.height);
