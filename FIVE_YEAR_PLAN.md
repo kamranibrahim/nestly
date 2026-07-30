@@ -227,6 +227,8 @@ Exact headcount follows revenue and Plus attach — this plan prefers **profitab
 
 ## Near-term checklist (next 90 days)
 
+Detailed week-by-week execution: [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md) (Aug–Nov 2026).
+
 Aligned with this plan’s Year 1 finish line:
 
 1. Complete `STORE_CHECKLIST.md` and submit closed → public tracks  
