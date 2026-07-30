@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -99,15 +100,19 @@ class _SyncedShellState extends ConsumerState<_SyncedShell> {
   }
 
   Future<void> _bootstrap() async {
+    if (FirebaseAuth.instance.currentUser == null) return;
     final nest = await ref.read(nestInfoProvider.future);
-    if (nest == null) return;
+    if (!mounted || nest == null) return;
+    if (FirebaseAuth.instance.currentUser == null) return;
     final sync = ref.read(syncServiceProvider);
     await sync.bindNest(nest.id);
+    if (!mounted || FirebaseAuth.instance.currentUser == null) return;
     try {
       await sync.syncAll();
     } catch (_) {
-      // Offline is fine — local Drift data remains usable.
+      // Offline / signed-out race is fine — local Drift data remains usable.
     }
+    if (!mounted || FirebaseAuth.instance.currentUser == null) return;
     try {
       await ref.read(notificationServiceProvider).init();
     } catch (_) {}

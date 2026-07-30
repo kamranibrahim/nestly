@@ -68,7 +68,9 @@ class AuthRepository {
     return _auth.sendPasswordResetEmail(email: email.trim());
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    await _auth.signOut();
+  }
 
   /// Required before sensitive ops like account deletion when the session is stale.
   Future<void> reauthenticateWithPassword(String password) async {
@@ -339,36 +341,53 @@ class SyncService {
   Future<void> syncAll() async {
     final nestId = await _db.getMeta('nestId');
     if (nestId == null || nestId.isEmpty) return;
+    if (FirebaseAuth.instance.currentUser == null) return;
+
+    Future<void> step(Future<void> Function() action) async {
+      if (FirebaseAuth.instance.currentUser == null) {
+        throw const _SignedOutDuringSync();
+      }
+      await action();
+    }
 
     try {
-      await _pushTasks(nestId);
-      await _pullTasks(nestId);
-      await _pushShopping(nestId);
-      await _pullShopping(nestId);
-      await _pushEvents(nestId);
-      await _pullEvents(nestId);
-      await _pushExpenses(nestId);
-      await _pullExpenses(nestId);
-      await _pushBills(nestId);
-      await _pullBills(nestId);
-      await _pushEmergency(nestId);
-      await _pullEmergency(nestId);
-      await _pushVault(nestId);
-      await _pullVault(nestId);
-      await _pushTimeline(nestId);
-      await _pullTimeline(nestId);
-      await _pushMeals(nestId);
-      await _pullMeals(nestId);
-      await _pushCare(nestId);
-      await _pullCare(nestId);
-      await _pushCareProfiles(nestId);
-      await _pullCareProfiles(nestId);
-      await _pushSchool(nestId);
-      await _pullSchool(nestId);
-      await _pushMembers(nestId);
-      await pullMembers(nestId);
+      await step(() => _pushTasks(nestId));
+      await step(() => _pullTasks(nestId));
+      await step(() => _pushShopping(nestId));
+      await step(() => _pullShopping(nestId));
+      await step(() => _pushEvents(nestId));
+      await step(() => _pullEvents(nestId));
+      await step(() => _pushExpenses(nestId));
+      await step(() => _pullExpenses(nestId));
+      await step(() => _pushBills(nestId));
+      await step(() => _pullBills(nestId));
+      await step(() => _pushEmergency(nestId));
+      await step(() => _pullEmergency(nestId));
+      await step(() => _pushVault(nestId));
+      await step(() => _pullVault(nestId));
+      await step(() => _pushTimeline(nestId));
+      await step(() => _pullTimeline(nestId));
+      await step(() => _pushMeals(nestId));
+      await step(() => _pullMeals(nestId));
+      await step(() => _pushCare(nestId));
+      await step(() => _pullCare(nestId));
+      await step(() => _pushCareProfiles(nestId));
+      await step(() => _pullCareProfiles(nestId));
+      await step(() => _pushSchool(nestId));
+      await step(() => _pullSchool(nestId));
+      await step(() => _pushMembers(nestId));
+      await step(() => pullMembers(nestId));
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
+    } on _SignedOutDuringSync {
+      debugPrint('Sync aborted: signed out');
     } catch (e, st) {
+      // Sign-out / auth race: rules deny unauthenticated reads.
+      if (e is FirebaseException &&
+          e.code == 'permission-denied' &&
+          FirebaseAuth.instance.currentUser == null) {
+        debugPrint('Sync aborted: signed out during sync');
+        return;
+      }
       debugPrint('Sync failed: $e\n$st');
       rethrow;
     }
@@ -1217,4 +1236,9 @@ class SyncService {
           );
     }
   }
+}
+
+/// Thrown internally when auth disappears mid-[SyncService.syncAll].
+class _SignedOutDuringSync implements Exception {
+  const _SignedOutDuringSync();
 }

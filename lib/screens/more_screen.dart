@@ -475,7 +475,10 @@ class MoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             TextButton.icon(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+              onPressed: () async {
+                await ref.read(authRepositoryProvider).signOut();
+                ref.invalidate(nestInfoProvider);
+              },
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sign out'),
             ),
