@@ -12,173 +12,11 @@ import '../widgets/motion.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
 
-class TasksScreen extends ConsumerWidget {
+class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tasksAsync = ref.watch(tasksProvider);
-    final members = ref.watch(membersProvider).valueOrNull ?? const [];
-
-    ref.listen(pendingAddProvider, (prev, next) {
-      if (next == PendingAdd.task) {
-        ref.read(pendingAddProvider.notifier).state = PendingAdd.none;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) showTaskSheet(context, ref);
-        });
-      }
-    });
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 2, 10, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Tasks',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                          ),
-                    ),
-                  ),
-                  CircleIconButton(
-                    icon: Icons.add_rounded,
-                    size: 38,
-                    onTap: () => showTaskSheet(context, ref),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: tasksAsync.when(
-                loading: () =>
-                    const NestLoadingSkeleton(itemCount: 5, hasTitle: true),
-                error: (error, _) => const Center(
-                  child: Text('Could not load tasks. Pull to retry.'),
-                ),
-                data: (tasks) {
-                  final open = tasks.where((t) => !t.done).toList();
-                  final done = tasks.where((t) => t.done).toList();
-
-                  return ListView(
-                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 72),
-                    children: [
-                      Appear(
-                        child: Row(
-                          children: [
-                            SoftPill(
-                              label: 'Open (${open.length})',
-                              selected: true,
-                            ),
-                            const SizedBox(width: 8),
-                            SoftPill(label: 'Done (${done.length})'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      if (members.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              for (final m in members.take(5))
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 6),
-                                  child: MemberAvatar(
-                                    initials: m.initials,
-                                    color: Color(m.colorValue),
-                                    size: 34,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      if (open.isEmpty && done.isEmpty)
-                        FirstRunEmptyCard(
-                          icon: Icons.add_task_rounded,
-                          color: AppColors.mint,
-                          title: 'Add your first task',
-                          body:
-                              'Chores, reminders, and shared to-dos live here — tap to create one for the nest.',
-                          actionLabel: 'Add task',
-                          onAction: () => showTaskSheet(context, ref),
-                        )
-                      else ...[
-                        for (var i = 0; i < open.length; i++)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Appear(
-                              delay: AppMotion.stagger * i.clamp(0, 8),
-                              replayKey: open[i].id,
-                              child: _PastelTaskCard(
-                                task: open[i],
-                                members: members,
-                                color:
-                                    AppColors.softCardColors[i %
-                                        AppColors.softCardColors.length],
-                                onToggle: () async {
-                                  await ref
-                                      .read(taskRepositoryProvider)
-                                      .toggleDone(open[i]);
-                                  await syncAfterWrite(ref, context: context);
-                                },
-                                onEdit: () => showTaskSheet(
-                                  context,
-                                  ref,
-                                  existing: open[i],
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (done.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          const SectionLabel('Completed'),
-                          for (var i = 0; i < done.length; i++)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Appear(
-                                delay: AppMotion.stagger * i.clamp(0, 6),
-                                replayKey: done[i].id,
-                                child: _PastelTaskCard(
-                                  task: done[i],
-                                  members: members,
-                                  color: AppColors.surfaceMuted,
-                                  bordered: true,
-                                  onToggle: () async {
-                                    await ref
-                                        .read(taskRepositoryProvider)
-                                        .toggleDone(done[i]);
-                                    await syncAfterWrite(ref, context: context);
-                                  },
-                                  onEdit: () => showTaskSheet(
-                                    context,
-                                    ref,
-                                    existing: done[i],
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ],
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  ConsumerState<TasksScreen> createState() => _TasksScreenState();
 
   /// Kept for FAB / pending-add callers that still reference the old name.
   static Future<void> showAddTaskSheet(BuildContext context, WidgetRef ref) {
@@ -251,6 +89,265 @@ class TasksScreen extends ConsumerWidget {
           );
     }
     await syncAfterWrite(ref, context: context);
+  }
+}
+
+class _TasksScreenState extends ConsumerState<TasksScreen> {
+  /// `null` = all members; otherwise filter by assignee id.
+  String? _assigneeFilterId;
+
+  NestMember? _memberById(List<NestMember> members, String? id) {
+    if (id == null) return null;
+    for (final m in members) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tasksAsync = ref.watch(tasksProvider);
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+
+    ref.listen(pendingAddProvider, (prev, next) {
+      if (next == PendingAdd.task) {
+        ref.read(pendingAddProvider.notifier).state = PendingAdd.none;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) TasksScreen.showTaskSheet(context, ref);
+        });
+      }
+    });
+
+    if (_assigneeFilterId != null &&
+        _memberById(members, _assigneeFilterId) == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _assigneeFilterId = null);
+      });
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 2, 10, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Tasks',
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                          ),
+                    ),
+                  ),
+                  CircleIconButton(
+                    icon: Icons.add_rounded,
+                    size: 38,
+                    onTap: () => TasksScreen.showTaskSheet(context, ref),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: tasksAsync.when(
+                loading: () =>
+                    const NestLoadingSkeleton(itemCount: 5, hasTitle: true),
+                error: (error, _) =>
+                    const Center(child: Text('Could not load tasks.')),
+                data: (tasks) {
+                  final filtered = _assigneeFilterId == null
+                      ? tasks
+                      : tasks
+                            .where((t) => t.assigneeId == _assigneeFilterId)
+                            .toList();
+                  final open = filtered.where((t) => !t.done).toList();
+                  final done = filtered.where((t) => t.done).toList();
+                  final filterMember = _memberById(members, _assigneeFilterId);
+
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 72),
+                    children: [
+                      Appear(
+                        child: Row(
+                          children: [
+                            SoftPill(
+                              label: 'Open (${open.length})',
+                              selected: true,
+                            ),
+                            const SizedBox(width: 8),
+                            SoftPill(label: 'Done (${done.length})'),
+                          ],
+                        ),
+                      ),
+                      if (members.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              SoftPill(
+                                label: 'All',
+                                selected: _assigneeFilterId == null,
+                                onTap: () =>
+                                    setState(() => _assigneeFilterId = null),
+                              ),
+                              const SizedBox(width: 6),
+                              for (final m in members) ...[
+                                _AssigneeFilterAvatar(
+                                  member: m,
+                                  selected: _assigneeFilterId == m.id,
+                                  onTap: () {
+                                    setState(() {
+                                      _assigneeFilterId =
+                                          _assigneeFilterId == m.id
+                                          ? null
+                                          : m.id;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      if (tasks.isEmpty)
+                        FirstRunEmptyCard(
+                          icon: Icons.add_task_rounded,
+                          color: AppColors.mint,
+                          title: 'Add your first task',
+                          body:
+                              'Chores, reminders, and shared to-dos live here — tap to create one for the nest.',
+                          actionLabel: 'Add task',
+                          onAction: () =>
+                              TasksScreen.showTaskSheet(context, ref),
+                        )
+                      else if (open.isEmpty && done.isEmpty)
+                        FirstRunEmptyCard(
+                          icon: Icons.person_outline_rounded,
+                          color: AppColors.mint,
+                          title: filterMember == null
+                              ? 'No tasks here'
+                              : 'Nothing for ${filterMember.name.split(' ').first}',
+                          body: filterMember == null
+                              ? 'Try another filter or add a task.'
+                              : 'Tap All to see everyone, or add a task for them.',
+                          actionLabel: 'Add task',
+                          onAction: () =>
+                              TasksScreen.showTaskSheet(context, ref),
+                        )
+                      else ...[
+                        for (var i = 0; i < open.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Appear(
+                              delay: AppMotion.stagger * i.clamp(0, 8),
+                              replayKey: open[i].id,
+                              child: _PastelTaskCard(
+                                task: open[i],
+                                members: members,
+                                color:
+                                    AppColors.softCardColors[i %
+                                        AppColors.softCardColors.length],
+                                onToggle: () async {
+                                  await ref
+                                      .read(taskRepositoryProvider)
+                                      .toggleDone(open[i]);
+                                  await syncAfterWrite(ref, context: context);
+                                },
+                                onEdit: () => TasksScreen.showTaskSheet(
+                                  context,
+                                  ref,
+                                  existing: open[i],
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (done.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          const SectionLabel('Completed'),
+                          for (var i = 0; i < done.length; i++)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Appear(
+                                delay: AppMotion.stagger * i.clamp(0, 6),
+                                replayKey: done[i].id,
+                                child: _PastelTaskCard(
+                                  task: done[i],
+                                  members: members,
+                                  color: AppColors.surfaceMuted,
+                                  bordered: true,
+                                  onToggle: () async {
+                                    await ref
+                                        .read(taskRepositoryProvider)
+                                        .toggleDone(done[i]);
+                                    await syncAfterWrite(ref, context: context);
+                                  },
+                                  onEdit: () => TasksScreen.showTaskSheet(
+                                    context,
+                                    ref,
+                                    existing: done[i],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AssigneeFilterAvatar extends StatelessWidget {
+  const _AssigneeFilterAvatar({
+    required this.member,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final NestMember member;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      semanticLabel: selected
+          ? '${member.name}, selected filter'
+          : 'Filter tasks for ${member.name}',
+      selected: selected,
+      child: AnimatedContainer(
+        duration: AppMotion.fast,
+        curve: AppMotion.standard,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? AppColors.ink : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: MemberAvatar(
+          initials: member.initials,
+          color: Color(member.colorValue),
+          size: 34,
+        ),
+      ),
+    );
   }
 }
 

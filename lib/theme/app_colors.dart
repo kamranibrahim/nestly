@@ -56,4 +56,13 @@ abstract final class AppColors {
     Color(0xFFF5C6D8),
     Color(0xFFC5E8E0),
   ];
+
+  /// Punchier fill for [MemberAvatar] — stored member colors stay soft for cards.
+  static Color avatarFill(Color pastel) {
+    final hsl = HSLColor.fromColor(pastel);
+    return hsl
+        .withSaturation((hsl.saturation * 1.4 + 0.1).clamp(0.48, 0.82))
+        .withLightness((hsl.lightness - 0.16).clamp(0.44, 0.64))
+        .toColor();
+  }
 }

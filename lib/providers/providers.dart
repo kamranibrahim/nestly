@@ -130,6 +130,16 @@ enum PendingAdd { none, event, task, shopping }
 
 final pendingAddProvider = StateProvider<PendingAdd>((ref) => PendingAdd.none);
 
+/// Focus Calendar on a day (and optionally open an event sheet).
+class CalendarFocus {
+  const CalendarFocus({required this.day, this.eventId});
+
+  final DateTime day;
+  final String? eventId;
+}
+
+final calendarFocusProvider = StateProvider<CalendarFocus?>((ref) => null);
+
 final timelineProvider = StreamProvider<List<TimelineEvent>>((ref) {
   return ref.watch(timelineRepositoryProvider).watchRecent();
 });

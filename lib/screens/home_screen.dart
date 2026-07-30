@@ -734,7 +734,24 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       if (todayEvents.isNotEmpty) ...[
                         const SizedBox(height: 16),
-                        const SectionLabel('On the calendar'),
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: SectionLabel('On the calendar'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                final now = DateTime.now();
+                                ref.read(calendarFocusProvider.notifier).state =
+                                    CalendarFocus(
+                                  day: DateTime(now.year, now.month, now.day),
+                                );
+                                onOpenTab(1);
+                              },
+                              child: const Text('See all'),
+                            ),
+                          ],
+                        ),
                         for (var i = 0; i < todayEvents.take(3).length; i++)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
@@ -743,6 +760,19 @@ class HomeScreen extends ConsumerWidget {
                               pastel:
                                   AppColors.softCardColors[i %
                                       AppColors.softCardColors.length],
+                              onTap: () {
+                                final e = todayEvents[i];
+                                ref.read(calendarFocusProvider.notifier).state =
+                                    CalendarFocus(
+                                  day: DateTime(
+                                    e.startsAt.year,
+                                    e.startsAt.month,
+                                    e.startsAt.day,
+                                  ),
+                                  eventId: e.id,
+                                );
+                                onOpenTab(1);
+                              },
                             ),
                           ),
                       ],
@@ -1263,10 +1293,15 @@ class _HashChip extends StatelessWidget {
 }
 
 class _TodayEventCard extends StatelessWidget {
-  const _TodayEventCard({required this.event, required this.pastel});
+  const _TodayEventCard({
+    required this.event,
+    required this.pastel,
+    required this.onTap,
+  });
 
   final CalendarEvent event;
   final Color pastel;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1274,6 +1309,7 @@ class _TodayEventCard extends StatelessWidget {
         ? 'All day'
         : DateFormat.jm().format(event.startsAt);
     return NestCard(
+      onTap: onTap,
       color: pastel,
       bordered: false,
       padding: const EdgeInsets.all(12),
@@ -1331,7 +1367,7 @@ class _TodayEventCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.more_horiz_rounded, color: AppColors.inkMuted),
+          const Icon(Icons.north_east_rounded, color: AppColors.inkMuted),
         ],
       ),
     );

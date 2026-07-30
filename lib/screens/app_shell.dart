@@ -37,6 +37,10 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(calendarFocusProvider, (prev, next) {
+      if (next != null) _go(1);
+    });
+
     final pages = [
       HomeScreen(onOpenTab: _go),
       const CalendarScreen(),

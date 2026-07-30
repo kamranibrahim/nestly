@@ -3,6 +3,7 @@ import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../data/calendar_view_math.dart';
 import '../data/db/app_database.dart';
 import '../data/member_roles.dart';
 import '../providers/providers.dart';
@@ -14,6 +15,8 @@ import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
 import '../data/sync_controller.dart';
 
+enum _CalendarBrowseMode { month, week }
+
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
@@ -24,10 +27,11 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   late DateTime _selected;
   String _memberFilter = 'All';
+  _CalendarBrowseMode _mode = _CalendarBrowseMode.month;
+  bool _focusDrainScheduled = false;
 
   String _pickDefaultMemberId(List<NestMember> members) {
     if (members.isEmpty) return '';
-    // Prefer matching the active filter; otherwise fall back to adult-like.
     if (_memberFilter == 'Adults') {
       for (final m in members) {
         if (MemberRoles.isAdultLike(m.role)) return m.id;
@@ -73,6 +77,31 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     _selected = DateTime(now.year, now.month, now.day);
   }
 
+  void _consumeFocus(CalendarFocus focus) {
+    final day = calendarDateOnly(focus.day);
+    setState(() => _selected = day);
+    final eventId = focus.eventId;
+    if (eventId == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final events = ref.read(eventsProvider).valueOrNull ?? const [];
+      for (final e in events) {
+        if (e.id == eventId) {
+          _showEditEvent(context, e);
+          return;
+        }
+      }
+    });
+  }
+
+  void _shiftBrowse(int delta) {
+    setState(() {
+      _selected = _mode == _CalendarBrowseMode.month
+          ? shiftMonth(_selected, delta)
+          : shiftWeek(_selected, delta);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final eventsAsync = ref.watch(eventsProvider);
@@ -87,6 +116,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         });
       }
     });
+
+    ref.listen(calendarFocusProvider, (prev, next) {
+      if (next == null) return;
+      ref.read(calendarFocusProvider.notifier).state = null;
+      _consumeFocus(next);
+    });
+
+    if (!_focusDrainScheduled && ref.read(calendarFocusProvider) != null) {
+      _focusDrainScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusDrainScheduled = false;
+        if (!mounted) return;
+        final focus = ref.read(calendarFocusProvider);
+        if (focus == null) return;
+        ref.read(calendarFocusProvider.notifier).state = null;
+        _consumeFocus(focus);
+      });
+    }
+
+    final periodLabel = _mode == _CalendarBrowseMode.month
+        ? DateFormat('MMMM yyyy').format(_selected)
+        : '${DateFormat('MMM d').format(startOfWeekSunday(_selected))} – ${DateFormat('MMM d').format(endOfWeekSaturday(_selected))}';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -111,12 +162,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     },
                   ),
                   const Spacer(),
-                  CircleIconButton(
-                    icon: Icons.notifications_none_rounded,
-                    background: AppColors.surfaceMuted,
-                    foreground: AppColors.ink,
-                    size: 38,
-                    onTap: () {},
+                  SoftPill(
+                    label: 'Month',
+                    selected: _mode == _CalendarBrowseMode.month,
+                    onTap: () =>
+                        setState(() => _mode = _CalendarBrowseMode.month),
+                  ),
+                  const SizedBox(width: 6),
+                  SoftPill(
+                    label: 'Week',
+                    selected: _mode == _CalendarBrowseMode.week,
+                    onTap: () =>
+                        setState(() => _mode = _CalendarBrowseMode.week),
                   ),
                   const SizedBox(width: 8),
                   CircleIconButton(
@@ -142,31 +199,40 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      SoftPill(
-                        label: DateFormat('dd.MM.yyyy').format(_selected),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _selected,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2035),
-                          );
-                          if (picked != null) {
-                            setState(() {
-                              _selected = DateTime(
-                                picked.year,
-                                picked.month,
-                                picked.day,
-                              );
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 8),
                       CircleIconButton(
-                        icon: Icons.edit_rounded,
+                        icon: Icons.chevron_left_rounded,
+                        background: AppColors.surfaceMuted,
+                        foreground: AppColors.ink,
                         size: 34,
-                        onTap: () => _showAddEvent(context),
+                        onTap: () => _shiftBrowse(-1),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: SoftPill(
+                          label: periodLabel,
+                          selected: true,
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _selected,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2035),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _selected = calendarDateOnly(picked);
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      CircleIconButton(
+                        icon: Icons.chevron_right_rounded,
+                        background: AppColors.surfaceMuted,
+                        foreground: AppColors.ink,
+                        size: 34,
+                        onTap: () => _shiftBrowse(1),
                       ),
                     ],
                   ),
@@ -196,22 +262,29 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
-              child: Column(
-                children: [
-                  const Row(
-                    children: [
-                      _Dow('S'),
-                      _Dow('M'),
-                      _Dow('T'),
-                      _Dow('W'),
-                      _Dow('T'),
-                      _Dow('F'),
-                      _Dow('S'),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ..._buildMonthRows(events),
-                ],
+              child: KeyedSubtree(
+                // Keep month circles and week pills from sharing AnimatedContainer
+                // state (circle ↔ borderRadius tween asserts).
+                key: ValueKey(_mode),
+                child: _mode == _CalendarBrowseMode.month
+                    ? Column(
+                        children: [
+                          const Row(
+                            children: [
+                              _Dow('S'),
+                              _Dow('M'),
+                              _Dow('T'),
+                              _Dow('W'),
+                              _Dow('T'),
+                              _Dow('F'),
+                              _Dow('S'),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ..._buildMonthRows(events),
+                        ],
+                      )
+                    : _buildWeekStrip(events),
               ),
             ),
             const SizedBox(height: 6),
@@ -222,11 +295,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 data: (allEvents) {
                   final members = membersAsync.valueOrNull ?? [];
                   final dayEvents = allEvents.where((e) {
-                    return e.startsAt.year == _selected.year &&
-                        e.startsAt.month == _selected.month &&
-                        e.startsAt.day == _selected.day &&
+                    return isSameCalendarDay(e.startsAt, _selected) &&
                         _matchesMemberFilter(e.memberId, members);
                   }).toList();
+                  final upcomingCutoff = endOfDayExclusive(_selected);
 
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
@@ -259,9 +331,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   members,
                                   dayEvents[i].memberId,
                                 ),
-                                color:
-                                    AppColors.softCardColors[i %
-                                        AppColors.softCardColors.length],
+                                color: AppColors.softCardColors[
+                                    i % AppColors.softCardColors.length],
                                 onTap: () =>
                                     _showEditEvent(context, dayEvents[i]),
                                 onEdit: () =>
@@ -272,24 +343,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       if (allEvents
                           .where(
                             (e) =>
-                                e.startsAt.isAfter(
-                                  _selected.add(const Duration(days: 1)),
-                                ) &&
+                                !e.startsAt.isBefore(upcomingCutoff) &&
                                 _matchesMemberFilter(e.memberId, members),
                           )
                           .isNotEmpty) ...[
                         const SizedBox(height: 6),
                         const SectionLabel('Upcoming'),
-                        for (final event
-                            in allEvents
-                                .where(
-                                  (e) =>
-                                      e.startsAt.isAfter(
-                                        _selected.add(const Duration(days: 1)),
-                                      ) &&
-                                      _matchesMemberFilter(e.memberId, members),
-                                )
-                                .take(4))
+                        for (final event in allEvents
+                            .where(
+                              (e) =>
+                                  !e.startsAt.isBefore(upcomingCutoff) &&
+                                  _matchesMemberFilter(e.memberId, members),
+                            )
+                            .take(4))
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: _PastelEventCard(
@@ -326,7 +392,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return d.year == n.year && d.month == n.month && d.day == n.day;
   }
 
-  DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+  DateTime _dateOnly(DateTime d) => calendarDateOnly(d);
 
   String _dateLabel(DateTime d) => DateFormat('EEE, MMM d').format(d);
 
@@ -373,6 +439,84 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         .toSet();
   }
 
+  Widget _buildWeekStrip(List<CalendarEvent> events) {
+    final days = weekDaysSunday(_selected);
+    final eventDayKeys = {
+      for (final e in events) calendarDateOnly(e.startsAt),
+    };
+
+    return Column(
+      children: [
+        const Row(
+          children: [
+            _Dow('S'),
+            _Dow('M'),
+            _Dow('T'),
+            _Dow('W'),
+            _Dow('T'),
+            _Dow('F'),
+            _Dow('S'),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            for (final day in days)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _selected = day),
+                  child: AnimatedContainer(
+                    duration: AppMotion.fast,
+                    curve: AppMotion.standard,
+                    height: 52,
+                    alignment: Alignment.center,
+                    margin: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: isSameCalendarDay(day, _selected)
+                          ? AppColors.accent
+                          : (_isToday(day) ? AppColors.primary : null),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: isSameCalendarDay(day, _selected)
+                                ? AppColors.ink
+                                : (_isToday(day)
+                                      ? Colors.white
+                                      : AppColors.ink),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: eventDayKeys.contains(day)
+                                ? (isSameCalendarDay(day, _selected) ||
+                                          _isToday(day)
+                                      ? AppColors.ink.withValues(alpha: 0.55)
+                                      : AppColors.mint)
+                                : Colors.transparent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
   List<Widget> _buildMonthRows(List<CalendarEvent> events) {
     final first = DateTime(_selected.year, _selected.month, 1);
     final daysInMonth = DateTime(_selected.year, _selected.month + 1, 0).day;
@@ -410,7 +554,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               height: 38,
               alignment: Alignment.center,
               margin: const EdgeInsets.all(2),
-              decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: fill,
+                borderRadius: BorderRadius.circular(999),
+              ),
               child: Text(
                 '$d',
                 style: TextStyle(
@@ -487,9 +634,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     .read(eventRepositoryProvider)
                     .deleteEvent(existing.id);
               } else if (existing == null) {
-                await ref
-                    .read(eventRepositoryProvider)
-                    .addEvent(
+                await ref.read(eventRepositoryProvider).addEvent(
                       title: title,
                       startsAt: allDay ? _dateOnly(selectedDate) : startAt,
                       endsAt: allDay ? null : endAt,
@@ -498,9 +643,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       location: location.isEmpty ? null : location,
                     );
               } else {
-                await ref
-                    .read(eventRepositoryProvider)
-                    .updateEvent(
+                await ref.read(eventRepositoryProvider).updateEvent(
                       id: existing.id,
                       title: title,
                       startsAt: allDay ? _dateOnly(selectedDate) : startAt,
@@ -524,7 +667,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     const SizedBox(height: 6),
                     Text(
                       existing == null ? 'New event' : 'Edit event',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
@@ -743,8 +886,8 @@ class _PastelEventCard extends StatelessWidget {
     final timeLabel = event.allDay
         ? 'All day'
         : end == null
-        ? DateFormat.jm().format(event.startsAt)
-        : '${DateFormat.jm().format(event.startsAt)} - ${DateFormat.jm().format(end)}';
+            ? DateFormat.jm().format(event.startsAt)
+            : '${DateFormat.jm().format(event.startsAt)} - ${DateFormat.jm().format(end)}';
 
     return NestCard(
       onTap: onTap,

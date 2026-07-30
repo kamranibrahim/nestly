@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,6 +35,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _submit() async {
+    if(kDebugMode && _email.text.isEmpty){
+      setState(() {
+        _email.text = 'devtime3@gmail.com';
+        _password.text = '12345678';
+      });
+    }
     setState(() {
       _busy = true;
       _error = null;
