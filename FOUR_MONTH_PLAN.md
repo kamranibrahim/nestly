@@ -64,6 +64,8 @@ No companion features, deploys, or Netlify work unless a production hotfix is fo
 - In-app review prompt
 - Accessibility + reduce-motion
 - Broader automated tests
+
+### Explicitly excluded from this execution branch
 - App Store screenshot / What’s New cadence
 - Soft conflict messaging when sync overwrites
 
@@ -108,12 +110,12 @@ No companion features, deploys, or Netlify work unless a production hotfix is fo
 
 ---
 
-### Week 4 — 24–30 Aug · Home Today depth (slice B) + store hygiene
+### Week 4 — 24–30 Aug · Home Today depth (slice B)
 | Build | Manual |
 |-------|--------|
-| Recent activity: “See all” → **Timeline screen** (filterable list) | App Store What’s New if shipping |
-| Timeline: open related module when possible | Play Store progress if applicable |
-| Fix top 3 Crashlytics issues | Screenshot refresh if Home changed |
+| Recent activity: “See all” → **Timeline screen** (filterable list) | Play Store progress if applicable |
+| Timeline: open related module when possible | |
+| Fix top 3 Crashlytics issues | |
 | In-app “tips” dismissible card (once): invite partner | |
 
 **Exit:** Timeline is a real screen; top crashes burned down.
@@ -195,8 +197,6 @@ No companion features, deploys, or Netlify work unless a production hotfix is fo
 | Calendar / Tasks / Shop / Care / School first-run cards (one-tap create, not showcase wipe) |
 | Onboarding copy: honest quiet AI (scan assist only) |
 | Nest setup: clearer defaults + “you can change later” |
-| Soft conflict copy when sync replaces local newer-looking row (toast) |
-
 **Exit:** New nests aren’t blank walls.
 
 ---
@@ -233,7 +233,7 @@ No companion features, deploys, or Netlify work unless a production hotfix is fo
 | Build | Manual |
 |-------|--------|
 | WidgetKit / `home_widget` (or Flutter widget package): open tasks count + next event + dinner line | App Group + App Store build |
-| Tap widget → open Nestly Home | What’s New: “Today on your Home Screen” |
+| Tap widget → open Nestly Home | |
 | Graceful empty/privacy (no sensitive vault) | |
 
 **Exit:** Widget live on TestFlight/App Store showing live nest snapshot.
@@ -257,7 +257,7 @@ No companion features, deploys, or Netlify work unless a production hotfix is fo
 | Build | Manual |
 |-------|--------|
 | Nest: members list, roles labels, leave nest warning, last sync, change password, export | Request App Store review prompt after 2nd member + day 3 (SKStoreReviewController) |
-| Emergency card share polish | Update screenshots if needed |
+| Emergency card share polish | |
 | Export: include budget setting; clearer vault binary note | |
 | Android widget stretch **or** Play listing polish if behind | |
 
@@ -333,6 +333,8 @@ Until then, keep Week 1 mitigations.
 - Firestore / Storage security rules rewrite  
 - Nestly Plus paywall  
 - Waiting on a domain to start product weeks  
+- App Store screenshot / What’s New cadence  
+- Soft conflict messaging when sync overwrites  
 
 ---
 

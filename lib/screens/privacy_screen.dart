@@ -244,6 +244,25 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 ),
                 SizedBox(height: 14),
                 Text(
+                  'Password reset',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Forgot-password emails are sent by Firebase Authentication. '
+                  'If you don’t see one, check Spam and Promotions. While signed '
+                  'in, you can change your password from Nest without email. '
+                  'Need help? support@nestly.app.',
+                  style: TextStyle(
+                    color: AppColors.inkSecondary,
+                    height: 1.45,
+                  ),
+                ),
+                SizedBox(height: 14),
+                Text(
                   'Notifications',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,

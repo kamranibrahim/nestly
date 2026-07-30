@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -344,47 +345,45 @@ class MoreScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 12),
             const SectionLabel('Settings'),
-            if (nest != null) ...[
-              Appear(
-                delay: const Duration(milliseconds: 90),
-                child: NestCard(
-                  onTap: () => _loadShowcase(context, ref),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_rounded,
-                        color: AppColors.accentDeep,
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Load App Store showcase',
-                              style: TextStyle(fontWeight: FontWeight.w600),
+            Appear(
+              delay: const Duration(milliseconds: 90),
+              child: NestCard(
+                onTap: () => showChangePasswordSheet(context, ref),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.lock_reset_rounded,
+                      color: AppColors.accentDeep,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Change password',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Still signed in? Update it here',
+                            style: TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 12.5,
                             ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Fill Home, Calendar, Tasks, Vault & more',
-                              style: TextStyle(
-                                color: AppColors.inkMuted,
-                                fontSize: 12.5,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.inkMuted,
-                      ),
-                    ],
-                  ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.inkMuted,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-            ],
+            ),
+            const SizedBox(height: 6),
             Appear(
               delay: const Duration(milliseconds: 100),
               child: NestCard(
@@ -436,32 +435,47 @@ class MoreScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            Appear(
-              delay: const Duration(milliseconds: 140),
-              child: NestCard(
-                onTap: () => showChangePasswordSheet(context, ref),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.lock_reset_rounded,
-                      color: AppColors.accentDeep,
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Change password',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+            if (nest != null && (kDebugMode || kProfileMode)) ...[
+              const SizedBox(height: 6),
+              Appear(
+                delay: const Duration(milliseconds: 140),
+                child: NestCard(
+                  onTap: () => _loadShowcase(context, ref),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        color: AppColors.accentDeep,
                       ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: AppColors.inkMuted,
-                    ),
-                  ],
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Load App Store showcase',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Debug/profile only — not in App Store builds',
+                              style: TextStyle(
+                                color: AppColors.inkMuted,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.inkMuted,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 6),
             Text(
               'Nestly is free for families — no paywall.',
