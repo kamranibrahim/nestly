@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 import 'db/app_database.dart';
+import 'nest_home_widget.dart';
 
 /// UI-facing sync state (last sync time, in-flight, last error).
 class SyncUiState {
@@ -92,6 +93,13 @@ class SyncController extends StateNotifier<SyncUiState> {
         debugPrint('Reminder reschedule skipped: $e');
       }
       final at = DateTime.now();
+      try {
+        final nest = _ref.read(nestInfoProvider).valueOrNull;
+        await NestHomeWidget.publishFromDatabase(
+          _ref.read(databaseProvider),
+          nestName: nest?.name,
+        );
+      } catch (_) {}
       if (!mounted) return true;
       state = SyncUiState(isSyncing: false, lastSyncAt: at);
       return true;

@@ -60,6 +60,7 @@ dependencies:
   url_launcher: ^6.3.2
   firebase_crashlytics: ^5.2.6
   firebase_analytics: ^12.4.5
+  home_widget: ^0.9.3
 
 dev_dependencies:
   flutter_test:

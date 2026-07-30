@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
 import 'invite_code.dart';
+import 'nest_home_widget.dart';
 import 'repositories.dart';
 import 'telemetry.dart';
 import 'vault_upload_status.dart';
@@ -76,6 +77,9 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
+    try {
+      await NestHomeWidget.clear();
+    } catch (_) {}
     await _auth.signOut();
   }
 

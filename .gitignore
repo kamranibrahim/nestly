@@ -48,3 +48,4 @@ app.*.map.json
 .netlify
 node_modules/
 package-lock.json
+ios/build/

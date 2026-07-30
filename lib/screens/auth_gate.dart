@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/shimmer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/db/app_database.dart';
+import '../data/nest_home_widget.dart';
 import '../data/sync_controller.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
@@ -109,7 +113,18 @@ class _SyncedShellState extends ConsumerState<_SyncedShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(syncControllerProvider.notifier).scheduleResumeSync();
+      unawaited(_refreshWidget());
     }
+  }
+
+  Future<void> _refreshWidget() async {
+    try {
+      final nest = ref.read(nestInfoProvider).valueOrNull;
+      await NestHomeWidget.publishFromDatabase(
+        ref.read(databaseProvider),
+        nestName: nest?.name,
+      );
+    } catch (_) {}
   }
 
   Future<void> _bootstrap() async {
@@ -124,6 +139,7 @@ class _SyncedShellState extends ConsumerState<_SyncedShell>
     try {
       await ref.read(notificationServiceProvider).init();
     } catch (_) {}
+    await _refreshWidget();
   }
 
   @override

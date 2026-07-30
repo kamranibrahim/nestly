@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/db/app_database.dart';
+import 'data/nest_home_widget.dart';
 import 'data/notification_service.dart';
 import 'data/telemetry.dart';
 import 'firebase_options.dart';
@@ -32,6 +33,7 @@ Future<void> main() async {
   if (!kIsWeb) {
     // Must be registered before runApp (FlutterFire requirement).
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await NestHomeWidget.ensureConfigured();
   }
 
   if (kIsWeb) {
