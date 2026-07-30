@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -16,6 +17,7 @@ import 'emergency_screen.dart';
 import 'expenses_screen.dart';
 import 'meals_screen.dart';
 import 'school_screen.dart';
+import 'tasks_screen.dart';
 import 'vault_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -102,20 +104,40 @@ class HomeScreen extends ConsumerWidget {
       vaultExpiringSoon: vaultExpiring.length,
     );
 
-    final nestName =
-        ref.watch(nestInfoProvider).valueOrNull?.name ?? 'Your nest';
+    final nestInfo = ref.watch(nestInfoProvider).valueOrNull;
+    final nestName = nestInfo?.name ?? 'Your nest';
     final members = membersAsync.valueOrNull ?? const [];
     final greetingName = members.isNotEmpty
         ? members.first.name.split(' ').first
         : nestName;
+    final aloneInNest = members.length <= 1;
+    final todayLoad = openTasks + todayEvents.length;
+    final emptyToday = todayLoad == 0;
+    final pressure =
+        openTasks + todayEvents.length + careDue + schoolDue + billsDueSoon;
+    final paceLabel = pressure >= 5
+        ? 'Busy'
+        : pressure >= 1
+            ? 'Steady'
+            : 'Quiet';
+    final dinnerSnapshot = dinnerMeal?.title.trim().isNotEmpty == true
+        ? _shortLabel(dinnerMeal!.title.trim())
+        : 'Plan dinner';
+    final inviteCode = nestInfo?.inviteCode.trim() ?? '';
+    final showInvite = aloneInNest && inviteCode.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
+        child: RefreshIndicator(
+          color: AppColors.accentDeep,
+          onRefresh: () => _refreshToday(ref),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
@@ -180,133 +202,218 @@ class HomeScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text.rich(
-                                  TextSpan(
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.ink,
-                                      height: 1.3,
+                          if (emptyToday) ...[
+                            Text(
+                              aloneInNest
+                                  ? 'Your nest is quiet — start Today'
+                                  : 'Nothing on Today yet',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.ink,
+                                height: 1.3,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              aloneInNest
+                                  ? 'Invite someone, or add your first task or event. No demo data — just your family.'
+                                  : 'Add a task or calendar event so the nest has something to gather around.',
+                              style: const TextStyle(
+                                color: AppColors.inkSecondary,
+                                fontWeight: FontWeight.w600,
+                                height: 1.4,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                            if (showInvite) ...[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: () =>
+                                    _copyInvite(context, inviteCode),
+                                icon: const Icon(Icons.person_add_alt_1_rounded),
+                                label: Text('Invite · $inviteCode'),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () => TasksScreen.showTaskSheet(
+                                      context,
+                                      ref,
                                     ),
-                                    children: [
-                                      const TextSpan(text: 'You have '),
-                                      TextSpan(
-                                        text: '${openTasks + todayEvents.length}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          color: AppColors.accentDeep,
-                                        ),
+                                    icon: const Icon(Icons.add_task_rounded),
+                                    label: const Text('Add task'),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      ref.read(pendingAddProvider.notifier).state =
+                                          PendingAdd.event;
+                                      onOpenTab(1);
+                                    },
+                                    icon: const Icon(Icons.event_rounded),
+                                    label: const Text('Add event'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text.rich(
+                                    TextSpan(
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.ink,
+                                        height: 1.3,
                                       ),
-                                      const TextSpan(text: ' things for today'),
-                                    ],
+                                      children: [
+                                        const TextSpan(text: 'You have '),
+                                        TextSpan(
+                                          text: '$todayLoad',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            color: AppColors.accentDeep,
+                                          ),
+                                        ),
+                                        const TextSpan(text: ' things for today'),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accent,
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: const Text(
-                                  'High',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 12,
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    paceLabel,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              _HashChip('#family'),
-                              _HashChip('#nest'),
-                              _HashChip('#today'),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () => _showTodayReminders(
-                                    context,
-                                    ref,
-                                    careDue: careDue,
-                                    schoolDue: schoolDue,
-                                    billsDueSoon: billsDueSoon,
-                                    openTasks: openTasks,
+                                const _HashChip('#family'),
+                                const _HashChip('#today'),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _showTodayReminders(
+                                      context,
+                                      ref,
+                                      careDue: careDue,
+                                      schoolDue: schoolDue,
+                                      billsDueSoon: billsDueSoon,
+                                      openTasks: openTasks,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.notifications_none_rounded,
+                                    ),
+                                    label: const Text('Reminders'),
                                   ),
-                                  icon: const Icon(Icons.notifications_none_rounded),
-                                  label: const Text('Reminders'),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: FilledButton.icon(
-                                  onPressed: () => onOpenTab(2),
-                                  icon: const Icon(Icons.checklist_rounded),
-                                  label: const Text('Open tasks'),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () => onOpenTab(2),
+                                    icon: const Icon(Icons.checklist_rounded),
+                                    label: const Text('Open tasks'),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                           if (openTaskList.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             for (final task in openTaskList)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 6),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: () async {
-                                    await ref
-                                        .read(taskRepositoryProvider)
-                                        .toggleDone(task);
-                                    try {
-                                      await ref
-                                          .read(syncServiceProvider)
-                                          .syncAll();
-                                    } catch (_) {}
-                                  },
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.radio_button_unchecked_rounded,
-                                        size: 20,
-                                        color: AppColors.mintDeep,
+                                child: Dismissible(
+                                  key: ValueKey('home-task-${task.id}'),
+                                  direction: DismissDirection.endToStart,
+                                  background: Container(
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.mint,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text(
+                                      'Done',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
                                       ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          task.title,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
+                                    ),
+                                  ),
+                                  onDismissed: (_) =>
+                                      _markTaskDone(context, ref, task),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(10),
+                                    onTap: () =>
+                                        _markTaskDone(context, ref, task),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.radio_button_unchecked_rounded,
+                                          size: 20,
+                                          color: AppColors.mintDeep,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            task.title,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      const Text(
-                                        'Done',
-                                        style: TextStyle(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 12,
+                                        const Text(
+                                          'Done',
+                                          style: TextStyle(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 12,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
+                          ] else if (!emptyToday) ...[
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: () =>
+                                  TasksScreen.showTaskSheet(context, ref),
+                              icon: const Icon(Icons.add_rounded, size: 18),
+                              label: const Text('Add a task'),
+                            ),
                           ],
                         ],
                       ),
@@ -319,32 +426,72 @@ class HomeScreen extends ConsumerWidget {
                       children: [
                         _TodayMiniStat(
                           label: 'Calendar',
-                          value: todayEvents.isEmpty ? 'Quiet' : '${todayEvents.length} today',
+                          value: todayEvents.isEmpty
+                              ? 'None today'
+                              : '${todayEvents.length} due',
                           icon: Icons.calendar_month_rounded,
                           tone: AppColors.accent,
+                          onTap: () => onOpenTab(1),
                         ),
                         _TodayMiniStat(
                           label: 'Bills',
-                          value: billsDueSoon == 0 ? 'Clear' : '$billsDueSoon due',
+                          value: billsDueSoon == 0
+                              ? 'None due'
+                              : '$billsDueSoon due',
                           icon: Icons.receipt_long_rounded,
                           tone: AppColors.tileYellow,
+                          onTap: () =>
+                              nestPush(context, const ExpensesScreen()),
                         ),
                         _TodayMiniStat(
                           label: 'Care',
-                          value: careDue == 0 ? 'Good' : '$careDue due',
+                          value: careDue == 0 ? 'None due' : '$careDue due',
                           icon: Icons.favorite_rounded,
                           tone: AppColors.mint,
+                          onTap: () => nestPush(context, const CareScreen()),
                         ),
                         _TodayMiniStat(
                           label: 'Dinner',
-                          value: dinnerMeal?.title.trim().isNotEmpty == true
-                              ? dinnerMeal!.title.trim()
-                              : 'Not planned',
+                          value: dinnerSnapshot,
                           icon: Icons.restaurant_rounded,
                           tone: AppColors.tileTeal,
+                          onTap: () => nestPush(context, const MealsScreen()),
                         ),
                       ],
                     ),
+                    if (todayEvents.isEmpty) ...[
+                      const SizedBox(height: 12),
+                      NestCard(
+                        onTap: () {
+                          ref.read(pendingAddProvider.notifier).state =
+                              PendingAdd.event;
+                          onOpenTab(1);
+                        },
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.event_available_rounded,
+                              color: AppColors.accentDeep,
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'No events on the calendar today — tap to add one',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.inkSecondary,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.inkMuted,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     const SectionLabel('Today for your nest'),
                     NestCard(
@@ -530,9 +677,44 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
+  }
+
+  static String _shortLabel(String value, {int max = 16}) {
+    final trimmed = value.trim();
+    if (trimmed.length <= max) return trimmed;
+    return '${trimmed.substring(0, max - 1)}…';
+  }
+
+  Future<void> _refreshToday(WidgetRef ref) async {
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+  }
+
+  Future<void> _copyInvite(BuildContext context, String code) async {
+    await Clipboard.setData(ClipboardData(text: code));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Invite code $code copied')),
+    );
+  }
+
+  Future<void> _markTaskDone(
+    BuildContext context,
+    WidgetRef ref,
+    Task task,
+  ) async {
+    await ref.read(taskRepositoryProvider).toggleDone(task);
+    try {
+      await ref.read(syncServiceProvider).syncAll();
+    } catch (_) {}
   }
 
   Future<void> _showTodayReminders(
@@ -814,12 +996,14 @@ class _TodayMiniStat extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.tone,
+    this.onTap,
   });
 
   final String label;
   final String value;
   final IconData icon;
   final Color tone;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -827,6 +1011,7 @@ class _TodayMiniStat extends StatelessWidget {
     return SizedBox(
       width: width,
       child: NestCard(
+        onTap: onTap,
         color: tone.withValues(alpha: 0.5),
         bordered: false,
         padding: const EdgeInsets.all(12),

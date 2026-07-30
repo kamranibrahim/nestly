@@ -94,4 +94,31 @@ void main() {
     expect(vault.title, contains('vault'));
     expect(vault.actionLabel, 'Open');
   });
+
+  test('due care ranks above missing dinner and open tasks', () {
+    final summary = buildFamilyNeeds(
+      openTasks: 3,
+      openShopping: 0,
+      unpaidBillsDueSoon: 0,
+      careDue: 1,
+      schoolDue: 0,
+      dinnerPlannedToday: false,
+      eventsToday: 0,
+    );
+
+    expect(summary.needs.first.kind, FamilyNeedKind.care);
+    expect(
+      summary.needs.map((n) => n.kind).toList(),
+      containsAll([
+        FamilyNeedKind.care,
+        FamilyNeedKind.tasks,
+        FamilyNeedKind.meals,
+      ]),
+    );
+    final careIndex =
+        summary.needs.indexWhere((n) => n.kind == FamilyNeedKind.care);
+    final dinnerIndex =
+        summary.needs.indexWhere((n) => n.kind == FamilyNeedKind.meals);
+    expect(careIndex, lessThan(dinnerIndex));
+  });
 }
