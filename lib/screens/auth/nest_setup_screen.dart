@@ -77,9 +77,15 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
       try {
         await sync.syncAll();
       } catch (_) {}
-      await ref.read(notificationServiceProvider).init();
+      try {
+        await ref.read(notificationServiceProvider).init();
+      } catch (e, st) {
+        // Nest is already created — don't block entry on FCM / permission issues.
+        debugPrint('Notification init skipped after nest setup: $e\n$st');
+      }
       ref.invalidate(nestInfoProvider);
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Nest setup failed: $e\n$st');
       setState(() => _error = friendlyAuthError(e));
     } finally {
       if (mounted) setState(() => _busy = false);

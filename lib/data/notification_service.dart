@@ -34,7 +34,6 @@ class NotificationService {
     );
 
     await _messaging.requestPermission(alert: true, badge: true, sound: true);
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     final token = await _messaging.getToken();
     await _saveToken(token);
