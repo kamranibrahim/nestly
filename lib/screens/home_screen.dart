@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
 import '../data/family_needs.dart';
+import '../data/home_tips.dart';
 import '../data/repositories.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
@@ -18,6 +19,7 @@ import 'expenses_screen.dart';
 import 'meals_screen.dart';
 import 'school_screen.dart';
 import 'tasks_screen.dart';
+import 'timeline_screen.dart';
 import 'vault_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -125,6 +127,9 @@ class HomeScreen extends ConsumerWidget {
         : 'Plan dinner';
     final inviteCode = nestInfo?.inviteCode.trim() ?? '';
     final showInvite = aloneInNest && inviteCode.isNotEmpty;
+    final tipDismissed =
+        ref.watch(inviteTipDismissedProvider).valueOrNull ?? true;
+    final showInviteTip = aloneInNest && showInvite && !tipDismissed;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -196,6 +201,66 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
+                    if (showInviteTip) ...[
+                      const SizedBox(height: 8),
+                      NestCard(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.favorite_outline_rounded,
+                              color: AppColors.accentDeep,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Invite a partner',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Share $inviteCode so someone can join this nest.',
+                                    style: const TextStyle(
+                                      color: AppColors.inkSecondary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12.5,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            _copyInvite(context, inviteCode),
+                                        child: const Text('Copy code'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            dismissInvitePartnerTip(ref),
+                                        child: const Text('Dismiss'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Dismiss',
+                              onPressed: () => dismissInvitePartnerTip(ref),
+                              icon: const Icon(Icons.close_rounded, size: 20),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 6),
                     NestCard(
                       padding: const EdgeInsets.all(12),
@@ -642,17 +707,36 @@ class HomeScreen extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    const SectionLabel('Recent activity'),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: SectionLabel('Recent activity'),
+                        ),
+                        TextButton(
+                          onPressed: () => nestPush(
+                            context,
+                            TimelineScreen(onOpenTab: onOpenTab),
+                          ),
+                          child: const Text('See all'),
+                        ),
+                      ],
+                    ),
                     NestCard(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 6,
                       ),
+                      onTap: recent.isEmpty
+                          ? () => nestPush(
+                                context,
+                                TimelineScreen(onOpenTab: onOpenTab),
+                              )
+                          : null,
                       child: recent.isEmpty
                           ? const Padding(
                               padding: EdgeInsets.symmetric(vertical: 10),
                               child: Text(
-                                'Activity from your nest will show up here.',
+                                'Activity from your nest will show up here. Tap to open Timeline.',
                                 style: TextStyle(color: AppColors.inkMuted),
                               ),
                             )
@@ -661,7 +745,11 @@ class HomeScreen extends ConsumerWidget {
                                 for (var i = 0; i < recent.length; i++) ...[
                                   Appear(
                                     delay: AppMotion.stagger * i,
-                                    child: _ActivityRow(event: recent[i], index: i),
+                                    child: _ActivityRow(
+                                      event: recent[i],
+                                      index: i,
+                                      onOpenTab: onOpenTab,
+                                    ),
                                   ),
                                   if (i != recent.length - 1)
                                     const Divider(
@@ -1206,10 +1294,15 @@ class _NeedRow extends StatelessWidget {
 }
 
 class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({required this.event, required this.index});
+  const _ActivityRow({
+    required this.event,
+    required this.index,
+    this.onOpenTab,
+  });
 
   final TimelineEvent event;
   final int index;
+  final ValueChanged<int>? onOpenTab;
 
   @override
   Widget build(BuildContext context) {
@@ -1222,41 +1315,52 @@ class _ActivityRow extends StatelessWidget {
             .take(2)
             .join()
             .toUpperCase();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          MemberAvatar(
-            initials: initials,
-            color: AppColors.softCardColors[
-                index % AppColors.softCardColors.length],
-            size: 34,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.message,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.ink,
-                    fontSize: 13.5,
-                  ),
-                ),
-                Text(
-                  _relative(event.createdAt),
-                  style: const TextStyle(
-                    color: AppColors.inkMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+    return InkWell(
+      onTap: () => nestPush(
+        context,
+        TimelineScreen(onOpenTab: onOpenTab),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            MemberAvatar(
+              initials: initials,
+              color: AppColors.softCardColors[
+                  index % AppColors.softCardColors.length],
+              size: 34,
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.message,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                  Text(
+                    _relative(event.createdAt),
+                    style: const TextStyle(
+                      color: AppColors.inkMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.inkMuted,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }
