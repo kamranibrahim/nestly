@@ -22,6 +22,16 @@ class CareScreen extends ConsumerStatefulWidget {
 class _CareScreenState extends ConsumerState<CareScreen> {
   static const _categories = ['All', 'Elder', 'Home', 'Pet', 'Car'];
   String _filter = 'All';
+  /// `due` = Due now / Upcoming; `category` = grouped by category.
+  String _viewMode = 'due';
+
+  NestMember? _memberFor(List<NestMember> members, String memberId) {
+    if (memberId.isEmpty) return null;
+    for (final m in members) {
+      if (m.id == memberId) return m;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,21 +92,26 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                     style: TextStyle(color: AppColors.inkMuted),
                   ),
                 )
+              else if (careMembers.isEmpty)
+                const NestCard(
+                  child: Text(
+                    'No elder profiles yet — set Grandparent in Nest, then add meds and allergies here.',
+                    style: TextStyle(color: AppColors.inkMuted, height: 1.35),
+                  ),
+                )
               else
                 NestCard(
                   padding: EdgeInsets.zero,
                   child: Column(
                     children: [
-                      for (var i = 0; i < members.length; i++) ...[
+                      for (var i = 0; i < careMembers.length; i++) ...[
                         _ProfileTile(
-                          member: members[i],
-                          profile: _profileFor(profiles, members[i].id),
-                          highlighted: careMembers.any(
-                            (c) => c.id == members[i].id,
-                          ),
-                          onTap: () => _editProfile(context, members[i]),
+                          member: careMembers[i],
+                          profile: _profileFor(profiles, careMembers[i].id),
+                          highlighted: true,
+                          onTap: () => _editProfile(context, careMembers[i]),
                         ),
-                        if (i != members.length - 1)
+                        if (i != careMembers.length - 1)
                           const Divider(height: 1, indent: 68),
                       ],
                     ],
@@ -107,6 +122,18 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
+                    SoftPill(
+                      label: 'Due list',
+                      selected: _viewMode == 'due',
+                      onTap: () => setState(() => _viewMode = 'due'),
+                    ),
+                    const SizedBox(width: 6),
+                    SoftPill(
+                      label: 'By category',
+                      selected: _viewMode == 'category',
+                      onTap: () => setState(() => _viewMode = 'category'),
+                    ),
+                    const SizedBox(width: 10),
                     for (final cat in _categories) ...[
                       SoftPill(
                         label: cat,
@@ -132,6 +159,8 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                   actionLabel: 'Add care item',
                   onAction: () => _showAdd(context),
                 )
+              else if (_viewMode == 'category')
+                ..._categorySections(context, items, members, endToday)
               else ...[
                 if (due.isNotEmpty) ...[
                   const SectionLabel('Due now'),
@@ -142,28 +171,16 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                         for (var i = 0; i < due.length; i++) ...[
                           _CareRow(
                             item: due[i],
-                            memberName: _memberName(members, due[i].memberId),
+                            member: _memberFor(members, due[i].memberId),
                             highlight: true,
-                            onDone: () async {
-                              await ref
-                                  .read(careRepositoryProvider)
-                                  .markDone(due[i]);
-                              await syncAfterWrite(ref, context: context);
-                              try {
-                                await ref
-                                    .read(notificationServiceProvider)
-                                    .rescheduleReminders();
-                              } catch (_) {}
-                            },
-                            onDelete: () async {
-                              await ref
-                                  .read(careRepositoryProvider)
-                                  .delete(due[i].id);
-                              await syncAfterWrite(ref, context: context);
-                            },
+                            onDone: () => _markDone(due[i]),
+                            onSnooze: () => _snooze(due[i]),
+                            onSkip: () => _skip(due[i]),
+                            onEdit: () => _showAdd(context, existing: due[i]),
+                            onDelete: () => _delete(due[i].id),
                           ),
                           if (i != due.length - 1)
-                            const Divider(height: 1, indent: 16),
+                            const Divider(height: 1, indent: 68),
                         ],
                       ],
                     ),
@@ -179,31 +196,17 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                         for (var i = 0; i < upcoming.length; i++) ...[
                           _CareRow(
                             item: upcoming[i],
-                            memberName: _memberName(
-                              members,
-                              upcoming[i].memberId,
-                            ),
+                            member: _memberFor(members, upcoming[i].memberId),
                             highlight: false,
-                            onDone: () async {
-                              await ref
-                                  .read(careRepositoryProvider)
-                                  .markDone(upcoming[i]);
-                              await syncAfterWrite(ref, context: context);
-                              try {
-                                await ref
-                                    .read(notificationServiceProvider)
-                                    .rescheduleReminders();
-                              } catch (_) {}
-                            },
-                            onDelete: () async {
-                              await ref
-                                  .read(careRepositoryProvider)
-                                  .delete(upcoming[i].id);
-                              await syncAfterWrite(ref, context: context);
-                            },
+                            onDone: () => _markDone(upcoming[i]),
+                            onSnooze: () => _snooze(upcoming[i]),
+                            onSkip: () => _skip(upcoming[i]),
+                            onEdit: () =>
+                                _showAdd(context, existing: upcoming[i]),
+                            onDelete: () => _delete(upcoming[i].id),
                           ),
                           if (i != upcoming.length - 1)
-                            const Divider(height: 1, indent: 16),
+                            const Divider(height: 1, indent: 68),
                         ],
                       ],
                     ),
@@ -217,17 +220,93 @@ class _CareScreenState extends ConsumerState<CareScreen> {
     );
   }
 
+  List<Widget> _categorySections(
+    BuildContext context,
+    List<CareItem> items,
+    List<NestMember> members,
+    DateTime endToday,
+  ) {
+    final cats = <String>[];
+    for (final item in items) {
+      if (!cats.contains(item.category)) cats.add(item.category);
+    }
+    return [
+      for (final cat in cats) ...[
+        SectionLabel(cat),
+        NestCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              ...() {
+                final group = items.where((i) => i.category == cat).toList();
+                return [
+                  for (var i = 0; i < group.length; i++) ...[
+                    _CareRow(
+                      item: group[i],
+                      member: _memberFor(members, group[i].memberId),
+                      highlight: !group[i].nextDueAt.isAfter(endToday),
+                      onDone: () => _markDone(group[i]),
+                      onSnooze: () => _snooze(group[i]),
+                      onSkip: () => _skip(group[i]),
+                      onEdit: () => _showAdd(context, existing: group[i]),
+                      onDelete: () => _delete(group[i].id),
+                    ),
+                    if (i != group.length - 1)
+                      const Divider(height: 1, indent: 68),
+                  ],
+                ];
+              }(),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+      ],
+    ];
+  }
+
+  Future<void> _markDone(CareItem item) async {
+    await ref.read(careRepositoryProvider).markDone(item);
+    await syncAfterWrite(ref, context: context);
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+  }
+
+  Future<void> _snooze(CareItem item) async {
+    await ref.read(careRepositoryProvider).snooze(item);
+    await syncAfterWrite(ref, context: context);
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Snoozed ${item.title} by 1 day')),
+    );
+  }
+
+  Future<void> _skip(CareItem item) async {
+    await ref.read(careRepositoryProvider).skipCycle(item);
+    await syncAfterWrite(ref, context: context);
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Skipped ${item.title} this cycle')),
+    );
+  }
+
+  Future<void> _delete(String id) async {
+    await ref.read(careRepositoryProvider).delete(id);
+    await syncAfterWrite(ref, context: context);
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+  }
+
   CareProfile? _profileFor(List<CareProfile> profiles, String memberId) {
     for (final p in profiles) {
       if (p.memberId == memberId) return p;
-    }
-    return null;
-  }
-
-  String? _memberName(List<NestMember> members, String memberId) {
-    if (memberId.isEmpty) return null;
-    for (final m in members) {
-      if (m.id == memberId) return m.name;
     }
     return null;
   }
@@ -279,7 +358,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
     }
   }
 
-  Future<void> _showAdd(BuildContext context) async {
+  Future<void> _showAdd(BuildContext context, {CareItem? existing}) async {
     final members =
         List<NestMember>.from(ref.read(membersProvider).valueOrNull ?? const [])
           ..sort((a, b) {
@@ -303,12 +382,15 @@ class _CareScreenState extends ConsumerState<CareScreen> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           builder: (context) {
-            var category = 'Home';
-            var cadence = 7;
-            var memberId = '';
+            var category = existing?.category ?? 'Home';
+            var cadence = existing?.cadenceDays ?? 7;
+            var memberId = existing?.memberId ?? '';
             return OwnedControllers(
               count: 1,
               builder: (context, c) {
+                if (c[0].text.isEmpty && existing != null) {
+                  c[0].text = existing.title;
+                }
                 return StatefulBuilder(
                   builder: (context, setModal) {
                     return sheetBody(
@@ -316,9 +398,9 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                       children: [
                         sheetHandle(),
                         const SizedBox(height: 6),
-                        const Text(
-                          'New care item',
-                          style: TextStyle(
+                        Text(
+                          existing == null ? 'New care item' : 'Edit care item',
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                           ),
@@ -326,7 +408,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                         const SizedBox(height: 12),
                         TextField(
                           controller: c[0],
-                          autofocus: true,
+                          autofocus: existing == null,
                           textCapitalization: TextCapitalization.sentences,
                           decoration: InputDecoration(
                             hintText: category == 'Elder'
@@ -415,7 +497,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                               memberId: category == 'Elder' ? memberId : '',
                             ));
                           },
-                          child: const Text('Add'),
+                          child: Text(existing == null ? 'Add' : 'Save'),
                         ),
                       ],
                     );
@@ -426,21 +508,30 @@ class _CareScreenState extends ConsumerState<CareScreen> {
           },
         );
 
-    if (result != null) {
-      await ref
-          .read(careRepositoryProvider)
-          .add(
+    if (result == null) return;
+    if (existing == null) {
+      await ref.read(careRepositoryProvider).add(
             title: result.title,
             category: result.category,
             cadenceDays: result.cadence,
             memberId: result.memberId,
           );
-      await syncAfterWrite(ref, context: context);
-      try {
-        await ref.read(notificationServiceProvider).rescheduleReminders();
-      } catch (_) {}
+    } else {
+      await ref.read(careRepositoryProvider).update(
+            id: existing.id,
+            title: result.title,
+            category: result.category,
+            cadenceDays: result.cadence,
+            memberId: result.memberId,
+            notes: existing.notes,
+          );
     }
+    await syncAfterWrite(ref, context: context);
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
   }
+
 }
 
 class _CareProfileSheet extends StatefulWidget {
@@ -577,8 +668,10 @@ class _ProfileTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final meds = profile?.medications.trim() ?? '';
+    final allergies = profile?.allergies.trim() ?? '';
     final doctor = profile?.primaryDoctor.trim() ?? '';
     final summary = [
+      if (allergies.isNotEmpty) 'Allergies: $allergies',
       if (meds.isNotEmpty) meds,
       if (doctor.isNotEmpty) doctor,
     ].join(' · ');
@@ -619,22 +712,43 @@ class _CareRow extends StatelessWidget {
     required this.item,
     required this.highlight,
     required this.onDone,
+    required this.onSnooze,
+    required this.onSkip,
+    required this.onEdit,
     required this.onDelete,
-    this.memberName,
+    this.member,
   });
 
   final CareItem item;
   final bool highlight;
   final VoidCallback onDone;
+  final VoidCallback onSnooze;
+  final VoidCallback onSkip;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final String? memberName;
+  final NestMember? member;
 
   @override
   Widget build(BuildContext context) {
-    final who = memberName == null || memberName!.isEmpty
-        ? ''
-        : ' · $memberName';
+    final who = member == null ? '' : ' · ${member!.name.split(' ').first}';
     return ListTile(
+      leading: member == null
+          ? CircleAvatar(
+              radius: 18,
+              backgroundColor: highlight
+                  ? AppColors.mint.withValues(alpha: 0.35)
+                  : AppColors.surfaceMuted,
+              child: Icon(
+                Icons.favorite_outline_rounded,
+                size: 18,
+                color: highlight ? AppColors.primary : AppColors.inkMuted,
+              ),
+            )
+          : MemberAvatar(
+              initials: member!.initials,
+              color: Color(member!.colorValue),
+              size: 36,
+            ),
       title: Text(
         item.title,
         style: const TextStyle(fontWeight: FontWeight.w600),
@@ -656,12 +770,26 @@ class _CareRow extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            onPressed: onDelete,
-            icon: const Icon(
-              Icons.delete_outline_rounded,
-              color: AppColors.inkMuted,
-            ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, color: AppColors.inkMuted),
+            onSelected: (value) {
+              switch (value) {
+                case 'edit':
+                  onEdit();
+                case 'snooze':
+                  onSnooze();
+                case 'skip':
+                  onSkip();
+                case 'delete':
+                  onDelete();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'edit', child: Text('Edit')),
+              PopupMenuItem(value: 'snooze', child: Text('Snooze 1 day')),
+              PopupMenuItem(value: 'skip', child: Text('Skip this cycle')),
+              PopupMenuItem(value: 'delete', child: Text('Delete')),
+            ],
           ),
         ],
       ),

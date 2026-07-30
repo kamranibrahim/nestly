@@ -103,15 +103,18 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                         for (var i = 0; i < due.length; i++) ...[
                           _SchoolRow(
                             item: due[i],
-                            memberName: _memberName(members, due[i].memberId),
+                            member: _memberFor(members, due[i].memberId),
                             highlight: true,
                             onOpen: () => _showSheet(context, existing: due[i]),
                             onDone: () => _markDone(due[i]),
                             onPickup: () => _pickup(due[i]),
+                            onCalendar: () => _toCalendar(due[i]),
+                            onSnooze: () => _snooze(due[i]),
+                            onSkip: () => _skip(due[i]),
                             onDelete: () => _delete(due[i].id),
                           ),
                           if (i != due.length - 1)
-                            const Divider(height: 1, indent: 16),
+                            const Divider(height: 1, indent: 68),
                         ],
                       ],
                     ),
@@ -127,19 +130,19 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                         for (var i = 0; i < upcoming.length; i++) ...[
                           _SchoolRow(
                             item: upcoming[i],
-                            memberName: _memberName(
-                              members,
-                              upcoming[i].memberId,
-                            ),
+                            member: _memberFor(members, upcoming[i].memberId),
                             highlight: false,
                             onOpen: () =>
                                 _showSheet(context, existing: upcoming[i]),
                             onDone: () => _markDone(upcoming[i]),
                             onPickup: () => _pickup(upcoming[i]),
+                            onCalendar: () => _toCalendar(upcoming[i]),
+                            onSnooze: () => _snooze(upcoming[i]),
+                            onSkip: () => _skip(upcoming[i]),
                             onDelete: () => _delete(upcoming[i].id),
                           ),
                           if (i != upcoming.length - 1)
-                            const Divider(height: 1, indent: 16),
+                            const Divider(height: 1, indent: 68),
                         ],
                       ],
                     ),
@@ -153,10 +156,10 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
     );
   }
 
-  String? _memberName(List<NestMember> members, String memberId) {
+  NestMember? _memberFor(List<NestMember> members, String memberId) {
     if (memberId.isEmpty) return null;
     for (final m in members) {
-      if (m.id == memberId) return m.name.split(' ').first;
+      if (m.id == memberId) return m;
     }
     return null;
   }
@@ -170,11 +173,52 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
   }
 
   Future<void> _pickup(SchoolActivity item) async {
-    await ref.read(schoolRepositoryProvider).createPickupTask(item);
+    final assignee =
+        await ref.read(schoolRepositoryProvider).createPickupTask(item);
+    await syncAfterWrite(ref, context: context);
+    if (!mounted) return;
+    final who = (assignee == null || assignee.trim().isEmpty)
+        ? 'today'
+        : 'for ${assignee.split(' ').first}';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Pickup task added $who')),
+    );
+  }
+
+  Future<void> _toCalendar(SchoolActivity item) async {
+    await ref.read(schoolRepositoryProvider).createCalendarEvent(item);
     await syncAfterWrite(ref, context: context);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pickup task added for today')),
+      SnackBar(
+        content: Text(
+          'Calendar event added · ${DateFormat.MMMd().format(item.nextAt)}',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _snooze(SchoolActivity item) async {
+    await ref.read(schoolRepositoryProvider).snooze(item);
+    await syncAfterWrite(ref, context: context);
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Snoozed ${item.title} by 1 day')),
+    );
+  }
+
+  Future<void> _skip(SchoolActivity item) async {
+    await ref.read(schoolRepositoryProvider).skipCycle(item);
+    await syncAfterWrite(ref, context: context);
+    try {
+      await ref.read(notificationServiceProvider).rescheduleReminders();
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Skipped ${item.title} this cycle')),
     );
   }
 
@@ -450,8 +494,11 @@ class _SchoolRow extends StatelessWidget {
     required this.onOpen,
     required this.onDone,
     required this.onPickup,
+    required this.onCalendar,
+    required this.onSnooze,
+    required this.onSkip,
     required this.onDelete,
-    this.memberName,
+    this.member,
   });
 
   final SchoolActivity item;
@@ -459,16 +506,37 @@ class _SchoolRow extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onDone;
   final VoidCallback onPickup;
+  final VoidCallback onCalendar;
+  final VoidCallback onSnooze;
+  final VoidCallback onSkip;
   final VoidCallback onDelete;
-  final String? memberName;
+  final NestMember? member;
 
   @override
   Widget build(BuildContext context) {
     final loc = item.location.trim();
     final notes = item.notes.trim();
     final due = _dueLabel(item.nextAt);
+    final who = member == null ? null : member!.name.split(' ').first;
     return ListTile(
       onTap: onOpen,
+      leading: member == null
+          ? CircleAvatar(
+              radius: 18,
+              backgroundColor: highlight
+                  ? AppColors.accent.withValues(alpha: 0.25)
+                  : AppColors.surfaceMuted,
+              child: Icon(
+                Icons.school_outlined,
+                size: 18,
+                color: highlight ? AppColors.accent : AppColors.inkMuted,
+              ),
+            )
+          : MemberAvatar(
+              initials: member!.initials,
+              color: Color(member!.colorValue),
+              size: 36,
+            ),
       title: Text(
         item.title,
         style: const TextStyle(fontWeight: FontWeight.w600),
@@ -476,7 +544,7 @@ class _SchoolRow extends StatelessWidget {
       subtitle: Text(
         [
           item.kind,
-          ?memberName,
+          ?who,
           if (loc.isNotEmpty) loc,
           due,
           if (item.lastDoneAt != null)
@@ -506,12 +574,29 @@ class _SchoolRow extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            onPressed: onDelete,
-            icon: const Icon(
-              Icons.delete_outline_rounded,
-              color: AppColors.inkMuted,
-            ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, color: AppColors.inkMuted),
+            onSelected: (value) {
+              switch (value) {
+                case 'calendar':
+                  onCalendar();
+                case 'snooze':
+                  onSnooze();
+                case 'skip':
+                  onSkip();
+                case 'delete':
+                  onDelete();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'calendar',
+                child: Text('Create calendar event'),
+              ),
+              PopupMenuItem(value: 'snooze', child: Text('Snooze 1 day')),
+              PopupMenuItem(value: 'skip', child: Text('Skip this cycle')),
+              PopupMenuItem(value: 'delete', child: Text('Delete')),
+            ],
           ),
         ],
       ),

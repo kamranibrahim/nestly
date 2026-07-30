@@ -1365,6 +1365,67 @@ class CareRepository {
     ).add(message: 'Completed care: ${item.title}', memberName: 'You');
   }
 
+  Future<void> update({
+    required String id,
+    required String title,
+    String category = 'Home',
+    int cadenceDays = 7,
+    String notes = '',
+    String memberId = '',
+    DateTime? nextDueAt,
+  }) {
+    return (_db.update(_db.careItems)..where((c) => c.id.equals(id))).write(
+      CareItemsCompanion(
+        title: Value(title.trim()),
+        category: Value(category),
+        cadenceDays: Value(cadenceDays),
+        notes: Value(notes.trim()),
+        memberId: Value(memberId),
+        nextDueAt: nextDueAt == null ? const Value.absent() : Value(nextDueAt),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Push due date out without marking done.
+  Future<void> snooze(CareItem item, {int days = 1}) async {
+    final base = item.nextDueAt;
+    final next = DateTime(base.year, base.month, base.day).add(
+      Duration(days: days.clamp(1, 30)),
+    );
+    await (_db.update(_db.careItems)..where((c) => c.id.equals(item.id))).write(
+      CareItemsCompanion(
+        nextDueAt: Value(next),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    await TimelineRepository(_db).add(
+      message: 'Snoozed care: ${item.title}',
+      memberName: 'You',
+    );
+  }
+
+  /// Advance one cadence cycle without recording lastDoneAt.
+  Future<void> skipCycle(CareItem item) async {
+    final base = item.nextDueAt;
+    final next = DateTime(base.year, base.month, base.day).add(
+      Duration(days: item.cadenceDays.clamp(1, 365)),
+    );
+    await (_db.update(_db.careItems)..where((c) => c.id.equals(item.id))).write(
+      CareItemsCompanion(
+        nextDueAt: Value(next),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    await TimelineRepository(_db).add(
+      message: 'Skipped care: ${item.title}',
+      memberName: 'You',
+    );
+  }
+
   Future<void> delete(String id) {
     return (_db.update(_db.careItems)..where((c) => c.id.equals(id))).write(
       CareItemsCompanion(
@@ -1548,29 +1609,92 @@ class SchoolRepository {
     );
   }
 
+  Future<void> snooze(SchoolActivity item, {int days = 1}) async {
+    final base = item.nextAt;
+    final next = DateTime(base.year, base.month, base.day).add(
+      Duration(days: days.clamp(1, 30)),
+    );
+    await (_db.update(
+      _db.schoolActivities,
+    )..where((s) => s.id.equals(item.id))).write(
+      SchoolActivitiesCompanion(
+        nextAt: Value(next),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    await TimelineRepository(_db).add(
+      message: 'Snoozed school: ${item.title}',
+      memberName: 'You',
+    );
+  }
+
+  Future<void> skipCycle(SchoolActivity item) async {
+    final base = item.nextAt;
+    final next = DateTime(base.year, base.month, base.day).add(
+      Duration(days: item.cadenceDays.clamp(1, 365)),
+    );
+    await (_db.update(
+      _db.schoolActivities,
+    )..where((s) => s.id.equals(item.id))).write(
+      SchoolActivitiesCompanion(
+        nextAt: Value(next),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    await TimelineRepository(_db).add(
+      message: 'Skipped school: ${item.title}',
+      memberName: 'You',
+    );
+  }
+
   /// Creates a same-day task for a pickup / activity.
-  Future<void> createPickupTask(SchoolActivity item) async {
+  /// Returns the assignee display name used (if any).
+  Future<String?> createPickupTask(SchoolActivity item) async {
     final loc = item.location.trim();
     final title = loc.isEmpty
         ? 'Pickup: ${item.title}'
         : 'Pickup: ${item.title} @ $loc';
     final members = await _db.select(_db.nestMembers).get();
-    String assigneeId = '';
+    NestMember? assignee;
     for (final m in members) {
       if (MemberRoles.isAdultLike(m.role)) {
-        assigneeId = m.id;
+        assignee = m;
         break;
       }
     }
-    if (assigneeId.isEmpty && members.isNotEmpty) {
-      assigneeId = members.first.id;
-    }
-    await TaskRepository(
-      _db,
-    ).addTask(title: title, dueLabel: 'Today', assigneeId: assigneeId);
-    await TimelineRepository(
-      _db,
-    ).add(message: 'Added pickup task for ${item.title}', memberName: 'You');
+    assignee ??= members.isEmpty ? null : members.first;
+    await TaskRepository(_db).addTask(
+      title: title,
+      dueLabel: 'Today',
+      assigneeId: assignee?.id ?? '',
+    );
+    await TimelineRepository(_db).add(
+      message: 'Added pickup task for ${item.title}',
+      memberName: 'You',
+    );
+    return assignee?.name;
+  }
+
+  /// Adds a calendar event on the activity's next date.
+  Future<void> createCalendarEvent(SchoolActivity item) async {
+    final day = item.nextAt;
+    final startsAt = DateTime(day.year, day.month, day.day, 9);
+    final loc = item.location.trim();
+    await EventRepository(_db).addEvent(
+      title: item.title,
+      startsAt: startsAt,
+      memberId: item.memberId,
+      category: 'School',
+      location: loc.isEmpty ? null : loc,
+      allDay: false,
+      endsAt: startsAt.add(const Duration(hours: 1)),
+    );
+    await TimelineRepository(_db).add(
+      message: 'Added calendar event for ${item.title}',
+      memberName: 'You',
+    );
   }
 
   Future<void> delete(String id) {
