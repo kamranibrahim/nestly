@@ -9,6 +9,7 @@ import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
 import '../widgets/common.dart';
+import '../widgets/first_run_empty_card.dart';
 import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
 import '../data/sync_controller.dart';
@@ -48,10 +49,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return members.first.id;
   }
 
-  bool _matchesMemberFilter(
-    String memberId,
-    List<NestMember> members,
-  ) {
+  bool _matchesMemberFilter(String memberId, List<NestMember> members) {
     if (_memberFilter == 'All') return true;
     final member = members.where((m) => m.id == memberId).toList();
     if (member.isEmpty) return true;
@@ -137,9 +135,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   Text(
                     'Family calendar',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.8,
-                        ),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -219,8 +217,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             const SizedBox(height: 6),
             Expanded(
               child: eventsAsync.when(
-                loading: () =>
-                    const NestLoadingSkeleton(itemCount: 3),
+                loading: () => const NestLoadingSkeleton(itemCount: 3),
                 error: (e, _) => Center(child: Text('$e')),
                 data: (allEvents) {
                   final members = membersAsync.valueOrNull ?? [];
@@ -235,16 +232,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
                     children: [
                       if (dayEvents.isEmpty)
-                        NestCard(
-                          child: Text(
-                            _isToday(_selected)
-                                ? 'Nothing planned today'
-                                : 'Nothing on this day',
-                            style: const TextStyle(
-                              color: AppColors.inkMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        FirstRunEmptyCard(
+                          icon: Icons.event_rounded,
+                          color: AppColors.accent,
+                          title: allEvents.isEmpty
+                              ? 'Add your first family event'
+                              : (_isToday(_selected)
+                                    ? 'Nothing planned today'
+                                    : 'Nothing on this day'),
+                          body: allEvents.isEmpty
+                              ? 'School runs, dinners, and appointments land here — no demo data, just yours.'
+                              : 'Tap to schedule something for this day.',
+                          actionLabel: 'Add event',
+                          onAction: () => _showAddEvent(context),
                         )
                       else
                         for (var i = 0; i < dayEvents.length; i++)
@@ -255,26 +255,41 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               replayKey: dayEvents[i].id,
                               child: _PastelEventCard(
                                 event: dayEvents[i],
-                                member: _memberFor(members, dayEvents[i].memberId),
-                                color: AppColors.softCardColors[
-                                    i % AppColors.softCardColors.length],
-                                onTap: () => _showEditEvent(context, dayEvents[i]),
-                                onEdit: () => _showEditEvent(context, dayEvents[i]),
+                                member: _memberFor(
+                                  members,
+                                  dayEvents[i].memberId,
+                                ),
+                                color:
+                                    AppColors.softCardColors[i %
+                                        AppColors.softCardColors.length],
+                                onTap: () =>
+                                    _showEditEvent(context, dayEvents[i]),
+                                onEdit: () =>
+                                    _showEditEvent(context, dayEvents[i]),
                               ),
                             ),
                           ),
                       if (allEvents
-                          .where((e) => e.startsAt.isAfter(
-                                _selected.add(const Duration(days: 1)),
-                              ) && _matchesMemberFilter(e.memberId, members))
+                          .where(
+                            (e) =>
+                                e.startsAt.isAfter(
+                                  _selected.add(const Duration(days: 1)),
+                                ) &&
+                                _matchesMemberFilter(e.memberId, members),
+                          )
                           .isNotEmpty) ...[
                         const SizedBox(height: 6),
                         const SectionLabel('Upcoming'),
-                        for (final event in allEvents
-                            .where((e) => e.startsAt.isAfter(
-                                  _selected.add(const Duration(days: 1)),
-                              ) && _matchesMemberFilter(e.memberId, members))
-                            .take(4))
+                        for (final event
+                            in allEvents
+                                .where(
+                                  (e) =>
+                                      e.startsAt.isAfter(
+                                        _selected.add(const Duration(days: 1)),
+                                      ) &&
+                                      _matchesMemberFilter(e.memberId, members),
+                                )
+                                .take(4))
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: _PastelEventCard(
@@ -318,13 +333,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   String _timeLabel(DateTime d) => DateFormat.jm().format(d);
 
   DateTime _mergeDateAndTime(DateTime date, TimeOfDay time) {
-    return DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
   Future<DateTime?> _pickDateFor(BuildContext context, DateTime initial) async {
@@ -355,9 +364,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   Set<int> _eventDays(List<CalendarEvent> events) {
     return events
-        .where((e) =>
-            e.startsAt.year == _selected.year &&
-            e.startsAt.month == _selected.month)
+        .where(
+          (e) =>
+              e.startsAt.year == _selected.year &&
+              e.startsAt.month == _selected.month,
+        )
         .map((e) => e.startsAt.day)
         .toSet();
   }
@@ -385,7 +396,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         fill = AppColors.primary;
         textColor = Colors.white;
       } else if (hasEvent) {
-        fill = d.isEven ? AppColors.mint : AppColors.accent.withValues(alpha: 0.55);
+        fill = d.isEven
+            ? AppColors.mint
+            : AppColors.accent.withValues(alpha: 0.55);
       }
       cells.add(
         Expanded(
@@ -397,10 +410,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               height: 38,
               alignment: Alignment.center,
               margin: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: fill,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
               child: Text(
                 '$d',
                 style: TextStyle(
@@ -430,10 +440,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     await _showEventSheet(context);
   }
 
-  Future<void> _showEditEvent(
-    BuildContext context,
-    CalendarEvent event,
-  ) async {
+  Future<void> _showEditEvent(BuildContext context, CalendarEvent event) async {
     await _showEventSheet(context, existing: event);
   }
 
@@ -443,13 +450,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }) async {
     final members = ref.read(membersProvider).valueOrNull ?? const [];
     var selectedMemberId = existing?.memberId ?? _pickDefaultMemberId(members);
-    var selectedDate = existing?.startsAt ??
-        _selected.add(const Duration(hours: 9));
+    var selectedDate =
+        existing?.startsAt ?? _selected.add(const Duration(hours: 9));
     var allDay = existing?.allDay ?? false;
-    var startAt = existing?.startsAt ??
-        _selected.add(const Duration(hours: 9));
-    var endAt = existing?.endsAt ??
-        _selected.add(const Duration(hours: 10));
+    var startAt = existing?.startsAt ?? _selected.add(const Duration(hours: 9));
+    var endAt = existing?.endsAt ?? _selected.add(const Duration(hours: 10));
     var deleteEvent = false;
 
     await showModalBottomSheet<void>(
@@ -466,7 +471,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             if (c[0].text.isEmpty && existing != null) {
               c[0].text = existing.title;
             }
-            if (c[1].text.isEmpty && (existing?.location?.isNotEmpty ?? false)) {
+            if (c[1].text.isEmpty &&
+                (existing?.location?.isNotEmpty ?? false)) {
               c[1].text = existing!.location!;
             }
 
@@ -477,9 +483,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               Navigator.pop(context);
 
               if (deleteEvent && existing != null) {
-                await ref.read(eventRepositoryProvider).deleteEvent(existing.id);
+                await ref
+                    .read(eventRepositoryProvider)
+                    .deleteEvent(existing.id);
               } else if (existing == null) {
-                await ref.read(eventRepositoryProvider).addEvent(
+                await ref
+                    .read(eventRepositoryProvider)
+                    .addEvent(
                       title: title,
                       startsAt: allDay ? _dateOnly(selectedDate) : startAt,
                       endsAt: allDay ? null : endAt,
@@ -488,7 +498,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       location: location.isEmpty ? null : location,
                     );
               } else {
-                await ref.read(eventRepositoryProvider).updateEvent(
+                await ref
+                    .read(eventRepositoryProvider)
+                    .updateEvent(
                       id: existing.id,
                       title: title,
                       startsAt: allDay ? _dateOnly(selectedDate) : startAt,
@@ -521,8 +533,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     TextField(
                       controller: c[0],
                       autofocus: true,
-                      decoration:
-                          const InputDecoration(hintText: 'Event title'),
+                      decoration: const InputDecoration(
+                        hintText: 'Event title',
+                      ),
                       onSubmitted: (_) => submit(),
                     ),
                     const SizedBox(height: 12),
@@ -583,7 +596,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           SoftPill(
                             label: 'Starts ${_timeLabel(startAt)}',
                             onTap: () async {
-                              final picked = await _pickTimeFor(context, startAt);
+                              final picked = await _pickTimeFor(
+                                context,
+                                startAt,
+                              );
                               if (picked == null) return;
                               setModal(() {
                                 startAt = picked;
@@ -633,7 +649,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     const SizedBox(height: 14),
                     FilledButton(
                       onPressed: submit,
-                      child: Text(existing == null ? 'Add event' : 'Save changes'),
+                      child: Text(
+                        existing == null ? 'Add event' : 'Save changes',
+                      ),
                     ),
                     if (existing != null) ...[
                       const SizedBox(height: 8),
@@ -725,8 +743,8 @@ class _PastelEventCard extends StatelessWidget {
     final timeLabel = event.allDay
         ? 'All day'
         : end == null
-            ? DateFormat.jm().format(event.startsAt)
-            : '${DateFormat.jm().format(event.startsAt)} - ${DateFormat.jm().format(end)}';
+        ? DateFormat.jm().format(event.startsAt)
+        : '${DateFormat.jm().format(event.startsAt)} - ${DateFormat.jm().format(end)}';
 
     return NestCard(
       onTap: onTap,
@@ -788,8 +806,10 @@ class _PastelEventCard extends StatelessWidget {
               const Spacer(),
               if (member != null)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(999),

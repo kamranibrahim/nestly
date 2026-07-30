@@ -7,6 +7,7 @@ import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
 import '../widgets/common.dart';
+import '../widgets/first_run_empty_card.dart';
 import '../widgets/motion.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
@@ -42,11 +43,11 @@ class TasksScreen extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       'Tasks',
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.8,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                          ),
                     ),
                   ),
                   CircleIconButton(
@@ -102,16 +103,14 @@ class TasksScreen extends ConsumerWidget {
                           ),
                         ),
                       if (open.isEmpty && done.isEmpty)
-                        NestCard(
+                        FirstRunEmptyCard(
+                          icon: Icons.add_task_rounded,
                           color: AppColors.mint,
-                          bordered: false,
-                          child: const Text(
-                            'No tasks yet. Tap + to add one for your nest.',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
-                          ),
+                          title: 'Add your first task',
+                          body:
+                              'Chores, reminders, and shared to-dos live here — tap to create one for the nest.',
+                          actionLabel: 'Add task',
+                          onAction: () => showTaskSheet(context, ref),
                         )
                       else ...[
                         for (var i = 0; i < open.length; i++)
@@ -123,8 +122,9 @@ class TasksScreen extends ConsumerWidget {
                               child: _PastelTaskCard(
                                 task: open[i],
                                 members: members,
-                                color: AppColors.softCardColors[
-                                    i % AppColors.softCardColors.length],
+                                color:
+                                    AppColors.softCardColors[i %
+                                        AppColors.softCardColors.length],
                                 onToggle: () async {
                                   await ref
                                       .read(taskRepositoryProvider)
@@ -181,10 +181,7 @@ class TasksScreen extends ConsumerWidget {
   }
 
   /// Kept for FAB / pending-add callers that still reference the old name.
-  static Future<void> showAddTaskSheet(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
+  static Future<void> showAddTaskSheet(BuildContext context, WidgetRef ref) {
     return showTaskSheet(context, ref);
   }
 
@@ -200,26 +197,28 @@ class TasksScreen extends ConsumerWidget {
         ? existing!.assigneeId
         : (members.isNotEmpty ? members.first.id : '');
 
-    final result = await showModalBottomSheet<
-        ({
-          String title,
-          String assigneeId,
-          bool recurring,
-          String dueLabel,
-          bool deleteTask,
-        })>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => _TaskSheet(
-        members: members,
-        initialAssigneeId: initialAssignee,
-        existing: existing,
-      ),
-    );
+    final result =
+        await showModalBottomSheet<
+          ({
+            String title,
+            String assigneeId,
+            bool recurring,
+            String dueLabel,
+            bool deleteTask,
+          })
+        >(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: AppColors.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          ),
+          builder: (context) => _TaskSheet(
+            members: members,
+            initialAssigneeId: initialAssignee,
+            existing: existing,
+          ),
+        );
 
     if (result == null) return;
 
@@ -232,14 +231,18 @@ class TasksScreen extends ConsumerWidget {
     if (result.title.isEmpty) return;
 
     if (existing == null) {
-      await ref.read(taskRepositoryProvider).addTask(
+      await ref
+          .read(taskRepositoryProvider)
+          .addTask(
             title: result.title,
             assigneeId: result.assigneeId,
             recurring: result.recurring,
             dueLabel: result.dueLabel,
           );
     } else {
-      await ref.read(taskRepositoryProvider).updateTask(
+      await ref
+          .read(taskRepositoryProvider)
+          .updateTask(
             id: existing.id,
             title: result.title,
             assigneeId: result.assigneeId,
@@ -294,16 +297,13 @@ class _TaskSheetState extends State<_TaskSheet> {
       Navigator.pop(context);
       return;
     }
-    Navigator.pop(
-      context,
-      (
-        title: title.isEmpty ? (widget.existing?.title ?? '') : title,
-        assigneeId: _assigneeId,
-        recurring: _recurring,
-        dueLabel: _dueLabel,
-        deleteTask: deleteTask,
-      ),
-    );
+    Navigator.pop(context, (
+      title: title.isEmpty ? (widget.existing?.title ?? '') : title,
+      assigneeId: _assigneeId,
+      recurring: _recurring,
+      dueLabel: _dueLabel,
+      deleteTask: deleteTask,
+    ));
   }
 
   @override
@@ -337,9 +337,7 @@ class _TaskSheetState extends State<_TaskSheet> {
               controller: _controller,
               autofocus: existing == null,
               textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(
-                hintText: 'What needs doing?',
-              ),
+              decoration: const InputDecoration(hintText: 'What needs doing?'),
               onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 8),
@@ -455,9 +453,7 @@ class _PastelTaskCard extends StatelessWidget {
                 ),
               ),
               CircleIconButton(
-                icon: task.done
-                    ? Icons.undo_rounded
-                    : Icons.check_rounded,
+                icon: task.done ? Icons.undo_rounded : Icons.check_rounded,
                 background: Colors.white,
                 foreground: AppColors.ink,
                 size: 32,
@@ -479,8 +475,10 @@ class _PastelTaskCard extends StatelessWidget {
               const Spacer(),
               if (!task.done)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(999),

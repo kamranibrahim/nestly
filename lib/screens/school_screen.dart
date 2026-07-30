@@ -7,6 +7,7 @@ import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
@@ -48,17 +49,17 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
           final items = _filter == 'All'
               ? all
               : all.where((i) => i.kind == _filter).toList();
-          final due =
-              items.where((i) => !i.nextAt.isAfter(endToday)).toList();
-          final upcoming =
-              items.where((i) => i.nextAt.isAfter(endToday)).toList();
+          final due = items.where((i) => !i.nextAt.isAfter(endToday)).toList();
+          final upcoming = items
+              .where((i) => i.nextAt.isAfter(endToday))
+              .toList();
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
             children: [
               const NestCard(
                 child: Text(
-                  'School runs, sports, clubs, and pickups — tap to edit, mark done to roll the next date, or add a same-day pickup task.',
+                  'School runs, sports, clubs, and pickups. Add one activity to get started — mark done to roll the next date, or create a same-day pickup task.',
                   style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
@@ -80,14 +81,17 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
               ),
               const SizedBox(height: 6),
               if (items.isEmpty)
-                NestCard(
-                  onTap: () => _showSheet(context),
-                  child: Text(
-                    all.isEmpty
-                        ? 'No school schedules yet. Tap to add one.'
-                        : 'Nothing in $_filter. Try another filter or add one.',
-                    style: const TextStyle(color: AppColors.inkMuted),
-                  ),
+                FirstRunEmptyCard(
+                  icon: Icons.school_outlined,
+                  color: all.isEmpty ? AppColors.accent : null,
+                  title: all.isEmpty
+                      ? 'Add your first school run'
+                      : 'Nothing in $_filter',
+                  body: all.isEmpty
+                      ? 'Pickups, sports, and clubs — mark done to roll the next date, or turn one into a same-day pickup task.'
+                      : 'Try another filter, or add a $_filter activity.',
+                  actionLabel: 'Add activity',
+                  onAction: () => _showSheet(context),
                 )
               else ...[
                 if (due.isNotEmpty) ...[
@@ -123,8 +127,10 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                         for (var i = 0; i < upcoming.length; i++) ...[
                           _SchoolRow(
                             item: upcoming[i],
-                            memberName:
-                                _memberName(members, upcoming[i].memberId),
+                            memberName: _memberName(
+                              members,
+                              upcoming[i].memberId,
+                            ),
                             highlight: false,
                             onOpen: () =>
                                 _showSheet(context, existing: upcoming[i]),
@@ -188,220 +194,214 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
       ref.read(membersProvider).valueOrNull ?? const [],
     )..sort((a, b) => MemberRoles.kidsFirst(a.role, b.role));
 
-    final result = await showModalBottomSheet<
-        ({
-          String title,
-          String kind,
-          int cadence,
-          String location,
-          String memberId,
-          String notes,
-          DateTime nextAt,
-          bool deleteItem,
-        })>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        var kind = existing?.kind ?? 'School';
-        var cadence = existing?.cadenceDays ?? 7;
-        var memberId = existing?.memberId.isNotEmpty == true
-            ? existing!.memberId
-            : (members.isEmpty ? '' : members.first.id);
-        var nextAt = existing?.nextAt ??
-            DateTime.now().add(Duration(days: cadence));
-        return OwnedControllers(
-          count: 3,
-          builder: (context, c) {
-            if (c[0].text.isEmpty && existing != null) {
-              c[0].text = existing.title;
-            }
-            if (c[1].text.isEmpty && existing != null) {
-              c[1].text = existing.location;
-            }
-            if (c[2].text.isEmpty && existing != null) {
-              c[2].text = existing.notes;
-            }
-            return StatefulBuilder(
-              builder: (context, setModal) {
-                return sheetBody(
-                  context: context,
-                  children: [
-                    sheetHandle(),
-                    const SizedBox(height: 6),
-                    Text(
-                      existing == null ? 'New activity' : 'Edit activity',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: c[0],
-                      autofocus: existing == null,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Soccer practice',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: c[1],
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        hintText: 'Location (optional)',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: c[2],
-                      minLines: 2,
-                      maxLines: 3,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        hintText: 'Notes (optional)',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
+    final result =
+        await showModalBottomSheet<
+          ({
+            String title,
+            String kind,
+            int cadence,
+            String location,
+            String memberId,
+            String notes,
+            DateTime nextAt,
+            bool deleteItem,
+          })
+        >(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: AppColors.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) {
+            var kind = existing?.kind ?? 'School';
+            var cadence = existing?.cadenceDays ?? 7;
+            var memberId = existing?.memberId.isNotEmpty == true
+                ? existing!.memberId
+                : (members.isEmpty ? '' : members.first.id);
+            var nextAt =
+                existing?.nextAt ?? DateTime.now().add(Duration(days: cadence));
+            return OwnedControllers(
+              count: 3,
+              builder: (context, c) {
+                if (c[0].text.isEmpty && existing != null) {
+                  c[0].text = existing.title;
+                }
+                if (c[1].text.isEmpty && existing != null) {
+                  c[1].text = existing.location;
+                }
+                if (c[2].text.isEmpty && existing != null) {
+                  c[2].text = existing.notes;
+                }
+                return StatefulBuilder(
+                  builder: (context, setModal) {
+                    return sheetBody(
+                      context: context,
                       children: [
-                        for (final k in const [
-                          'School',
-                          'Sports',
-                          'Pickup',
-                          'Club',
-                        ])
-                          ChoiceChip(
-                            label: Text(k),
-                            selected: kind == k,
-                            showCheckmark: false,
-                            selectedColor: AppColors.primary,
-                            checkmarkColor: AppColors.onDark,
-                            labelStyle: TextStyle(
-                              color: kind == k
-                                  ? AppColors.onDark
-                                  : AppColors.ink,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            onSelected: (_) => setModal(() => kind = k),
-                          ),
-                      ],
-                    ),
-                    if (members.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Who is this for?',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          for (final m in members)
-                            SoftPill(
-                              label:
-                                  '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
-                              selected: memberId == m.id,
-                              onTap: () =>
-                                  setModal(() => memberId = m.id),
-                            ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    SoftPill(
-                      label:
-                          'Next · ${DateFormat('EEE, MMM d').format(nextAt)}',
-                      selected: true,
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: nextAt,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2035),
-                        );
-                        if (picked == null) return;
-                        setModal(() {
-                          nextAt = DateTime(
-                            picked.year,
-                            picked.month,
-                            picked.day,
-                          );
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Every $cadence day${cadence == 1 ? '' : 's'}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Slider(
-                      value: cadence.toDouble(),
-                      min: 1,
-                      max: 30,
-                      divisions: 29,
-                      label: '$cadence days',
-                      onChanged: (v) =>
-                          setModal(() => cadence = v.round()),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        final name = c[0].text.trim();
-                        if (name.isEmpty) {
-                          Navigator.pop(context);
-                          return;
-                        }
-                        Navigator.pop(
-                          context,
-                          (
-                            title: name,
-                            kind: kind,
-                            cadence: cadence,
-                            location: c[1].text.trim(),
-                            memberId: memberId,
-                            notes: c[2].text.trim(),
-                            nextAt: nextAt,
-                            deleteItem: false,
-                          ),
-                        );
-                      },
-                      child: Text(
-                        existing == null ? 'Add' : 'Save changes',
-                      ),
-                    ),
-                    if (existing != null) ...[
-                      const SizedBox(height: 8),
-                      OutlinedButton(
-                        onPressed: () => Navigator.pop(
-                          context,
-                          (
-                            title: existing.title,
-                            kind: existing.kind,
-                            cadence: existing.cadenceDays,
-                            location: existing.location,
-                            memberId: existing.memberId,
-                            notes: existing.notes,
-                            nextAt: existing.nextAt,
-                            deleteItem: true,
+                        sheetHandle(),
+                        const SizedBox(height: 6),
+                        Text(
+                          existing == null ? 'New activity' : 'Edit activity',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        child: const Text('Delete activity'),
-                      ),
-                    ],
-                  ],
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: c[0],
+                          autofocus: existing == null,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. Soccer practice',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: c[1],
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            hintText: 'Location (optional)',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: c[2],
+                          minLines: 2,
+                          maxLines: 3,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            hintText: 'Notes (optional)',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            for (final k in const [
+                              'School',
+                              'Sports',
+                              'Pickup',
+                              'Club',
+                            ])
+                              ChoiceChip(
+                                label: Text(k),
+                                selected: kind == k,
+                                showCheckmark: false,
+                                selectedColor: AppColors.primary,
+                                checkmarkColor: AppColors.onDark,
+                                labelStyle: TextStyle(
+                                  color: kind == k
+                                      ? AppColors.onDark
+                                      : AppColors.ink,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                onSelected: (_) => setModal(() => kind = k),
+                              ),
+                          ],
+                        ),
+                        if (members.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Who is this for?',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              for (final m in members)
+                                SoftPill(
+                                  label:
+                                      '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
+                                  selected: memberId == m.id,
+                                  onTap: () => setModal(() => memberId = m.id),
+                                ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        SoftPill(
+                          label:
+                              'Next · ${DateFormat('EEE, MMM d').format(nextAt)}',
+                          selected: true,
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: nextAt,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2035),
+                            );
+                            if (picked == null) return;
+                            setModal(() {
+                              nextAt = DateTime(
+                                picked.year,
+                                picked.month,
+                                picked.day,
+                              );
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Every $cadence day${cadence == 1 ? '' : 's'}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Slider(
+                          value: cadence.toDouble(),
+                          min: 1,
+                          max: 30,
+                          divisions: 29,
+                          label: '$cadence days',
+                          onChanged: (v) => setModal(() => cadence = v.round()),
+                        ),
+                        FilledButton(
+                          onPressed: () {
+                            final name = c[0].text.trim();
+                            if (name.isEmpty) {
+                              Navigator.pop(context);
+                              return;
+                            }
+                            Navigator.pop(context, (
+                              title: name,
+                              kind: kind,
+                              cadence: cadence,
+                              location: c[1].text.trim(),
+                              memberId: memberId,
+                              notes: c[2].text.trim(),
+                              nextAt: nextAt,
+                              deleteItem: false,
+                            ));
+                          },
+                          child: Text(
+                            existing == null ? 'Add' : 'Save changes',
+                          ),
+                        ),
+                        if (existing != null) ...[
+                          const SizedBox(height: 8),
+                          OutlinedButton(
+                            onPressed: () => Navigator.pop(context, (
+                              title: existing.title,
+                              kind: existing.kind,
+                              cadence: existing.cadenceDays,
+                              location: existing.location,
+                              memberId: existing.memberId,
+                              notes: existing.notes,
+                              nextAt: existing.nextAt,
+                              deleteItem: true,
+                            )),
+                            child: const Text('Delete activity'),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 );
               },
             );
           },
         );
-      },
-    );
 
     if (result == null) return;
 
@@ -411,7 +411,9 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
     }
 
     if (existing == null) {
-      await ref.read(schoolRepositoryProvider).add(
+      await ref
+          .read(schoolRepositoryProvider)
+          .add(
             title: result.title,
             kind: result.kind,
             cadenceDays: result.cadence,
@@ -421,7 +423,9 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
             nextAt: result.nextAt,
           );
     } else {
-      await ref.read(schoolRepositoryProvider).update(
+      await ref
+          .read(schoolRepositoryProvider)
+          .update(
             id: existing.id,
             title: result.title,
             kind: result.kind,

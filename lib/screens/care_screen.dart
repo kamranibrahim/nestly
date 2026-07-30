@@ -8,6 +8,7 @@ import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../data/sync_controller.dart';
 
@@ -56,17 +57,19 @@ class _CareScreenState extends ConsumerState<CareScreen> {
           final items = _filter == 'All'
               ? all
               : all.where((i) => i.category == _filter).toList();
-          final due =
-              items.where((i) => !i.nextDueAt.isAfter(endToday)).toList();
-          final upcoming =
-              items.where((i) => i.nextDueAt.isAfter(endToday)).toList();
+          final due = items
+              .where((i) => !i.nextDueAt.isAfter(endToday))
+              .toList();
+          final upcoming = items
+              .where((i) => i.nextDueAt.isAfter(endToday))
+              .toList();
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
             children: [
               const NestCard(
                 child: Text(
-                  'Elder profiles, plus pet, home, and car upkeep — mark done to roll the next due date.',
+                  'Elder profiles plus pet, home, and car upkeep. Mark done to roll the next due date — start with one schedule if the list is empty.',
                   style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
@@ -117,14 +120,17 @@ class _CareScreenState extends ConsumerState<CareScreen> {
               ),
               const SizedBox(height: 6),
               if (items.isEmpty)
-                NestCard(
-                  onTap: () => _showAdd(context),
-                  child: Text(
-                    all.isEmpty
-                        ? 'No care schedules yet. Tap to add one.'
-                        : 'Nothing in $_filter. Try another filter or add one.',
-                    style: const TextStyle(color: AppColors.inkMuted),
-                  ),
+                FirstRunEmptyCard(
+                  icon: Icons.favorite_outline_rounded,
+                  color: all.isEmpty ? AppColors.mint : null,
+                  title: all.isEmpty
+                      ? 'Add your first care schedule'
+                      : 'Nothing in $_filter',
+                  body: all.isEmpty
+                      ? 'Pet, home, car, or elder routines — mark done to roll the next due date.'
+                      : 'Try another filter, or add a $_filter care item.',
+                  actionLabel: 'Add care item',
+                  onAction: () => _showAdd(context),
                 )
               else ...[
                 if (due.isNotEmpty) ...[
@@ -173,8 +179,10 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                         for (var i = 0; i < upcoming.length; i++) ...[
                           _CareRow(
                             item: upcoming[i],
-                            memberName:
-                                _memberName(members, upcoming[i].memberId),
+                            memberName: _memberName(
+                              members,
+                              upcoming[i].memberId,
+                            ),
                             highlight: false,
                             onDone: () async {
                               await ref
@@ -225,35 +233,37 @@ class _CareScreenState extends ConsumerState<CareScreen> {
   }
 
   Future<void> _editProfile(BuildContext context, NestMember member) async {
-    final existing =
-        await ref.read(careRepositoryProvider).profileForMember(member.id);
+    final existing = await ref
+        .read(careRepositoryProvider)
+        .profileForMember(member.id);
     if (!context.mounted) return;
 
-    final result = await showModalBottomSheet<
-        ({
-          String medications,
-          String allergies,
-          String mobilityNotes,
-          String primaryDoctor,
-          String notes,
-        })>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return _CareProfileSheet(
-          member: member,
-          existing: existing,
+    final result =
+        await showModalBottomSheet<
+          ({
+            String medications,
+            String allergies,
+            String mobilityNotes,
+            String primaryDoctor,
+            String notes,
+          })
+        >(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: AppColors.surface,
+          useSafeArea: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) {
+            return _CareProfileSheet(member: member, existing: existing);
+          },
         );
-      },
-    );
 
     if (result == null) return;
-    await ref.read(careRepositoryProvider).upsertProfile(
+    await ref
+        .read(careRepositoryProvider)
+        .upsertProfile(
           memberId: member.id,
           medications: result.medications,
           allergies: result.allergies,
@@ -270,157 +280,156 @@ class _CareScreenState extends ConsumerState<CareScreen> {
   }
 
   Future<void> _showAdd(BuildContext context) async {
-    final members = List<NestMember>.from(
-      ref.read(membersProvider).valueOrNull ?? const [],
-    )..sort((a, b) {
-        final ag =
-            MemberRoles.normalize(a.role) == MemberRoles.grandparent ? 0 : 1;
-        final bg =
-            MemberRoles.normalize(b.role) == MemberRoles.grandparent ? 0 : 1;
-        return ag.compareTo(bg);
-      });
+    final members =
+        List<NestMember>.from(ref.read(membersProvider).valueOrNull ?? const [])
+          ..sort((a, b) {
+            final ag = MemberRoles.normalize(a.role) == MemberRoles.grandparent
+                ? 0
+                : 1;
+            final bg = MemberRoles.normalize(b.role) == MemberRoles.grandparent
+                ? 0
+                : 1;
+            return ag.compareTo(bg);
+          });
 
-    final result = await showModalBottomSheet<
-        ({
-          String title,
-          String category,
-          int cadence,
-          String memberId,
-        })>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        var category = 'Home';
-        var cadence = 7;
-        var memberId = '';
-        return OwnedControllers(
-          count: 1,
-          builder: (context, c) {
-            return StatefulBuilder(
-              builder: (context, setModal) {
-                return sheetBody(
-                  context: context,
-                  children: [
-                    sheetHandle(),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'New care item',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: c[0],
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        hintText: category == 'Elder'
-                            ? 'e.g. Morning medication'
-                            : 'e.g. Change HVAC filter',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
+    final result =
+        await showModalBottomSheet<
+          ({String title, String category, int cadence, String memberId})
+        >(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: AppColors.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) {
+            var category = 'Home';
+            var cadence = 7;
+            var memberId = '';
+            return OwnedControllers(
+              count: 1,
+              builder: (context, c) {
+                return StatefulBuilder(
+                  builder: (context, setModal) {
+                    return sheetBody(
+                      context: context,
                       children: [
-                        for (final cat in const [
-                          'Elder',
-                          'Home',
-                          'Pet',
-                          'Car',
-                        ])
-                          ChoiceChip(
-                            label: Text(cat),
-                            selected: category == cat,
-                            showCheckmark: false,
-                            selectedColor: AppColors.primary,
-                            checkmarkColor: AppColors.onDark,
-                            labelStyle: TextStyle(
-                              color: category == cat
-                                  ? AppColors.onDark
-                                  : AppColors.ink,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            onSelected: (_) => setModal(() {
-                              category = cat;
-                              if (cat == 'Elder' &&
-                                  memberId.isEmpty &&
-                                  members.isNotEmpty) {
-                                memberId = members.first.id;
-                              }
-                            }),
+                        sheetHandle(),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'New care item',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
                           ),
-                      ],
-                    ),
-                    if (category == 'Elder' && members.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      const Text(
-                        'For whom?',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          for (final m in members)
-                            SoftPill(
-                              label:
-                                  '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
-                              selected: memberId == m.id,
-                              onTap: () => setModal(() => memberId = m.id),
-                            ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: c[0],
+                          autofocus: true,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration(
+                            hintText: category == 'Elder'
+                                ? 'e.g. Morning medication'
+                                : 'e.g. Change HVAC filter',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            for (final cat in const [
+                              'Elder',
+                              'Home',
+                              'Pet',
+                              'Car',
+                            ])
+                              ChoiceChip(
+                                label: Text(cat),
+                                selected: category == cat,
+                                showCheckmark: false,
+                                selectedColor: AppColors.primary,
+                                checkmarkColor: AppColors.onDark,
+                                labelStyle: TextStyle(
+                                  color: category == cat
+                                      ? AppColors.onDark
+                                      : AppColors.ink,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                onSelected: (_) => setModal(() {
+                                  category = cat;
+                                  if (cat == 'Elder' &&
+                                      memberId.isEmpty &&
+                                      members.isNotEmpty) {
+                                    memberId = members.first.id;
+                                  }
+                                }),
+                              ),
+                          ],
+                        ),
+                        if (category == 'Elder' && members.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Text(
+                            'For whom?',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              for (final m in members)
+                                SoftPill(
+                                  label:
+                                      '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
+                                  selected: memberId == m.id,
+                                  onTap: () => setModal(() => memberId = m.id),
+                                ),
+                            ],
+                          ),
                         ],
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    Text(
-                      'Every $cadence day${cadence == 1 ? '' : 's'}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Slider(
-                      value: cadence.toDouble(),
-                      min: 1,
-                      max: 90,
-                      divisions: 89,
-                      label: '$cadence days',
-                      onChanged: (v) =>
-                          setModal(() => cadence = v.round()),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        final name = c[0].text.trim();
-                        if (name.isEmpty) {
-                          Navigator.pop(context);
-                          return;
-                        }
-                        Navigator.pop(
-                          context,
-                          (
-                            title: name,
-                            category: category,
-                            cadence: cadence,
-                            memberId: category == 'Elder' ? memberId : '',
-                          ),
-                        );
-                      },
-                      child: const Text('Add'),
-                    ),
-                  ],
+                        const SizedBox(height: 12),
+                        Text(
+                          'Every $cadence day${cadence == 1 ? '' : 's'}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Slider(
+                          value: cadence.toDouble(),
+                          min: 1,
+                          max: 90,
+                          divisions: 89,
+                          label: '$cadence days',
+                          onChanged: (v) => setModal(() => cadence = v.round()),
+                        ),
+                        FilledButton(
+                          onPressed: () {
+                            final name = c[0].text.trim();
+                            if (name.isEmpty) {
+                              Navigator.pop(context);
+                              return;
+                            }
+                            Navigator.pop(context, (
+                              title: name,
+                              category: category,
+                              cadence: cadence,
+                              memberId: category == 'Elder' ? memberId : '',
+                            ));
+                          },
+                          child: const Text('Add'),
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
             );
           },
         );
-      },
-    );
 
     if (result != null) {
-      await ref.read(careRepositoryProvider).add(
+      await ref
+          .read(careRepositoryProvider)
+          .add(
             title: result.title,
             category: result.category,
             cadenceDays: result.cadence,
@@ -435,10 +444,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
 }
 
 class _CareProfileSheet extends StatefulWidget {
-  const _CareProfileSheet({
-    required this.member,
-    required this.existing,
-  });
+  const _CareProfileSheet({required this.member, required this.existing});
 
   final NestMember member;
   final CareProfile? existing;
@@ -541,16 +547,13 @@ class _CareProfileSheetState extends State<_CareProfileSheet> {
         ),
         const SizedBox(height: 14),
         FilledButton(
-          onPressed: () => Navigator.pop(
-            context,
-            (
-              medications: _medications.text.trim(),
-              allergies: _allergies.text.trim(),
-              mobilityNotes: _mobility.text.trim(),
-              primaryDoctor: _doctor.text.trim(),
-              notes: _notes.text.trim(),
-            ),
-          ),
+          onPressed: () => Navigator.pop(context, (
+            medications: _medications.text.trim(),
+            allergies: _allergies.text.trim(),
+            mobilityNotes: _mobility.text.trim(),
+            primaryDoctor: _doctor.text.trim(),
+            notes: _notes.text.trim(),
+          )),
           child: const Text('Save profile'),
         ),
       ],
@@ -655,8 +658,10 @@ class _CareRow extends StatelessWidget {
           ),
           IconButton(
             onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline_rounded,
-                color: AppColors.inkMuted),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.inkMuted,
+            ),
           ),
         ],
       ),

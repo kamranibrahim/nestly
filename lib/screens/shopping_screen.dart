@@ -5,6 +5,7 @@ import '../data/db/app_database.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/first_run_empty_card.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
 
@@ -73,9 +74,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
               child: Text(
                 'Groceries',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.8,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                ),
               ),
             ),
             Expanded(
@@ -114,7 +115,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                                 ),
                               )
                             else
-                              ...members.take(4).map(
+                              ...members
+                                  .take(4)
+                                  .map(
                                     (m) => Padding(
                                       padding: const EdgeInsets.only(right: 6),
                                       child: MemberAvatar(
@@ -159,23 +162,22 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                                 color: AppColors.ink,
                               ),
                             ),
-                            hintStyle:
-                                const TextStyle(color: AppColors.inkMuted),
+                            hintStyle: const TextStyle(
+                              color: AppColors.inkMuted,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 6),
                       if (items.isEmpty)
-                        NestCard(
-                          color: AppColors.accent,
-                          bordered: false,
-                          child: const Text(
-                            'List is empty. Add milk, eggs, or anything else.',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
-                          ),
+                        FirstRunEmptyCard(
+                          icon: Icons.shopping_bag_outlined,
+                          color: AppColors.tileOrange,
+                          title: 'Start the grocery list',
+                          body:
+                              'Add milk, eggs, or anything else — type above or tap to focus the add field.',
+                          actionLabel: 'Add an item',
+                          onAction: () => _addFocus.requestFocus(),
                         )
                       else
                         for (final category in categories) ...[
@@ -203,16 +205,21 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                                       .where((i) => i.category == category)
                                       .toList();
                                   return [
-                                    for (var i = 0;
-                                        i < categoryItems.length;
-                                        i++) ...[
+                                    for (
+                                      var i = 0;
+                                      i < categoryItems.length;
+                                      i++
+                                    ) ...[
                                       _ShopRow(
                                         item: categoryItems[i],
                                         onToggle: () async {
                                           await ref
                                               .read(shoppingRepositoryProvider)
                                               .toggleDone(categoryItems[i]);
-                                          await syncAfterWrite(ref, context: context);
+                                          await syncAfterWrite(
+                                            ref,
+                                            context: context,
+                                          );
                                         },
                                         onEdit: () => showItemSheet(
                                           context,
@@ -246,21 +253,18 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     WidgetRef ref, {
     required ShoppingItem existing,
   }) async {
-    final result = await showModalBottomSheet<
-        ({
-          String name,
-          String category,
-          String qty,
-          bool deleteItem,
-        })>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => _ItemSheet(existing: existing),
-    );
+    final result =
+        await showModalBottomSheet<
+          ({String name, String category, String qty, bool deleteItem})
+        >(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: AppColors.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          ),
+          builder: (context) => _ItemSheet(existing: existing),
+        );
 
     if (result == null) return;
 
@@ -272,7 +276,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
 
     if (result.name.isEmpty) return;
 
-    await ref.read(shoppingRepositoryProvider).updateItem(
+    await ref
+        .read(shoppingRepositoryProvider)
+        .updateItem(
           id: existing.id,
           name: result.name,
           category: result.category,
@@ -317,15 +323,12 @@ class _ItemSheetState extends State<_ItemSheet> {
       Navigator.pop(context);
       return;
     }
-    Navigator.pop(
-      context,
-      (
-        name: name,
-        category: _category,
-        qty: _qty.text.trim().isEmpty ? '1' : _qty.text.trim(),
-        deleteItem: deleteItem,
-      ),
-    );
+    Navigator.pop(context, (
+      name: name,
+      category: _category,
+      qty: _qty.text.trim().isEmpty ? '1' : _qty.text.trim(),
+      deleteItem: deleteItem,
+    ));
   }
 
   @override
@@ -386,10 +389,7 @@ class _ItemSheetState extends State<_ItemSheet> {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Category',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
+          const Text('Category', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -404,10 +404,7 @@ class _ItemSheetState extends State<_ItemSheet> {
             ],
           ),
           const SizedBox(height: 14),
-          FilledButton(
-            onPressed: _submit,
-            child: const Text('Save'),
-          ),
+          FilledButton(onPressed: _submit, child: const Text('Save')),
           TextButton(
             onPressed: () => _submit(deleteItem: true),
             child: const Text(
@@ -461,8 +458,7 @@ class _ShopRow extends StatelessWidget {
                     item.name,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      decoration:
-                          item.done ? TextDecoration.lineThrough : null,
+                      decoration: item.done ? TextDecoration.lineThrough : null,
                       color: item.done ? AppColors.inkMuted : AppColors.ink,
                     ),
                   ),
@@ -497,7 +493,8 @@ class _SuggestionsStrip extends ConsumerWidget {
 
   static String _restockLabel(GroceryHabit habit) {
     final overdue =
-        DateTime.now().difference(habit.lastBoughtAt).inDays - habit.cadenceDays;
+        DateTime.now().difference(habit.lastBoughtAt).inDays -
+        habit.cadenceDays;
     if (overdue >= 2) return '${habit.name} · ${overdue}d overdue';
     if (overdue >= 0) return '${habit.name} · due now';
     return '${habit.name} · ~${habit.cadenceDays}d';
@@ -522,10 +519,7 @@ class _SuggestionsStrip extends ConsumerWidget {
               SizedBox(width: 6),
               Text(
                 'Restock',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
               ),
             ],
           ),

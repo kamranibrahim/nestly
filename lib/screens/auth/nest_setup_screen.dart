@@ -139,7 +139,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
           Text(
             _joining
                 ? 'Paste or type the 6-character code from your family.'
-                : 'Create your household nest — calendars, lists, and tasks stay in sync.',
+                : 'Create your household nest. You can rename it and invite family later.',
             style: const TextStyle(
               color: AppColors.inkSecondary,
               fontWeight: FontWeight.w500,
@@ -149,7 +149,10 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
           TextField(
             controller: _memberName,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Your name'),
+            decoration: const InputDecoration(
+              labelText: 'Your name',
+              helperText: 'Shown on shared tasks and timeline',
+            ),
           ),
           const SizedBox(height: 12),
           if (_joining)
@@ -174,6 +177,7 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
               decoration: InputDecoration(
                 labelText: 'Invite code',
                 hintText: 'ABC123',
+                helperText: 'Spaces and dashes are stripped automatically',
                 suffixIcon: IconButton(
                   tooltip: 'Paste',
                   onPressed: _busy ? null : _pasteInviteCode,
@@ -185,8 +189,23 @@ class _NestSetupScreenState extends ConsumerState<NestSetupScreen> {
             TextField(
               controller: _nestName,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Nest name'),
+              decoration: const InputDecoration(
+                labelText: 'Nest name',
+                helperText: 'Defaults are fine — you can change this later',
+              ),
             ),
+          if (!_joining) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'After you start, Nestly will offer an invite code so someone can join.',
+              style: TextStyle(
+                color: AppColors.inkMuted,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
+                height: 1.35,
+              ),
+            ),
+          ],
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(

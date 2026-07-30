@@ -39,9 +39,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       cta: 'Next',
     ),
     (
-      title: 'AI That Organizes\nFor Your Family',
+      title: 'Quiet help when\nyou scan',
       body:
-          'AI suggests schedules, assigns chores, reminds tasks, and plans family activities.',
+          'Nestly’s AI only assists when you scan a receipt or invite — it suggests an event or expense. It doesn’t run your nest for you.',
       cta: 'Next',
     ),
     (
@@ -69,10 +69,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _finish();
       return;
     }
-    _controller.nextPage(
-      duration: AppMotion.medium,
-      curve: AppMotion.standard,
-    );
+    _controller.nextPage(duration: AppMotion.medium, curve: AppMotion.standard);
   }
 
   void _back() {
@@ -94,11 +91,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFF8F2),
-              OnboardColors.cream,
-              Color(0xFFF7EFE6),
-            ],
+            colors: [Color(0xFFFFF8F2), OnboardColors.cream, Color(0xFFF7EFE6)],
           ),
         ),
         child: SafeArea(
@@ -132,13 +125,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 decoration: BoxDecoration(
                                   color: i <= _index
                                       ? OnboardColors.cocoa
-                                      : OnboardColors.cocoaMuted
-                                          .withValues(alpha: 0.35),
+                                      : OnboardColors.cocoaMuted.withValues(
+                                          alpha: 0.35,
+                                        ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                               ),
                             ),
-                            if (i != _pages.length - 1) const SizedBox(width: 6),
+                            if (i != _pages.length - 1)
+                              const SizedBox(width: 6),
                           ],
                         ],
                       ),
