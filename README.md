@@ -32,7 +32,7 @@ flutter run
 ## Year 1 status
 
 Full horizon: see [`FIVE_YEAR_PLAN.md`](FIVE_YEAR_PLAN.md).  
-Next 16 weeks: see [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md).
+Next 16 weeks (post–App Store): see [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md).
 
 ### Q1
 - [x] Firebase project + Android/iOS apps
