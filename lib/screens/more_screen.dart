@@ -9,6 +9,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../data/db/app_database.dart';
 import '../data/member_roles.dart';
 import '../data/showcase_seed.dart';
+import '../data/telemetry.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -476,45 +477,47 @@ class MoreScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
-              Appear(
-                delay: const Duration(milliseconds: 150),
-                child: NestCard(
-                  onTap: () => FirebaseCrashlytics.instance.crash(),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.bug_report_outlined,
-                        color: AppColors.danger,
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Force test crash',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Verify Crashlytics in Firebase console',
-                              style: TextStyle(
-                                color: AppColors.inkMuted,
-                                fontSize: 12.5,
-                              ),
-                            ),
-                          ],
+              if (NestlyTelemetry.crashlyticsReady) ...[
+                const SizedBox(height: 6),
+                Appear(
+                  delay: const Duration(milliseconds: 150),
+                  child: NestCard(
+                    onTap: () => FirebaseCrashlytics.instance.crash(),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.bug_report_outlined,
+                          color: AppColors.danger,
                         ),
-                      ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.inkMuted,
-                      ),
-                    ],
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Force test crash',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Verify Crashlytics in Firebase console',
+                                style: TextStyle(
+                                  color: AppColors.inkMuted,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.inkMuted,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
             const SizedBox(height: 6),
             Text(
