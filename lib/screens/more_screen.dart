@@ -345,7 +345,7 @@ class MoreScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 12),
             const SectionLabel('Settings'),
-            if (nest != null) ...[
+            if (nest != null && (kDebugMode || kProfileMode)) ...[
               Appear(
                 delay: const Duration(milliseconds: 90),
                 child: NestCard(
@@ -367,7 +367,7 @@ class MoreScreen extends ConsumerWidget {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Fill Home, Calendar, Tasks, Vault & more',
+                              'Debug/profile only — not in App Store builds',
                               style: TextStyle(
                                 color: AppColors.inkMuted,
                                 fontSize: 12.5,
