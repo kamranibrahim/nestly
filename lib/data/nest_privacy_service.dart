@@ -6,11 +6,13 @@ import 'package:share_plus/share_plus.dart';
 
 import 'auth_repository.dart';
 import 'db/app_database.dart';
+import 'nest_home_widget.dart';
+import 'repositories.dart';
 
-/// Export / delete helpers for privacy and store compliance (no paywall).
+/// Export / leave / delete helpers for privacy and store compliance (no paywall).
 class NestPrivacyService {
   NestPrivacyService(this._db, {AuthRepository? auth})
-      : _authRepo = auth ?? AuthRepository();
+    : _authRepo = auth ?? AuthRepository();
 
   final AppDatabase _db;
   final AuthRepository _authRepo;
@@ -34,15 +36,15 @@ class NestPrivacyService {
     final careProfiles = await _db.select(_db.careProfiles).get();
     final school = await _db.select(_db.schoolActivities).get();
     final groceryHabits = await _db.select(_db.groceryHabits).get();
+    final expenseRepo = ExpenseRepository(_db);
+    final monthBudget = await expenseRepo.getMonthBudget();
+    final tomorrowPreview = await expenseRepo.getTomorrowPreviewEnabled();
 
     return {
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
       'app': 'nestly',
       'version': '1.0.0',
-      'account': {
-        'uid': user?.uid,
-        'email': user?.email,
-      },
+      'account': {'uid': user?.uid, 'email': user?.email},
       'nest': nest == null
           ? null
           : {
@@ -50,6 +52,10 @@ class NestPrivacyService {
               'name': nest.name,
               'inviteCode': nest.inviteCode,
             },
+      'settings': {
+        'monthBudget': monthBudget,
+        'tomorrowPreviewEnabled': tomorrowPreview,
+      },
       'data': {
         'members': members.map((e) => e.toJson()).toList(),
         'tasks': tasks.map((e) => e.toJson()).toList(),
@@ -67,8 +73,11 @@ class NestPrivacyService {
         'school': school.map((e) => e.toJson()).toList(),
         'groceryHabits': groceryHabits.map((e) => e.toJson()).toList(),
       },
-      'notes':
-          'Vault file binaries are not included; only metadata. Re-download from Nestly while signed in if needed.',
+      'notes': [
+        'Vault file binaries are not included — only document titles, folders, and metadata.',
+        'To re-download vault files, open Nestly while signed in and use Vault.',
+        'Budget and nest preference settings are included under settings.',
+      ],
     };
   }
 
@@ -87,9 +96,51 @@ class NestPrivacyService {
           ),
         ],
         subject: 'Nestly data export',
-        text: 'Your Nestly nest export',
+        text:
+            'Your Nestly nest export (JSON). Vault file binaries are not included.',
       ),
     );
+  }
+
+  /// Leaves the current nest but keeps the Nestly account signed in.
+  ///
+  /// Removes this user from the nest member list and clears local household
+  /// data. Other members keep the nest.
+  Future<void> leaveNest() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('Not signed in');
+    }
+
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    final nestId = userDoc.data()?['nestId'] as String?;
+    if (nestId == null || nestId.isEmpty) {
+      throw StateError('You are not in a nest.');
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('nests')
+          .doc(nestId)
+          .collection('members')
+          .doc(user.uid)
+          .delete();
+    } catch (_) {}
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      'nestId': FieldValue.delete(),
+    }, SetOptions(merge: true));
+
+    try {
+      await NestHomeWidget.clear();
+    } catch (_) {}
+
+    await _db.clearHouseholdData();
+    await _db.setMeta('nestId', '');
+    await _db.setMeta('householdClean', '0');
   }
 
   /// Leaves the nest, deletes Firestore user profile + Auth user, then wipes local DB.
@@ -107,8 +158,10 @@ class NestPrivacyService {
 
     await _authRepo.reauthenticateWithPassword(password.trim());
 
-    final userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
     final nestId = userDoc.data()?['nestId'] as String?;
 
     if (nestId != null && nestId.isNotEmpty) {
@@ -136,6 +189,10 @@ class NestPrivacyService {
       }
       rethrow;
     }
+
+    try {
+      await NestHomeWidget.clear();
+    } catch (_) {}
 
     await _db.clearHouseholdData();
     await _db.delete(_db.syncMeta).go();

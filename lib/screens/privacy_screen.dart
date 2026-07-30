@@ -326,9 +326,23 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 const Icon(Icons.download_rounded, color: AppColors.accentDeep),
                 const SizedBox(width: 12),
                 const Expanded(
-                  child: Text(
-                    'Export nest data',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Export nest data',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'JSON includes budget settings. Vault files are metadata only — binaries stay in Vault.',
+                        style: TextStyle(
+                          color: AppColors.inkMuted,
+                          fontSize: 12.5,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (_busy)

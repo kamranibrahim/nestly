@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
 import 'db/app_database.dart';
 import 'nest_home_widget.dart';
+import 'review_prompt.dart';
 
 /// UI-facing sync state (last sync time, in-flight, last error).
 class SyncUiState {
@@ -98,6 +99,13 @@ class SyncController extends StateNotifier<SyncUiState> {
         await NestHomeWidget.publishFromDatabase(
           _ref.read(databaseProvider),
           nestName: nest?.name,
+        );
+        final members =
+            _ref.read(membersProvider).valueOrNull ?? const [];
+        await maybeRequestStoreReview(
+          _ref.read(databaseProvider),
+          memberCount: members.length,
+          nestCreatedAt: nest?.createdAt,
         );
       } catch (_) {}
       if (!mounted) return true;

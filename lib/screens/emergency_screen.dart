@@ -42,6 +42,17 @@ class EmergencyScreen extends ConsumerWidget {
             icon: const Icon(Icons.ios_share_rounded),
           ),
           IconButton(
+            tooltip: 'Copy card',
+            onPressed: () => _copyCard(
+              context,
+              nestName: nestName,
+              entries: entries.valueOrNull ?? const [],
+              profiles: profiles,
+              members: members,
+            ),
+            icon: const Icon(Icons.copy_rounded),
+          ),
+          IconButton(
             onPressed: () => _addEntry(context, ref),
             icon: const Icon(Icons.add_rounded),
           ),
@@ -192,6 +203,73 @@ class EmergencyScreen extends ConsumerWidget {
     required List<CareProfile> profiles,
     required List<NestMember> members,
   }) async {
+    final text = _cardText(
+      nestName: nestName,
+      entries: entries,
+      profiles: profiles,
+      members: members,
+    );
+    if (text == null) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a contact or care profile before sharing'),
+        ),
+      );
+      return;
+    }
+
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box == null
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+
+    await SharePlus.instance.share(
+      ShareParams(
+        text: text,
+        subject: '$nestName emergency card',
+        sharePositionOrigin: origin,
+      ),
+    );
+  }
+
+  Future<void> _copyCard(
+    BuildContext context, {
+    required String nestName,
+    required List<EmergencyEntry> entries,
+    required List<CareProfile> profiles,
+    required List<NestMember> members,
+  }) async {
+    final text = _cardText(
+      nestName: nestName,
+      entries: entries,
+      profiles: profiles,
+      members: members,
+    );
+    if (text == null) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a contact or care profile before copying'),
+        ),
+      );
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Emergency card copied')),
+    );
+  }
+
+  String? _cardText({
+    required String nestName,
+    required List<EmergencyEntry> entries,
+    required List<CareProfile> profiles,
+    required List<NestMember> members,
+  }) {
+    if (profiles.isEmpty && entries.isEmpty) return null;
+
     final buf = StringBuffer('Nestly emergency card — $nestName\n');
     if (profiles.isNotEmpty) {
       buf.writeln('\nCare profiles');
@@ -218,10 +296,10 @@ class EmergencyScreen extends ConsumerWidget {
         buf.writeln('• ${e.label}: ${e.value}');
       }
     }
-    buf.writeln('\nShared from Nestly (offline-ready on family devices).');
-    await SharePlus.instance.share(
-      ShareParams(text: buf.toString(), subject: '$nestName emergency card'),
+    buf.writeln(
+      '\nShared from Nestly — keep offline on family devices. Update in the app when details change.',
     );
+    return buf.toString();
   }
 
   IconData _iconFor(String name) {

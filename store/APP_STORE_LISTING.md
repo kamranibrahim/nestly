@@ -152,7 +152,9 @@ What’s inside
 • Family document vault for IDs, insurance, and school records
 • Offline-first with sync when you’re back online
 • Invite family with a nest code
-• Export data or delete your account from Privacy
+• Export data, leave a nest, or delete your account from Privacy / Nest
+
+iOS: add the Nestly Today widget for open tasks, next event, and dinner.
 
 Soft launch: core Nestly features are free — no paywall required to run your family nest.
 

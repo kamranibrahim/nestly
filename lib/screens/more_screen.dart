@@ -590,7 +590,21 @@ class MoreScreen extends ConsumerWidget {
                 fontSize: 12.5,
               ),
             ),
-            const SizedBox(height: 6),
+            if (nest != null) ...[
+              const SizedBox(height: 4),
+              TextButton.icon(
+                onPressed: () => _confirmLeaveNest(context, ref, nest.name),
+                icon: const Icon(
+                  Icons.door_front_door_outlined,
+                  color: AppColors.danger,
+                ),
+                label: const Text(
+                  'Leave nest',
+                  style: TextStyle(color: AppColors.danger),
+                ),
+              ),
+            ],
+            const SizedBox(height: 2),
             TextButton.icon(
               onPressed: () async {
                 await ref.read(authRepositoryProvider).signOut();
@@ -614,5 +628,49 @@ class MoreScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmLeaveNest(
+    BuildContext context,
+    WidgetRef ref,
+    String nestName,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Leave this nest?'),
+        content: Text(
+          'You’ll lose access to “$nestName” on this account. '
+          'Other members keep the nest and all shared data. '
+          'Your Nestly login stays — you can create or join another nest.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Leave nest'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(nestPrivacyServiceProvider).leaveNest();
+      ref.invalidate(nestInfoProvider);
+      ref.invalidate(membersProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Left nest — create or join another')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Couldn’t leave nest: $e')),
+      );
+    }
   }
 }
