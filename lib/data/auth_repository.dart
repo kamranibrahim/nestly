@@ -84,6 +84,26 @@ class AuthRepository {
     await user.reauthenticateWithCredential(credential);
   }
 
+  /// Change password while signed in (email/password accounts).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('Not signed in');
+    }
+    final trimmed = newPassword.trim();
+    if (trimmed.length < 6) {
+      throw FirebaseAuthException(
+        code: 'weak-password',
+        message: 'Use a password with at least 6 characters.',
+      );
+    }
+    await reauthenticateWithPassword(currentPassword);
+    await user.updatePassword(trimmed);
+  }
+
   Future<NestInfo?> currentNest() async {
     final user = _auth.currentUser;
     if (user == null) return null;

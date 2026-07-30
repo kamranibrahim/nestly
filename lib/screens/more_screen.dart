@@ -12,6 +12,7 @@ import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/motion.dart';
 import 'about_screen.dart';
+import 'auth/reset_password_screen.dart';
 import 'privacy_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
@@ -424,6 +425,32 @@ class MoreScreen extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         'About Nestly',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.inkMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Appear(
+              delay: const Duration(milliseconds: 140),
+              child: NestCard(
+                onTap: () => showChangePasswordSheet(context, ref),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.lock_reset_rounded,
+                      color: AppColors.accentDeep,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Change password',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),

@@ -100,6 +100,7 @@ class _WebAuthScreenState extends ConsumerState<_WebAuthScreen> {
   final _password = TextEditingController();
   bool _busy = false;
   String? _error;
+  String? _info;
 
   @override
   void dispose() {
@@ -112,12 +113,34 @@ class _WebAuthScreenState extends ConsumerState<_WebAuthScreen> {
     setState(() {
       _busy = true;
       _error = null;
+      _info = null;
     });
     try {
       await ref.read(authRepositoryProvider).signIn(
             email: _email.text,
             password: _password.text,
           );
+    } catch (e) {
+      setState(() => _error = friendlyAuthError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _email.text.trim();
+    if (email.isEmpty) {
+      setState(() => _error = 'Enter your email, then tap Forgot password.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+      _info = null;
+    });
+    try {
+      await ref.read(authRepositoryProvider).sendPasswordReset(email);
+      setState(() => _info = 'Password reset email sent. Check your inbox.');
     } catch (e) {
       setState(() => _error = friendlyAuthError(e));
     } finally {
@@ -168,12 +191,26 @@ class _WebAuthScreenState extends ConsumerState<_WebAuthScreen> {
                     decoration: const InputDecoration(labelText: 'Password'),
                     onSubmitted: (_) => _submit(),
                   ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _busy ? null : _forgotPassword,
+                      child: const Text('Forgot password?'),
+                    ),
+                  ),
                   if (_error != null) ...[
-                    const SizedBox(height: 12),
                     Text(_error!,
                         style: const TextStyle(color: AppColors.danger)),
+                    const SizedBox(height: 8),
                   ],
-                  const SizedBox(height: 20),
+                  if (_info != null) ...[
+                    Text(
+                      _info!,
+                      style: const TextStyle(color: AppColors.accentDeep),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 8),
                   FilledButton(
                     onPressed: _busy ? null : _submit,
                     child: _busy

@@ -22,7 +22,7 @@ String friendlyAuthError(Object error) {
       case 'operation-not-allowed':
         return 'Email sign-in is not enabled yet for this project.';
       case 'requires-recent-login':
-        return 'For security, enter your password again to delete your account.';
+        return 'For security, enter your password again to continue.';
       default:
         return error.message ?? 'Something went wrong. Please try again.';
     }
@@ -33,6 +33,12 @@ String friendlyAuthError(Object error) {
   }
   if (text.contains('Invite code not found')) {
     return 'That invite code was not found.';
+  }
+  if (text.contains('Enter the email') ||
+      text.contains('Fill in your current') ||
+      text.contains('don’t match') ||
+      text.contains("don't match")) {
+    return text;
   }
   return 'Something went wrong. Please try again.';
 }
