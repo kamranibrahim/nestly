@@ -38,6 +38,7 @@ class NotificationService {
     // Simulator / first launch often has no APNS token yet — don't fail init.
     try {
       final token = await _messaging.getToken();
+      debugPrint('Firebase Token : $token');
       await _saveToken(token);
     } catch (e) {
       final text = e.toString();
