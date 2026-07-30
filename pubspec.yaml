@@ -54,6 +54,8 @@ dependencies:
   share_plus: ^12.0.2
   firebase_ai: ^3.14.1
   url_launcher: ^6.3.2
+  firebase_crashlytics: ^5.2.6
+  firebase_analytics: ^12.4.5
 
 dev_dependencies:
   flutter_test:

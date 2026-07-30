@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
 import 'repositories.dart';
+import 'telemetry.dart';
 
 class NestInfo {
   const NestInfo({
@@ -51,21 +52,25 @@ class AuthRepository {
       'displayName': displayName.trim(),
       'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    await NestlyTelemetry.signUp();
     return cred;
   }
 
   Future<UserCredential> signIn({
     required String email,
     required String password,
-  }) {
-    return _auth.signInWithEmailAndPassword(
+  }) async {
+    final cred = await _auth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+    await NestlyTelemetry.login();
+    return cred;
   }
 
-  Future<void> sendPasswordReset(String email) {
-    return _auth.sendPasswordResetEmail(email: email.trim());
+  Future<void> sendPasswordReset(String email) async {
+    await _auth.sendPasswordResetEmail(email: email.trim());
+    await NestlyTelemetry.passwordResetRequested();
   }
 
   Future<void> signOut() => _auth.signOut();
@@ -102,6 +107,7 @@ class AuthRepository {
     }
     await reauthenticateWithPassword(currentPassword);
     await user.updatePassword(trimmed);
+    await NestlyTelemetry.changePasswordSuccess();
   }
 
   Future<NestInfo?> currentNest() async {
@@ -165,7 +171,9 @@ class AuthRepository {
 
     await batch.commit();
 
-    return NestInfo(id: nestId, name: nestName.trim(), inviteCode: inviteCode);
+    final info = NestInfo(id: nestId, name: nestName.trim(), inviteCode: inviteCode);
+    await NestlyTelemetry.nestCreated();
+    return info;
   }
 
   Future<NestInfo> joinNest({
@@ -214,7 +222,9 @@ class AuthRepository {
     }, SetOptions(merge: true));
     await batch.commit();
 
-    return NestInfo(id: nestId, name: nestName, inviteCode: code);
+    final info = NestInfo(id: nestId, name: nestName, inviteCode: code);
+    await NestlyTelemetry.nestJoined();
+    return info;
   }
 
   String _generateInviteCode() {
@@ -368,8 +378,14 @@ class SyncService {
       await _pushMembers(nestId);
       await pullMembers(nestId);
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
+      await NestlyTelemetry.syncSuccess();
     } catch (e, st) {
       debugPrint('Sync failed: $e\n$st');
+      final reason = e is FirebaseException
+          ? e.code
+          : e.runtimeType.toString();
+      await NestlyTelemetry.syncFail(reason: reason);
+      await NestlyTelemetry.recordNonFatal(e, st, reason: reason);
       rethrow;
     }
   }

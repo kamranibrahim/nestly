@@ -244,6 +244,25 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 ),
                 SizedBox(height: 14),
                 Text(
+                  'Diagnostics',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Nestly uses Firebase Crashlytics and Analytics to improve '
+                  'stability. Crash reports and anonymous event names (for '
+                  'example sign-up, sync success/fail) do not include nest '
+                  'content, emails, or passwords.',
+                  style: TextStyle(
+                    color: AppColors.inkSecondary,
+                    height: 1.45,
+                  ),
+                ),
+                SizedBox(height: 14),
+                Text(
                   'Password reset',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
