@@ -227,9 +227,9 @@ Exact headcount follows revenue and Plus attach — this plan prefers **profitab
 
 ## Near-term checklist (next 90 days)
 
-Detailed week-by-week execution: [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md) (Aug–Nov 2026, revised post–App Store launch).
+Detailed week-by-week: [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md) (Aug–Nov 2026 v3 — App Store live, **web paused**, **no domain required**).
 
-**Immediate P0:** Password-reset emails in Spam → Firebase Auth custom email domain + SPF/DKIM (Week 1).
+**Email spam:** Without a domain, Inbox delivery can’t be guaranteed — use Change password + Spam guidance now; run Appendix A when you buy a domain.
 
 Aligned with this plan’s Year 1 finish line:
 
