@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:background="@drawable/nestly_widget_bg_mint">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_nest_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/nestly_ink"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="The Nestly Family" />
+
+        <View
+            android:id="@+id/widget_accent_dot"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/nestly_dot_mint" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_hero"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:gravity="bottom"
+        android:maxLines="3"
+        android:textColor="@color/nestly_ink"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        tools:text="3 open tasks" />
+
+    <TextView
+        android:id="@+id/widget_whisper"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textColor="@color/nestly_ink_secondary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        tools:text="Soccer · Tue · 4:00 PM" />
+</LinearLayout>

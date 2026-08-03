@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nestly_widget_description">Open tasks, next event, and tonight’s dinner — no vault data.</string>
+    <string name="nestly_widget_name">Nestly Today</string>
+</resources>
