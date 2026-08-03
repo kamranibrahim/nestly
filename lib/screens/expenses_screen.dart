@@ -59,7 +59,7 @@ class ExpensesScreen extends ConsumerWidget {
         child: const Icon(Icons.add_rounded),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
         children: [
           NestCard(
             color: over ? AppColors.danger : AppColors.primary,

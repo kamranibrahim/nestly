@@ -171,7 +171,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                   final filterMember = _memberById(members, _assigneeFilterId);
 
                   return ListView(
-                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 72),
+                    padding: nestShellPageInsets(context, top: 6),
                     children: [
                       Appear(
                         child: Row(

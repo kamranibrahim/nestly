@@ -22,8 +22,8 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 - [x] Mobile scan uses **Firebase AI Logic → Vertex AI Gemini**
 - [ ] Firebase project on **Blaze** + Vertex AI Gemini API enabled in Build → AI
 - [x] Harden scan AI acceptance UX (hint picker, editable review, clearer errors)
-- [ ] (Optional) Web companion: https://glowing-strudel-442ff8.netlify.app
-  - Add domain in Firebase Auth → Authorized domains if using web sign-in
+- [ ] (Optional) Website: https://glowing-strudel-442ff8.netlify.app
+  - Privacy / Support pages live under `/privacy` and `/support`
 
 ## Tester flow
 

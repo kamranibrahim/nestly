@@ -171,7 +171,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   final boughtCount = items.where((i) => i.done).length;
 
                   return ListView(
-                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 72),
+                    padding: nestShellPageInsets(context, top: 6),
                     children: [
                       NestCard(
                         color: AppColors.mint,

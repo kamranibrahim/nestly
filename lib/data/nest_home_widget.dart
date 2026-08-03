@@ -1,18 +1,27 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:home_widget/home_widget.dart';
 import 'package:intl/intl.dart';
 
 import 'db/app_database.dart';
+import 'nest_home_widget_snapshot.dart';
 
 /// Shared App Group + WidgetKit kind for the Nestly Home Screen widget.
 abstract final class NestHomeWidget {
   static const appGroupId = 'group.app.nestly.family';
   static const iOSName = 'NestlyHomeWidget';
   static const androidName = 'NestlyHomeWidget';
+
   static const launchUri = 'nestly://home';
+  static const tasksUri = 'nestly://tasks';
+  static const calendarUri = 'nestly://calendar';
+  static const mealsUri = 'nestly://meals';
+
+  static StreamSubscription<Uri?>? _clickSub;
+  static void Function(Uri uri)? _onUri;
 
   static bool get _supported =>
       !kIsWeb && (Platform.isIOS || Platform.isAndroid);
@@ -22,6 +31,25 @@ abstract final class NestHomeWidget {
     try {
       await HomeWidget.setAppGroupId(appGroupId);
     } catch (_) {}
+  }
+
+  /// Listen for widget taps (cold + warm). Call once after bindings ready.
+  static Future<void> bindLaunchHandling(
+    void Function(Uri uri) onUri,
+  ) async {
+    if (!_supported) return;
+    _onUri = onUri;
+    await ensureConfigured();
+    try {
+      final initial = await HomeWidget.initiallyLaunchedFromHomeWidget();
+      if (initial != null) onUri(initial);
+    } catch (e) {
+      debugPrint('NestHomeWidget initial launch: $e');
+    }
+    await _clickSub?.cancel();
+    _clickSub = HomeWidget.widgetClicked.listen((uri) {
+      if (uri != null) _onUri?.call(uri);
+    });
   }
 
   /// Writes a privacy-safe nest snapshot (no vault) and asks WidgetKit to reload.
@@ -43,6 +71,12 @@ abstract final class NestHomeWidget {
           'updated_at',
           DateTime.now().toIso8601String(),
         ),
+        HomeWidget.saveWidgetData<String>('hero_kind', snapshot.heroKind),
+        HomeWidget.saveWidgetData<String>('hero_title', snapshot.heroTitle),
+        HomeWidget.saveWidgetData<String>('tasks_label', snapshot.tasksLabel),
+        HomeWidget.saveWidgetData<String>('event_label', snapshot.eventLabel),
+        HomeWidget.saveWidgetData<String>('dinner_label', snapshot.dinnerLabel),
+        HomeWidget.saveWidgetData<String>('accent', snapshot.accent),
       ]);
       await HomeWidget.updateWidget(
         iOSName: iOSName,
@@ -70,6 +104,13 @@ abstract final class NestHomeWidget {
         HomeWidget.saveWidgetData<String>('dinner', ''),
         HomeWidget.saveWidgetData<String>('nest_name', ''),
         HomeWidget.saveWidgetData<bool>('has_nest', false),
+        HomeWidget.saveWidgetData<String>('updated_at', ''),
+        HomeWidget.saveWidgetData<String>('hero_kind', 'quiet'),
+        HomeWidget.saveWidgetData<String>('hero_title', ''),
+        HomeWidget.saveWidgetData<String>('tasks_label', 'All clear'),
+        HomeWidget.saveWidgetData<String>('event_label', 'Nothing scheduled'),
+        HomeWidget.saveWidgetData<String>('dinner_label', 'Not planned'),
+        HomeWidget.saveWidgetData<String>('accent', 'mint'),
       ]);
       await HomeWidget.updateWidget(
         iOSName: iOSName,
@@ -94,6 +135,12 @@ abstract final class NestHomeWidget {
         dinner: '',
         nestName: '',
         hasNest: false,
+        heroKind: 'quiet',
+        heroTitle: 'Open Nestly to join a nest',
+        tasksLabel: 'All clear',
+        eventLabel: 'Nothing scheduled',
+        dinnerLabel: 'Not planned',
+        accent: 'mint',
       );
     }
 
@@ -124,7 +171,7 @@ abstract final class NestHomeWidget {
       final when = e.allDay
           ? DateFormat.MMMd().format(e.startsAt)
           : DateFormat('EEE · h:mm a').format(e.startsAt);
-      nextEvent = '${_short(e.title)} · $when';
+      nextEvent = '${shortWidgetText(e.title)} · $when';
     }
 
     final dinnerRows =
@@ -139,21 +186,27 @@ abstract final class NestHomeWidget {
             .get();
     final dinner = dinnerRows.isEmpty
         ? ''
-        : _short(dinnerRows.first.title.trim());
+        : shortWidgetText(dinnerRows.first.title.trim());
+
+    final hero = selectWidgetHero(
+      openTasks: openTasks,
+      nextEvent: nextEvent,
+      dinner: dinner,
+    );
 
     return _WidgetSnapshot(
       openTasks: openTasks,
       nextEvent: nextEvent,
       dinner: dinner,
-      nestName: nestLabel.isEmpty ? 'Nestly' : _short(nestLabel, max: 24),
+      nestName: nestLabel.isEmpty ? 'Nestly' : shortWidgetText(nestLabel, max: 24),
       hasNest: true,
+      heroKind: hero.kindKey,
+      heroTitle: shortWidgetText(hero.title, max: 40),
+      tasksLabel: formatWidgetTasksLabel(openTasks),
+      eventLabel: formatWidgetEventLabel(nextEvent),
+      dinnerLabel: formatWidgetDinnerLabel(dinner),
+      accent: hero.accent,
     );
-  }
-
-  static String _short(String value, {int max = 36}) {
-    final t = value.trim();
-    if (t.length <= max) return t;
-    return '${t.substring(0, max - 1)}…';
   }
 }
 
@@ -164,6 +217,12 @@ class _WidgetSnapshot {
     required this.dinner,
     required this.nestName,
     required this.hasNest,
+    required this.heroKind,
+    required this.heroTitle,
+    required this.tasksLabel,
+    required this.eventLabel,
+    required this.dinnerLabel,
+    required this.accent,
   });
 
   final int openTasks;
@@ -171,4 +230,10 @@ class _WidgetSnapshot {
   final String dinner;
   final String nestName;
   final bool hasNest;
+  final String heroKind;
+  final String heroTitle;
+  final String tasksLabel;
+  final String eventLabel;
+  final String dinnerLabel;
+  final String accent;
 }

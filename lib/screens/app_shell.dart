@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/telemetry.dart';
+import '../navigation/app_navigator.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
@@ -28,6 +29,28 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     NestlyTelemetry.homeOpen();
+    nestlyShellTabRequest.addListener(_onShellTabRequest);
+    final pending = nestlyShellTabRequest.value;
+    if (pending != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _go(pending);
+        nestlyShellTabRequest.value = null;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    nestlyShellTabRequest.removeListener(_onShellTabRequest);
+    super.dispose();
+  }
+
+  void _onShellTabRequest() {
+    final next = nestlyShellTabRequest.value;
+    if (next == null || !mounted) return;
+    _go(next);
+    nestlyShellTabRequest.value = null;
   }
 
   void _go(int index) {
@@ -227,7 +250,7 @@ class _FabAboveNav extends StandardFabLocation with FabEndOffsetX {
     double adjustment,
   ) {
     final double fabHeight = scaffoldGeometry.floatingActionButtonSize.height;
-    return scaffoldGeometry.contentBottom - fabHeight - 6 + adjustment;
+    return scaffoldGeometry.contentBottom - fabHeight - 18 + adjustment;
   }
 }
 

@@ -4,6 +4,27 @@ import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
 import 'motion.dart';
 
+/// Clears the floating pill nav (+ home indicator) on AppShell tabs.
+/// Use as the bottom value in scroll/list padding on Home/Calendar/Tasks/Shopping/More.
+double nestShellBottomPadding(BuildContext context) {
+  const navChrome = 96.0;
+  return navChrome + MediaQuery.viewPaddingOf(context).bottom;
+}
+
+EdgeInsets nestShellPageInsets(
+  BuildContext context, {
+  double top = 4,
+  double left = 10,
+  double right = 10,
+}) {
+  return EdgeInsets.fromLTRB(
+    left,
+    top,
+    right,
+    nestShellBottomPadding(context),
+  );
+}
+
 class NestCard extends StatelessWidget {
   const NestCard({
     super.key,

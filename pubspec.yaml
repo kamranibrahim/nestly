@@ -83,11 +83,6 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  web:
-    generate: true
-    image_path: assets/brand/logos/nestly-app-icon.png
-    background_color: "#FFFFFF"
-    theme_color: "#8E8ED4"
   image_path: assets/brand/logos/nestly-app-icon.png
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: assets/brand/logos/nestly-app-icon.png

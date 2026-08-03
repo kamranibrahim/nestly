@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'common.dart';
 import 'nest_a11y.dart';
 
 /// Small inline shimmer used inside buttons/actions.
@@ -327,7 +328,7 @@ class HomeLoadingSkeleton extends StatelessWidget {
         child: ShimmerScope(
           child: ListView(
             physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
+            padding: nestShellPageInsets(context),
             children: [
               const Row(
                 children: [

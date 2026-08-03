@@ -86,7 +86,7 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
         error: (_, _) => const Center(child: Text('Could not load meals.')),
         data: (meals) {
           return ListView(
-            padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
             children: [
               const NestCard(
                 child: Text(

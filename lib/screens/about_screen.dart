@@ -13,7 +13,7 @@ class AboutScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('About')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(10, 4, 10, 24),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 36),
         children: [
           NestCard(
             padding: const EdgeInsets.all(20),

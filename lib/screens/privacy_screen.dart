@@ -170,7 +170,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Privacy')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(10, 4, 10, 24),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 36),
         children: [
           const NestCard(
             padding: EdgeInsets.all(16),

@@ -71,26 +71,17 @@ Next 16 weeks: see [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md) (web paused; no do
 - [x] Weekly meal plan → push ingredients to shopping
 - [x] Care schedules (home / pet / car) with due + mark done
 - [x] Quiet “Today for your nest” summary on Home (local, no chatbot)
-- [x] Web companion (calendar + tasks + lists)
+- [ ] Web experience (planned in JS — Flutter web companion removed)
 - [x] Model-backed quiet AI via Firebase AI Logic → Vertex AI Gemini
 - [x] School & activities (sports, pickups, clubs)
 - [x] Grocery suggestions from recurring buys (device-local)
 - [x] Harden scan AI acceptance UX
 - [ ] Store closed testing → public listing (manual)
 
-## Web companion
+## Website
 
-Flutter web app (same repo) that talks to Firestore directly — no local Drift DB.
-
-Live: https://glowing-strudel-442ff8.netlify.app
+Static Netlify site for Privacy / Support (and later a JS web app). Flutter web is not part of this repo anymore.
 
 ```bash
-flutter run -d chrome
-# or
-flutter build web --release
-./node_modules/.bin/netlify deploy --dir=build/web --prod --no-build --functions=netlify/functions
+./node_modules/.bin/netlify deploy --dir=web --prod --functions=netlify/functions
 ```
-
-In Firebase Console → Authentication → Settings → Authorized domains, add your Netlify domain (and `localhost` for local runs).
-
-Before first sign-up, enable **Email/Password** in Firebase Authentication → Sign-in method.

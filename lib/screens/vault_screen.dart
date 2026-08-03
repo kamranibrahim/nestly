@@ -259,7 +259,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
               child: const Icon(Icons.upload_file_rounded),
             ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
         children: [
           TextField(
             onChanged: (value) => setState(() => _query = value),

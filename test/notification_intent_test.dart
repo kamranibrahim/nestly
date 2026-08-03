@@ -39,4 +39,27 @@ void main() {
     });
     expect(intent?.destination, NotificationDestination.care);
   });
+
+  group('openNestlyUri', () {
+    tearDown(() {
+      nestlyShellTabRequest.value = null;
+    });
+
+    test('routes hosts to shell tabs', () {
+      openNestlyUri(Uri.parse('nestly://home'));
+      expect(nestlyShellTabRequest.value, NestlyShellTab.home);
+
+      openNestlyUri(Uri.parse('nestly://calendar'));
+      expect(nestlyShellTabRequest.value, NestlyShellTab.calendar);
+
+      openNestlyUri(Uri.parse('nestly://tasks'));
+      expect(nestlyShellTabRequest.value, NestlyShellTab.tasks);
+    });
+
+    test('ignores non-nestly schemes', () {
+      nestlyShellTabRequest.value = NestlyShellTab.home;
+      openNestlyUri(Uri.parse('https://example.com'));
+      expect(nestlyShellTabRequest.value, NestlyShellTab.home);
+    });
+  });
 }

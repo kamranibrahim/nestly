@@ -83,7 +83,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                         ),
                       )
                     : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                        padding: const EdgeInsets.fromLTRB(12, 4, 12, 36),
                         itemCount: filtered.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 6),
                         itemBuilder: (context, index) {

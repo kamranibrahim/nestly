@@ -1,14 +1,9 @@
-/// Modern, low-clutter Google Maps style for Nest Locator.
-/// Soft white canvas, muted roads, quiet labels — Nestly pastel-friendly.
+/// Modern Nestly map style — soft pastels with places/POIs visible.
 const String locatorMapStyleJson = r'''
 [
   {
     "elementType": "geometry",
     "stylers": [{ "color": "#f7f8f6" }]
-  },
-  {
-    "elementType": "labels.icon",
-    "stylers": [{ "visibility": "off" }]
   },
   {
     "elementType": "labels.text.fill",
@@ -19,31 +14,38 @@ const String locatorMapStyleJson = r'''
     "stylers": [{ "color": "#f7f8f6" }, { "weight": 3 }]
   },
   {
-    "featureType": "administrative",
-    "elementType": "geometry",
-    "stylers": [{ "visibility": "off" }]
-  },
-  {
     "featureType": "administrative.land_parcel",
     "stylers": [{ "visibility": "off" }]
   },
   {
     "featureType": "administrative.neighborhood",
-    "stylers": [{ "visibility": "off" }]
+    "elementType": "labels.text.fill",
+    "stylers": [{ "color": "#8a8f98" }]
   },
   {
     "featureType": "poi",
-    "stylers": [{ "visibility": "off" }]
+    "elementType": "geometry",
+    "stylers": [{ "color": "#eef2ea" }]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels.text.fill",
+    "stylers": [{ "color": "#7a8278" }]
   },
   {
     "featureType": "poi.park",
     "elementType": "geometry",
-    "stylers": [{ "visibility": "on" }, { "color": "#e4efd8" }]
+    "stylers": [{ "color": "#e4efd8" }]
   },
   {
     "featureType": "poi.park",
     "elementType": "labels.text.fill",
-    "stylers": [{ "visibility": "on" }, { "color": "#7a9270" }]
+    "stylers": [{ "color": "#7a9270" }]
+  },
+  {
+    "featureType": "poi.business",
+    "elementType": "labels.icon",
+    "stylers": [{ "visibility": "on" }]
   },
   {
     "featureType": "road",
@@ -87,7 +89,13 @@ const String locatorMapStyleJson = r'''
   },
   {
     "featureType": "transit",
-    "stylers": [{ "visibility": "off" }]
+    "elementType": "geometry",
+    "stylers": [{ "color": "#e8ebe6" }]
+  },
+  {
+    "featureType": "transit.station",
+    "elementType": "labels.text.fill",
+    "stylers": [{ "color": "#7a8278" }]
   },
   {
     "featureType": "water",

@@ -59,7 +59,7 @@ class EmergencyScreen extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(10, 4, 10, 16),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 28),
         children: [
           const NestCard(
             color: AppColors.dangerSoft,

@@ -301,7 +301,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   final upcomingCutoff = endOfDayExclusive(_selected);
 
                   return ListView(
-                    padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
+                    padding: nestShellPageInsets(context),
                     children: [
                       if (dayEvents.isEmpty)
                         FirstRunEmptyCard(

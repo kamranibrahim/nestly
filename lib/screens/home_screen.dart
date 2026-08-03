@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +11,6 @@ import '../data/repositories.dart';
 import '../data/sync_controller.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_motion.dart';
 import '../widgets/common.dart';
 import '../widgets/invite_family_sheet.dart';
 import '../widgets/motion.dart';
@@ -70,8 +71,8 @@ class HomeScreen extends ConsumerWidget {
     final schoolDueItems = schoolItems
         .where((s) => !s.nextAt.isAfter(endToday))
         .toList();
-    final timeline = ref.watch(timelineProvider).valueOrNull ?? const [];
-    final recent = timeline.take(5).toList();
+    final timelineCount =
+        (ref.watch(timelineProvider).valueOrNull ?? const []).length;
 
     final weekAhead = today.add(const Duration(days: 7));
     final billsDueSoonList =
@@ -154,7 +155,7 @@ class HomeScreen extends ConsumerWidget {
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
+                  padding: nestShellPageInsets(context),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -867,61 +868,19 @@ class HomeScreen extends ConsumerWidget {
                             onTap: () =>
                                 nestPush(context, const SchoolScreen()),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: SectionLabel('Recent activity'),
-                          ),
-                          TextButton(
-                            onPressed: () => nestPush(
+                          FeatureTile(
+                            title: 'Timeline',
+                            subtitle: timelineCount == 0
+                                ? 'Nest activity'
+                                : '$timelineCount recent',
+                            icon: Icons.history_rounded,
+                            color: AppColors.tileTeal,
+                            onTap: () => nestPush(
                               context,
                               TimelineScreen(onOpenTab: onOpenTab),
                             ),
-                            child: const Text('See all'),
                           ),
                         ],
-                      ),
-                      NestCard(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
-                        onTap: recent.isEmpty
-                            ? () => nestPush(
-                                context,
-                                TimelineScreen(onOpenTab: onOpenTab),
-                              )
-                            : null,
-                        child: recent.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 10),
-                                child: Text(
-                                  'Activity from your nest will show up here. Tap to open Timeline.',
-                                  style: TextStyle(color: AppColors.inkMuted),
-                                ),
-                              )
-                            : Column(
-                                children: [
-                                  for (var i = 0; i < recent.length; i++) ...[
-                                    Appear(
-                                      delay: AppMotion.stagger * i,
-                                      child: _ActivityRow(
-                                        event: recent[i],
-                                        index: i,
-                                        onOpenTab: onOpenTab,
-                                      ),
-                                    ),
-                                    if (i != recent.length - 1)
-                                      const Divider(
-                                        height: 1,
-                                        color: AppColors.divider,
-                                      ),
-                                  ],
-                                ],
-                              ),
                       ),
                     ],
                   ),
@@ -973,13 +932,10 @@ class HomeScreen extends ConsumerWidget {
         '$billsDueSoon bill${billsDueSoon == 1 ? '' : 's'} due soon',
     ];
 
-    try {
-      await syncAfterWrite(ref, context: context);
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-
+    // Show the sheet immediately — sync/reschedule used to run first and felt
+    // like a multi-second freeze on the Reminders / bell button.
     if (!context.mounted) return;
-    await showModalBottomSheet<void>(
+    final sheet = showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.surface,
       useSafeArea: true,
@@ -1037,6 +993,15 @@ class HomeScreen extends ConsumerWidget {
         );
       },
     );
+
+    unawaited(() async {
+      try {
+        await syncAfterWrite(ref, quiet: true);
+        await ref.read(notificationServiceProvider).rescheduleReminders();
+      } catch (_) {}
+    }());
+
+    await sheet;
   }
 
   String? _needDetailOverride(
@@ -1452,84 +1417,5 @@ class _NeedRow extends StatelessWidget {
         onTap: onAction,
       ),
     );
-  }
-}
-
-class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({
-    required this.event,
-    required this.index,
-    this.onOpenTab,
-  });
-
-  final TimelineEvent event;
-  final int index;
-  final ValueChanged<int>? onOpenTab;
-
-  @override
-  Widget build(BuildContext context) {
-    final initials = event.memberName.trim().isEmpty
-        ? 'F'
-        : event.memberName
-              .trim()
-              .split(RegExp(r'\s+'))
-              .map((p) => p[0])
-              .take(2)
-              .join()
-              .toUpperCase();
-    return InkWell(
-      onTap: () => nestPush(context, TimelineScreen(onOpenTab: onOpenTab)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            MemberAvatar(
-              initials: initials,
-              color: AppColors
-                  .softCardColors[index % AppColors.softCardColors.length],
-              size: 34,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event.message,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.ink,
-                      fontSize: 13.5,
-                    ),
-                  ),
-                  Text(
-                    _relative(event.createdAt),
-                    style: const TextStyle(
-                      color: AppColors.inkMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.inkMuted,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _relative(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat.MMMd().format(dt);
   }
 }

@@ -12,12 +12,13 @@ Generated marketing frames for **iPhone** at **1242 × 2688px**.
 | 4 | `04-groceries.png` | Shared shopping list |
 | 5 | `05-budget.png` | Expenses + bills |
 | 6 | `06-vault.png` | Documents vault |
-| 7 | `07-meals.png` | Weekly meal plan *(bonus)* |
-| 8 | `08-nest.png` | Nest / invite *(bonus)* |
+| 7 | `07-locator.png` | Nest location sharing |
+| 8 | `08-meals.png` | Weekly meal plan *(bonus)* |
+| 9 | `09-nest.png` | Nest / invite *(bonus)* |
 
-Primary App Store set (recommended upload order): **01 → 06**.
+Primary App Store set (recommended upload order): **01 → 07**.
 
-Output directory: `store/screenshots/iphone-1242x2688/`
+Typography: **Poppins ExtraBold** titles (two lines, 96pt), **Poppins Medium** subtitles.
 
 ## Regenerate
 

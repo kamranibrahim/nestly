@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="launch_background">#4A78DD</color>
-	<color name="ic_launcher_background">#FFFFFF</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
+
+    <color name="nestly_ink">#1C1C1E</color>
+    <color name="nestly_ink_secondary">#636366</color>
+    <color name="nestly_ink_muted">#8E8E93</color>
+    <color name="nestly_wash">#FAFAFB</color>
+    <color name="nestly_mint">#D4E7B3</color>
+    <color name="nestly_lavender">#B2B2E6</color>
+    <color name="nestly_teal">#C5E8E0</color>
+    <color name="nestly_peach">#FFD8A8</color>
 </resources>

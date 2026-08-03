@@ -16,12 +16,20 @@ if (keysFile.exists()) {
     keysProperties.load(FileInputStream(keysFile))
 }
 
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "app.nestly.family"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Required by flutter_local_notifications (Java 8+ APIs on older Android).
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -37,19 +45,39 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = maxOf(flutter.minSdkVersion, 23)
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = 2
+        versionName = "1.0.0"
         manifestPlaceholders["GOOGLE_MAPS_API_KEY"] =
             keysProperties.getProperty("GOOGLE_MAPS_API_KEY") ?: ""
     }
 
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
+
+    buildTypes {
+        release {
+            check(keystorePropertiesFile.exists()) {
+                """
+                Missing android/key.properties — Play rejects debug-signed bundles.
+                Create an upload keystore and key.properties first
+                (see Flutter docs: https://docs.flutter.dev/deployment/android#signing-the-app).
+                """.trimIndent()
+            }
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {

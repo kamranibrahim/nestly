@@ -19,6 +19,7 @@ import 'about_screen.dart';
 import 'auth/reset_password_screen.dart';
 import 'locator_screen.dart';
 import 'privacy_screen.dart';
+import 'timeline_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -166,7 +167,7 @@ class MoreScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
+          padding: nestShellPageInsets(context),
           children: [
             Appear(
               child: Padding(
@@ -366,6 +367,42 @@ class MoreScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 12),
             const SectionLabel('Settings'),
+            Appear(
+              delay: const Duration(milliseconds: 100),
+              child: NestCard(
+                onTap: () => nestPush(context, const TimelineScreen()),
+                child: const Row(
+                  children: [
+                    Icon(Icons.history_rounded, color: AppColors.accentDeep),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Timeline',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Recent nest activity across the family',
+                            style: TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.inkMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
             Appear(
               delay: const Duration(milliseconds: 105),
               child: NestCard(

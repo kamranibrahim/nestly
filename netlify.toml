@@ -1,23 +1,16 @@
-# Nestly web companion (Flutter web) + AI parse API
+# Nestly static site + API (privacy/support + Netlify Functions).
+# Flutter web companion removed — a JS web app will replace it later.
 #
-# Local:  flutter run -d chrome
-# Build:  flutter build web --release
-# Deploy: netlify deploy --dir=build/web --prod --no-build --functions=netlify/functions
-#
-# After first production deploy, enable AI Gateway in the Netlify UI.
-# Functions live in netlify/functions (path /api/parse-document).
+# Deploy: netlify deploy --dir=web --prod --functions=netlify/functions
 
 [build]
-  # Prefer local `flutter build web` + `--no-build` deploys. This command is for Netlify CI.
-  command = "if [ ! -d \"$HOME/flutter/bin\" ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter; fi && export PATH=\"$PATH:$HOME/flutter/bin\" && flutter config --no-analytics && flutter config --enable-web && flutter pub get && flutter build web --release"
-  publish = "build/web"
+  command = "echo 'Static web/ — no Flutter build'"
+  publish = "web"
   functions = "netlify/functions"
 
 [build.environment]
-  FLUTTER_WEB = "true"
   NODE_VERSION = "22"
 
-# Legal / store pages (static files from web/) — before SPA catch-all
 [[redirects]]
   from = "/support"
   to = "/support.html"

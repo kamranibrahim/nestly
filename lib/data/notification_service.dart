@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:drift/drift.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -79,8 +81,10 @@ class NotificationService {
     });
 
     _ready = true;
-    await rescheduleReminders();
+    // Handle notification taps before the slow cancel/reschedule pass so cold
+    // starts from a reminder open the destination immediately.
     await _consumeLaunchIntents();
+    unawaited(rescheduleReminders());
   }
 
   Future<void> _saveToken(String? token) async {

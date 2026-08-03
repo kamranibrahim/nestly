@@ -91,6 +91,9 @@ def drop_shadow(size, radius=72, blur=50, opacity=78) -> Image.Image:
 
 
 def wrap_text(draw, text, fnt, max_width):
+    # Explicit breaks win (use \n for intentional two-line titles).
+    if '\n' in text:
+        return [ln.strip() for ln in text.split('\n') if ln.strip()]
     words = text.split()
     lines, cur = [], ''
     for w in words:
@@ -188,17 +191,17 @@ def place_phone(canvas: Image.Image, shot: Image.Image, top: int):
 
 def draw_header(canvas, headline, subhead, accent_rgb):
     draw = ImageDraw.Draw(canvas)
-    # Brand chip stays soft sans; title/subtitle use distinct editorial faces
-    brand_font = font('AirbnbCereal_W_Bd.otf', 28)
-    head_font = font('Georgia Bold.ttf', 60, system=True)
-    sub_font = font('AirbnbCereal_W_Md.otf', 29)
+    brand_font = font('Poppins-SemiBold.ttf', 30)
+    head_font = font('Poppins-ExtraBold.ttf', 96)
+    sub_font = font('Poppins-Medium.ttf', 36)
+    head_line_h = 108
 
     brand = 'Nestly'
     chip_w = int(draw.textlength(brand, font=brand_font) + 52)
-    chip_h = 52
+    chip_h = 54
     chip = Image.new('RGBA', (chip_w, chip_h), (0, 0, 0, 0))
     cd = ImageDraw.Draw(chip)
-    cd.rounded_rectangle((0, 0, chip_w - 1, chip_h - 1), radius=26, fill=(*accent_rgb, 230))
+    cd.rounded_rectangle((0, 0, chip_w - 1, chip_h - 1), radius=27, fill=(*accent_rgb, 230))
     cd.text(
         ((chip_w - draw.textlength(brand, font=brand_font)) / 2, 10),
         brand,
@@ -207,21 +210,21 @@ def draw_header(canvas, headline, subhead, accent_rgb):
     )
     canvas.paste(chip, ((W - chip_w) // 2, TOP_SAFE), chip)
 
-    # Title — gap after brand chip
-    lines = wrap_text(draw, headline, head_font, W - 100)
+    # Title — gap after brand chip (forced two lines via \n in copy)
+    lines = wrap_text(draw, headline, head_font, W - 72)
     y = TOP_SAFE + chip_h + GAP_AFTER_CHIP
     for line in lines:
         tw = draw.textlength(line, font=head_font)
         draw.text(((W - tw) / 2, y), line, font=head_font, fill=INK)
-        y += 78
+        y += head_line_h
 
     # Subtitle — clear gap under title
     y += GAP_TITLE_TO_SUB
-    slines = wrap_text(draw, subhead, sub_font, W - 140)
+    slines = wrap_text(draw, subhead, sub_font, W - 100)
     for line in slines:
         tw = draw.textlength(line, font=sub_font)
         draw.text(((W - tw) / 2, y), line, font=sub_font, fill=INK_SOFT)
-        y += 42
+        y += 48
 
     # Space before phone mockup
     return y + GAP_SUB_TO_PHONE
@@ -250,7 +253,7 @@ def compose(name, source, bg, headline, subhead, accent, crop_box=None):
     fw, fh, pty = place_phone(canvas, shot, top=top)
 
     draw = ImageDraw.Draw(canvas)
-    foot = font('AirbnbCereal_W_Md.otf', 24)
+    foot = font('Poppins-Medium.ttf', 26)
     label = 'the operating system for modern families'
     tw = draw.textlength(label, font=foot)
     draw.text(((W - tw) / 2, H - 68), label, font=foot, fill=(110, 110, 116, 200))
@@ -263,13 +266,12 @@ def compose(name, source, bg, headline, subhead, accent, crop_box=None):
 
 
 # Use full-height source shots so the phone fills the canvas.
-# Light crops only where junk UI would hurt the store image.
 SCREENS = [
     dict(
         name='01-home',
         source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-29_at_16.57.02-944d3dfd-5e15-4844-a814-184b18bee8e3.png',
         bg=((242, 240, 250), (236, 240, 226), (250, 249, 246)),
-        headline='One nest for the whole family',
+        headline='One nest for\nthe whole family',
         subhead='Today’s tasks, meals, bills, and plans — together.',
         accent=LAVENDER,
     ),
@@ -277,16 +279,15 @@ SCREENS = [
         name='02-calendar',
         source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-29_at_16.57.30-d4ca83f6-bfbc-4398-85ba-9aafd88404f8.png',
         bg=((230, 242, 228), (248, 248, 246), (240, 234, 248)),
-        headline='Everyone’s day, in one place',
+        headline='Everyone’s day,\nin one place',
         subhead='School, sports, and family time — shared.',
         accent=MINT,
-        # Keep full phone height; mild bottom trim only if needed later
     ),
     dict(
         name='03-tasks',
         source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-29_at_16.57.33-26e95f33-87a4-4b43-b659-c1e70f938585.png',
         bg=((250, 243, 232), (245, 244, 250), (232, 242, 236)),
-        headline='Chores that actually get done',
+        headline='Chores that\nactually get done',
         subhead='Assign, repeat, and check off as a family.',
         accent=PEACH,
     ),
@@ -294,7 +295,7 @@ SCREENS = [
         name='04-groceries',
         source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-29_at_16.57.37-1194e389-4086-4dc8-9cbb-560af0060934.png',
         bg=((230, 244, 238), (250, 249, 246), (245, 236, 228)),
-        headline='The list that keeps up',
+        headline='The list that\nkeeps up',
         subhead='Shared groceries — always in sync.',
         accent=TEAL,
     ),
@@ -302,7 +303,7 @@ SCREENS = [
         name='05-budget',
         source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-29_at_16.58.08-a6a0dbcb-8dda-4ca9-8a8e-a1cb97a65d88.png',
         bg=((250, 246, 230), (245, 244, 250), (232, 238, 250)),
-        headline='Money, finally clear',
+        headline='Money, finally\nclear',
         subhead='Spending and bills in one calm view.',
         accent=YELLOW,
     ),
@@ -310,23 +311,31 @@ SCREENS = [
         name='06-vault',
         source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-29_at_16.57.50-9e10c8b2-7ffd-4987-940f-259b4e991e48.png',
         bg=((250, 238, 242), (245, 244, 250), (232, 242, 238)),
-        headline='Important docs, always ready',
+        headline='Important docs,\nalways ready',
         subhead='Passports, insurance, school records — organized.',
         accent=PINK,
     ),
     dict(
-        name='07-meals',
+        name='07-locator',
+        source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-31_at_18.10.30-1518b14c-f2f8-45aa-9ff5-dbd61f617b8f.png',
+        bg=((232, 242, 236), (245, 244, 250), (236, 240, 250)),
+        headline='Know where\nyour nest is',
+        subhead='Share a last-known pin — never background tracking.',
+        accent=MINT,
+    ),
+    dict(
+        name='08-meals',
         source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-29_at_16.57.55-aee3b8d1-8aa6-4fc8-b8a1-da3c0c739d88.png',
         bg=((232, 242, 240), (250, 249, 246), (245, 238, 230)),
-        headline='Dinner, planned for the week',
+        headline='Dinner, planned\nfor the week',
         subhead='Push ingredients straight to groceries.',
         accent=TEAL,
     ),
     dict(
-        name='08-nest',
+        name='09-nest',
         source='Simulator_Screenshot_-_iPhone_16e_-_2026-07-29_at_16.57.41-699f3509-ca2b-41c7-8836-6cf2e6b51267.png',
         bg=((242, 238, 250), (250, 249, 246), (236, 242, 230)),
-        headline='Your family, connected',
+        headline='Your family,\nconnected',
         subhead='Invite the nest. Share the load.',
         accent=LAVENDER,
     ),

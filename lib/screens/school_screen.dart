@@ -55,7 +55,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
               .toList();
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(10, 4, 10, 72),
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
             children: [
               const NestCard(
                 child: Text(

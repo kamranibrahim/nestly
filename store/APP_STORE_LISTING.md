@@ -180,7 +180,8 @@ Nestly — the operating system for modern families.
 | 4 | `04-groceries.png` | The list that keeps up |
 | 5 | `05-budget.png` | Money, finally clear |
 | 6 | `06-vault.png` | Important docs, always ready |
-| 7–8 | meals / nest | Bonus if you have extra slots |
+| 7 | `07-locator.png` | Know where your nest is |
+| 8–9 | meals / nest | Bonus if you have extra slots |
 
 ---
 
