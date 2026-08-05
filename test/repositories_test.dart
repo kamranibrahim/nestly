@@ -234,18 +234,18 @@ void main() {
       fileName: 'card.pdf',
       localPath: '/tmp/card.pdf',
     );
-    expect(doc.uploadStatus, VaultUploadStatus.local);
+    expect(doc.uploadStatus, VaultUploadStatus.local.storage);
 
     await vault.markUploadFailed(doc.id);
     final failed = await vault.getById(doc.id);
-    expect(failed?.uploadStatus, VaultUploadStatus.failed);
+    expect(failed?.uploadStatus, VaultUploadStatus.failed.storage);
 
     final pending = await vault.listPendingUploads();
     expect(pending.any((d) => d.id == doc.id), isTrue);
 
     await vault.markUploaded(id: doc.id, storagePath: 'nests/x/vault/y/card.pdf');
     final synced = await vault.getById(doc.id);
-    expect(synced?.uploadStatus, VaultUploadStatus.synced);
+    expect(synced?.uploadStatus, VaultUploadStatus.synced.storage);
     expect(synced?.storagePath, isNot(null));
     expect(synced!.storagePath!.isNotEmpty, isTrue);
 

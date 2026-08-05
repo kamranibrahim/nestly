@@ -81,13 +81,13 @@ class VaultService {
 
     // Already on Storage — just normalize status.
     if (doc.storagePath != null && doc.storagePath!.isNotEmpty) {
-      if (doc.uploadStatus != VaultUploadStatus.synced) {
-        await _vault.setUploadStatus(id, VaultUploadStatus.synced);
+      if (doc.uploadStatus != VaultUploadStatus.synced.storage) {
+        await _vault.setUploadStatus(id, VaultUploadStatus.synced.storage);
       }
       return true;
     }
 
-    await _vault.setUploadStatus(id, VaultUploadStatus.uploading);
+    await _vault.setUploadStatus(id, VaultUploadStatus.uploading.storage);
     try {
       final storagePath = 'nests/$nestId/vault/${doc.id}/${doc.fileName}';
       await _storage.ref(storagePath).putFile(file);

@@ -25,6 +25,21 @@ void main() {
       );
     });
 
+    test('maps calendar and tasks', () {
+      expect(
+        NotificationIntent.fromPayload('calendar')?.destination,
+        NotificationDestination.calendar,
+      );
+      expect(
+        NotificationIntent.fromPayload('event')?.destination,
+        NotificationDestination.calendar,
+      );
+      expect(
+        NotificationIntent.fromPayload('tasks')?.destination,
+        NotificationDestination.tasks,
+      );
+    });
+
     test('ignores blank and unknown', () {
       expect(NotificationIntent.fromPayload(null), isNull);
       expect(NotificationIntent.fromPayload(''), isNull);

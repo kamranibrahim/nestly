@@ -5,8 +5,10 @@ import 'package:intl/intl.dart';
 import '../data/db/app_database.dart';
 import '../data/timeline_nav.dart';
 import '../providers/providers.dart';
+import '../state/timeline_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/first_run_empty_card.dart';
 import '../widgets/motion.dart';
 import 'care_screen.dart';
 import 'expenses_screen.dart';
@@ -19,27 +21,22 @@ final timelineFullProvider = StreamProvider<List<TimelineEvent>>((ref) {
 });
 
 /// Full nest activity feed with module filters and deep links.
-class TimelineScreen extends ConsumerStatefulWidget {
+class TimelineScreen extends ConsumerWidget {
   const TimelineScreen({super.key, this.onOpenTab});
 
   /// Opens AppShell tabs (1 calendar, 2 tasks, 3 shopping) after popping.
   final ValueChanged<int>? onOpenTab;
 
   @override
-  ConsumerState<TimelineScreen> createState() => _TimelineScreenState();
-}
-
-class _TimelineScreenState extends ConsumerState<TimelineScreen> {
-  TimelineModule _filter = TimelineModule.all;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ui = ref.watch(timelineUiProvider);
+    final uiCtrl = ref.read(timelineUiProvider.notifier);
     final async = ref.watch(timelineFullProvider);
     final events = async.valueOrNull ?? const <TimelineEvent>[];
-    final filtered = _filter == TimelineModule.all
+    final filtered = ui.filter == TimelineModule.all
         ? events
         : events
-            .where((e) => classifyTimelineMessage(e.message) == _filter)
+            .where((e) => classifyTimelineMessage(e.message) == ui.filter)
             .toList();
 
     return Scaffold(
@@ -57,8 +54,8 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                 for (final module in TimelineModule.values) ...[
                   SoftPill(
                     label: module.label,
-                    selected: _filter == module,
-                    onTap: () => setState(() => _filter = module),
+                    selected: ui.filter == module,
+                    onTap: () => uiCtrl.setFilter(module),
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -69,17 +66,28 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             child: async.isLoading && events.isEmpty
                 ? const Center(child: CircularProgressIndicator.adaptive())
                 : filtered.isEmpty
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text(
-                            'No activity in this filter yet.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.inkMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: FirstRunEmptyCard(
+                          icon: Icons.history_rounded,
+                          color: AppColors.tileTeal,
+                          title: events.isEmpty
+                              ? 'Your nest timeline starts here'
+                              : 'Nothing in this filter',
+                          body: events.isEmpty
+                              ? 'As the family checks off tasks, shops, and plans meals, activity shows up here.'
+                              : 'Try another module filter, or clear back to All.',
+                          actionLabel: events.isEmpty
+                              ? 'Back to Home'
+                              : 'Show all',
+                          onAction: () {
+                            if (events.isEmpty) {
+                              Navigator.of(context).pop();
+                              onOpenTab?.call(0);
+                            } else {
+                              uiCtrl.showAll();
+                            }
+                          },
                         ),
                       )
                     : ListView.separated(
@@ -91,7 +99,8 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                           final module =
                               classifyTimelineMessage(event.message);
                           return NestCard(
-                            onTap: () => _openModule(context, module),
+                            onTap: () =>
+                                _openModule(context, module, onOpenTab),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 12,
@@ -140,50 +149,57 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       ),
     );
   }
+}
 
-  void _openModule(BuildContext context, TimelineModule module) {
-    switch (module) {
-      case TimelineModule.all:
-        return;
-      case TimelineModule.tasks:
-        _openTabOrStay(context, 2);
-        return;
-      case TimelineModule.shopping:
-        _openTabOrStay(context, 3);
-        return;
-      case TimelineModule.care:
-        nestPush(context, const CareScreen());
-        return;
-      case TimelineModule.meals:
-        nestPush(context, const MealsScreen());
-        return;
-      case TimelineModule.vault:
-        nestPush(context, const VaultScreen());
-        return;
-      case TimelineModule.school:
-        nestPush(context, const SchoolScreen());
-        return;
-      case TimelineModule.other:
-        nestPush(context, const ExpensesScreen());
-        return;
-    }
+void _openModule(
+  BuildContext context,
+  TimelineModule module,
+  ValueChanged<int>? onOpenTab,
+) {
+  switch (module) {
+    case TimelineModule.all:
+      return;
+    case TimelineModule.tasks:
+      _openTabOrStay(context, 2, onOpenTab);
+      return;
+    case TimelineModule.shopping:
+      _openTabOrStay(context, 3, onOpenTab);
+      return;
+    case TimelineModule.care:
+      nestPush(context, const CareScreen());
+      return;
+    case TimelineModule.meals:
+      nestPush(context, const MealsScreen());
+      return;
+    case TimelineModule.vault:
+      nestPush(context, const VaultScreen());
+      return;
+    case TimelineModule.school:
+      nestPush(context, const SchoolScreen());
+      return;
+    case TimelineModule.other:
+      nestPush(context, const ExpensesScreen());
+      return;
   }
+}
 
-  void _openTabOrStay(BuildContext context, int tab) {
-    final open = widget.onOpenTab;
-    if (open == null) return;
-    Navigator.of(context).pop();
-    open(tab);
-  }
+void _openTabOrStay(
+  BuildContext context,
+  int tab,
+  ValueChanged<int>? onOpenTab,
+) {
+  if (onOpenTab == null) return;
+  Navigator.of(context).pop();
+  onOpenTab(tab);
+}
 
-  String _relative(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat.MMMd().format(dt);
-  }
+String _relative(DateTime dt) {
+  final diff = DateTime.now().difference(dt);
+  if (diff.inMinutes < 1) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  if (diff.inDays < 7) return '${diff.inDays}d ago';
+  return DateFormat.MMMd().format(dt);
 }
 
 class _ModuleIcon extends StatelessWidget {

@@ -1,3 +1,7 @@
+import 'enums.dart';
+
+export 'enums.dart' show FamilyNeedKind;
+
 /// Quiet, local-only “what does our family need today?” — no model calls.
 class FamilyNeed {
   const FamilyNeed({
@@ -16,8 +20,6 @@ class FamilyNeed {
   /// Higher = more urgent; used to rank Home needs.
   final int priority;
 }
-
-enum FamilyNeedKind { tasks, shopping, bills, care, school, meals, calendar, vault }
 
 class FamilyNeedsSummary {
   const FamilyNeedsSummary(this.needs);

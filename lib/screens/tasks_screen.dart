@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/member_roles.dart';
 import '../providers/providers.dart';
+import '../state/tasks_ui.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
 import '../widgets/common.dart';
@@ -12,11 +14,8 @@ import '../widgets/motion.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
 
-class TasksScreen extends ConsumerStatefulWidget {
+class TasksScreen extends ConsumerWidget {
   const TasksScreen({super.key});
-
-  @override
-  ConsumerState<TasksScreen> createState() => _TasksScreenState();
 
   /// Kept for FAB / pending-add callers that still reference the old name.
   static Future<void> showAddTaskSheet(BuildContext context, WidgetRef ref) {
@@ -90,13 +89,8 @@ class TasksScreen extends ConsumerStatefulWidget {
     }
     await syncAfterWrite(ref, context: context);
   }
-}
 
-class _TasksScreenState extends ConsumerState<TasksScreen> {
-  /// `null` = all members; otherwise filter by assignee id.
-  String? _assigneeFilterId;
-
-  NestMember? _memberById(List<NestMember> members, String? id) {
+  static NestMember? _memberById(List<NestMember> members, String? id) {
     if (id == null) return null;
     for (final m in members) {
       if (m.id == id) return m;
@@ -105,9 +99,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tasksAsync = ref.watch(tasksProvider);
     final members = ref.watch(membersProvider).valueOrNull ?? const [];
+    final ui = ref.watch(tasksUiProvider);
+    final controller = ref.read(tasksUiProvider.notifier);
 
     ref.listen(pendingAddProvider, (prev, next) {
       if (next == PendingAdd.task) {
@@ -118,12 +114,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
       }
     });
 
-    if (_assigneeFilterId != null &&
-        _memberById(members, _assigneeFilterId) == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _assigneeFilterId = null);
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.clearAssigneeIfMissing(members);
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -161,14 +154,27 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                 error: (error, _) =>
                     const Center(child: Text('Could not load tasks.')),
                 data: (tasks) {
-                  final filtered = _assigneeFilterId == null
+                  final assigneeFiltered = ui.assigneeFilterId == null
                       ? tasks
                       : tasks
-                            .where((t) => t.assigneeId == _assigneeFilterId)
+                            .where((t) => t.assigneeId == ui.assigneeFilterId)
+                            .toList();
+                  final q = ui.searchQuery.trim().toLowerCase();
+                  final filtered = q.isEmpty
+                      ? assigneeFiltered
+                      : assigneeFiltered
+                            .where(
+                              (t) =>
+                                  t.title.toLowerCase().contains(q) ||
+                                  t.dueLabel.toLowerCase().contains(q),
+                            )
                             .toList();
                   final open = filtered.where((t) => !t.done).toList();
                   final done = filtered.where((t) => t.done).toList();
-                  final filterMember = _memberById(members, _assigneeFilterId);
+                  final filterMember = _memberById(
+                    members,
+                    ui.assigneeFilterId,
+                  );
 
                   return ListView(
                     padding: nestShellPageInsets(context, top: 6),
@@ -193,29 +199,35 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                             children: [
                               SoftPill(
                                 label: 'All',
-                                selected: _assigneeFilterId == null,
-                                onTap: () =>
-                                    setState(() => _assigneeFilterId = null),
+                                selected: ui.assigneeFilterId == null,
+                                onTap: () => controller.setAssigneeFilter(null),
                               ),
                               const SizedBox(width: 6),
                               for (final m in members) ...[
                                 _AssigneeFilterAvatar(
                                   member: m,
-                                  selected: _assigneeFilterId == m.id,
-                                  onTap: () {
-                                    setState(() {
-                                      _assigneeFilterId =
-                                          _assigneeFilterId == m.id
-                                          ? null
-                                          : m.id;
-                                    });
-                                  },
+                                  selected: ui.assigneeFilterId == m.id,
+                                  onTap: () =>
+                                      controller.setAssigneeFilter(m.id),
                                 ),
                               ],
                             ],
                           ),
                         ),
                       ],
+                      const SizedBox(height: 8),
+                      NestCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: TextField(
+                          controller: controller.searchController,
+                          onChanged: controller.setSearchQuery,
+                          decoration: const InputDecoration(
+                            hintText: 'Search tasks',
+                            border: InputBorder.none,
+                            prefixIcon: Icon(Icons.search_rounded),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       if (tasks.isEmpty)
                         FirstRunEmptyCard(
@@ -227,6 +239,13 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                           actionLabel: 'Add task',
                           onAction: () =>
                               TasksScreen.showTaskSheet(context, ref),
+                        )
+                      else if (filtered.isEmpty)
+                        const NestCard(
+                          child: Text(
+                            'No tasks match this search.',
+                            style: TextStyle(color: AppColors.inkMuted),
+                          ),
                         )
                       else if (open.isEmpty && done.isEmpty)
                         FirstRunEmptyCard(
@@ -379,7 +398,7 @@ class _TaskSheetState extends State<_TaskSheet> {
     _controller = TextEditingController(text: existing?.title ?? '');
     _assigneeId = widget.initialAssigneeId;
     _recurring = existing?.recurring ?? false;
-    _dueLabel = existing?.dueLabel ?? 'Today';
+    _dueLabel = existing?.dueLabel ?? TaskDueLabel.today.label;
   }
 
   @override
@@ -442,11 +461,11 @@ class _TaskSheetState extends State<_TaskSheet> {
               spacing: 8,
               runSpacing: 6,
               children: [
-                for (final label in const ['Today', 'Tomorrow', 'In 7 days'])
+                for (final due in TaskDueLabel.values)
                   SoftPill(
-                    label: label,
-                    selected: _dueLabel == label,
-                    onTap: () => setState(() => _dueLabel = label),
+                    label: due.label,
+                    selected: _dueLabel == due.label,
+                    onTap: () => setState(() => _dueLabel = due.label),
                   ),
               ],
             ),

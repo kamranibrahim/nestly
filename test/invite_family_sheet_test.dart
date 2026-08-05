@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:nestly/data/invite_code.dart';
 import 'package:nestly/widgets/invite_family_sheet.dart';
 
 void main() {
@@ -25,6 +24,7 @@ void main() {
       expect(text, contains('Smith Nest'));
       expect(text, contains('ABC123'));
       expect(text, contains('Have an invite code'));
+      expect(text, contains(nestlyInviteMarketingUrl));
     });
 
     test('falls back when nest name blank', () {

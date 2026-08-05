@@ -4,37 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/member_roles.dart';
 import '../providers/providers.dart';
+import '../state/care_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../data/sync_controller.dart';
 
-class CareScreen extends ConsumerStatefulWidget {
+class CareScreen extends ConsumerWidget {
   const CareScreen({super.key});
 
   @override
-  ConsumerState<CareScreen> createState() => _CareScreenState();
-}
-
-class _CareScreenState extends ConsumerState<CareScreen> {
-  static const _categories = ['All', 'Elder', 'Home', 'Pet', 'Car'];
-  String _filter = 'All';
-  /// `due` = Due now / Upcoming; `category` = grouped by category.
-  String _viewMode = 'due';
-
-  NestMember? _memberFor(List<NestMember> members, String memberId) {
-    if (memberId.isEmpty) return null;
-    for (final m in members) {
-      if (m.id == memberId) return m;
-    }
-    return null;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ui = ref.watch(careUiProvider);
+    final uiCtrl = ref.read(careUiProvider.notifier);
     final itemsAsync = ref.watch(careItemsProvider);
     final profiles = ref.watch(careProfilesProvider).valueOrNull ?? const [];
     final members = ref.watch(membersProvider).valueOrNull ?? const [];
@@ -54,7 +40,7 @@ class _CareScreenState extends ConsumerState<CareScreen> {
         title: const Text('Care'),
         actions: [
           IconButton(
-            onPressed: () => _showAdd(context),
+            onPressed: () => _showAdd(context, ref),
             icon: const Icon(Icons.add_rounded),
           ),
         ],
@@ -64,9 +50,9 @@ class _CareScreenState extends ConsumerState<CareScreen> {
         error: (_, _) =>
             const Center(child: Text('Could not load care items.')),
         data: (all) {
-          final items = _filter == 'All'
+          final items = ui.filter.isAll
               ? all
-              : all.where((i) => i.category == _filter).toList();
+              : all.where((i) => i.category == ui.filter.label).toList();
           final due = items
               .where((i) => !i.nextDueAt.isAfter(endToday))
               .toList();
@@ -109,7 +95,8 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                           member: careMembers[i],
                           profile: _profileFor(profiles, careMembers[i].id),
                           highlighted: true,
-                          onTap: () => _editProfile(context, careMembers[i]),
+                          onTap: () =>
+                              _editProfile(context, ref, careMembers[i]),
                         ),
                         if (i != careMembers.length - 1)
                           const Divider(height: 1, indent: 68),
@@ -124,21 +111,21 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                   children: [
                     SoftPill(
                       label: 'Due list',
-                      selected: _viewMode == 'due',
-                      onTap: () => setState(() => _viewMode = 'due'),
+                      selected: ui.viewMode == CareViewMode.due,
+                      onTap: () => uiCtrl.setViewMode(CareViewMode.due),
                     ),
                     const SizedBox(width: 6),
                     SoftPill(
                       label: 'By category',
-                      selected: _viewMode == 'category',
-                      onTap: () => setState(() => _viewMode = 'category'),
+                      selected: ui.viewMode == CareViewMode.category,
+                      onTap: () => uiCtrl.setViewMode(CareViewMode.category),
                     ),
                     const SizedBox(width: 10),
-                    for (final cat in _categories) ...[
+                    for (final cat in CareCategory.values) ...[
                       SoftPill(
-                        label: cat,
-                        selected: _filter == cat,
-                        onTap: () => setState(() => _filter = cat),
+                        label: cat.label,
+                        selected: ui.filter == cat,
+                        onTap: () => uiCtrl.setFilter(cat),
                       ),
                       const SizedBox(width: 6),
                     ],
@@ -152,15 +139,15 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                   color: all.isEmpty ? AppColors.mint : null,
                   title: all.isEmpty
                       ? 'Add your first care schedule'
-                      : 'Nothing in $_filter',
+                      : 'Nothing in ${ui.filter.label}',
                   body: all.isEmpty
                       ? 'Pet, home, car, or elder routines — mark done to roll the next due date.'
-                      : 'Try another filter, or add a $_filter care item.',
+                      : 'Try another filter, or add a ${ui.filter.label} care item.',
                   actionLabel: 'Add care item',
-                  onAction: () => _showAdd(context),
+                  onAction: () => _showAdd(context, ref),
                 )
-              else if (_viewMode == 'category')
-                ..._categorySections(context, items, members, endToday)
+              else if (ui.viewMode == CareViewMode.category)
+                ..._categorySections(context, ref, items, members, endToday)
               else ...[
                 if (due.isNotEmpty) ...[
                   const SectionLabel('Due now'),
@@ -173,11 +160,12 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                             item: due[i],
                             member: _memberFor(members, due[i].memberId),
                             highlight: true,
-                            onDone: () => _markDone(due[i]),
-                            onSnooze: () => _snooze(due[i]),
-                            onSkip: () => _skip(due[i]),
-                            onEdit: () => _showAdd(context, existing: due[i]),
-                            onDelete: () => _delete(due[i].id),
+                            onDone: () => _markDone(context, ref, due[i]),
+                            onSnooze: () => _snooze(context, ref, due[i]),
+                            onSkip: () => _skip(context, ref, due[i]),
+                            onEdit: () =>
+                                _showAdd(context, ref, existing: due[i]),
+                            onDelete: () => _delete(context, ref, due[i].id),
                           ),
                           if (i != due.length - 1)
                             const Divider(height: 1, indent: 68),
@@ -198,12 +186,17 @@ class _CareScreenState extends ConsumerState<CareScreen> {
                             item: upcoming[i],
                             member: _memberFor(members, upcoming[i].memberId),
                             highlight: false,
-                            onDone: () => _markDone(upcoming[i]),
-                            onSnooze: () => _snooze(upcoming[i]),
-                            onSkip: () => _skip(upcoming[i]),
-                            onEdit: () =>
-                                _showAdd(context, existing: upcoming[i]),
-                            onDelete: () => _delete(upcoming[i].id),
+                            onDone: () => _markDone(context, ref, upcoming[i]),
+                            onSnooze: () =>
+                                _snooze(context, ref, upcoming[i]),
+                            onSkip: () => _skip(context, ref, upcoming[i]),
+                            onEdit: () => _showAdd(
+                              context,
+                              ref,
+                              existing: upcoming[i],
+                            ),
+                            onDelete: () =>
+                                _delete(context, ref, upcoming[i].id),
                           ),
                           if (i != upcoming.length - 1)
                             const Divider(height: 1, indent: 68),
@@ -219,319 +212,338 @@ class _CareScreenState extends ConsumerState<CareScreen> {
       ),
     );
   }
+}
 
-  List<Widget> _categorySections(
-    BuildContext context,
-    List<CareItem> items,
-    List<NestMember> members,
-    DateTime endToday,
-  ) {
-    final cats = <String>[];
-    for (final item in items) {
-      if (!cats.contains(item.category)) cats.add(item.category);
-    }
-    return [
-      for (final cat in cats) ...[
-        SectionLabel(cat),
-        NestCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              ...() {
-                final group = items.where((i) => i.category == cat).toList();
-                return [
-                  for (var i = 0; i < group.length; i++) ...[
-                    _CareRow(
-                      item: group[i],
-                      member: _memberFor(members, group[i].memberId),
-                      highlight: !group[i].nextDueAt.isAfter(endToday),
-                      onDone: () => _markDone(group[i]),
-                      onSnooze: () => _snooze(group[i]),
-                      onSkip: () => _skip(group[i]),
-                      onEdit: () => _showAdd(context, existing: group[i]),
-                      onDelete: () => _delete(group[i].id),
-                    ),
-                    if (i != group.length - 1)
-                      const Divider(height: 1, indent: 68),
-                  ],
-                ];
-              }(),
-            ],
-          ),
+NestMember? _memberFor(List<NestMember> members, String memberId) {
+  if (memberId.isEmpty) return null;
+  for (final m in members) {
+    if (m.id == memberId) return m;
+  }
+  return null;
+}
+
+List<Widget> _categorySections(
+  BuildContext context,
+  WidgetRef ref,
+  List<CareItem> items,
+  List<NestMember> members,
+  DateTime endToday,
+) {
+  final cats = <String>[];
+  for (final item in items) {
+    if (!cats.contains(item.category)) cats.add(item.category);
+  }
+  return [
+    for (final cat in cats) ...[
+      SectionLabel(cat),
+      NestCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            ...() {
+              final group = items.where((i) => i.category == cat).toList();
+              return [
+                for (var i = 0; i < group.length; i++) ...[
+                  _CareRow(
+                    item: group[i],
+                    member: _memberFor(members, group[i].memberId),
+                    highlight: !group[i].nextDueAt.isAfter(endToday),
+                    onDone: () => _markDone(context, ref, group[i]),
+                    onSnooze: () => _snooze(context, ref, group[i]),
+                    onSkip: () => _skip(context, ref, group[i]),
+                    onEdit: () =>
+                        _showAdd(context, ref, existing: group[i]),
+                    onDelete: () => _delete(context, ref, group[i].id),
+                  ),
+                  if (i != group.length - 1)
+                    const Divider(height: 1, indent: 68),
+                ],
+              ];
+            }(),
+          ],
         ),
-        const SizedBox(height: 6),
-      ],
-    ];
+      ),
+      const SizedBox(height: 6),
+    ],
+  ];
+}
+
+Future<void> _markDone(
+  BuildContext context,
+  WidgetRef ref,
+  CareItem item,
+) async {
+  await ref.read(careRepositoryProvider).markDone(item);
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
+}
+
+Future<void> _snooze(
+  BuildContext context,
+  WidgetRef ref,
+  CareItem item,
+) async {
+  await ref.read(careRepositoryProvider).snooze(item);
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Snoozed ${item.title} by 1 day')),
+  );
+}
+
+Future<void> _skip(
+  BuildContext context,
+  WidgetRef ref,
+  CareItem item,
+) async {
+  await ref.read(careRepositoryProvider).skipCycle(item);
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Skipped ${item.title} this cycle')),
+  );
+}
+
+Future<void> _delete(BuildContext context, WidgetRef ref, String id) async {
+  await ref.read(careRepositoryProvider).delete(id);
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
+}
+
+CareProfile? _profileFor(List<CareProfile> profiles, String memberId) {
+  for (final p in profiles) {
+    if (p.memberId == memberId) return p;
   }
+  return null;
+}
 
-  Future<void> _markDone(CareItem item) async {
-    await ref.read(careRepositoryProvider).markDone(item);
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-  }
+Future<void> _editProfile(
+  BuildContext context,
+  WidgetRef ref,
+  NestMember member,
+) async {
+  final existing =
+      await ref.read(careRepositoryProvider).profileForMember(member.id);
+  if (!context.mounted) return;
 
-  Future<void> _snooze(CareItem item) async {
-    await ref.read(careRepositoryProvider).snooze(item);
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Snoozed ${item.title} by 1 day')),
-    );
-  }
+  final result = await showModalBottomSheet<
+      ({
+        String medications,
+        String allergies,
+        String mobilityNotes,
+        String primaryDoctor,
+        String notes,
+      })>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    useSafeArea: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return _CareProfileSheet(member: member, existing: existing);
+    },
+  );
 
-  Future<void> _skip(CareItem item) async {
-    await ref.read(careRepositoryProvider).skipCycle(item);
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Skipped ${item.title} this cycle')),
-    );
-  }
-
-  Future<void> _delete(String id) async {
-    await ref.read(careRepositoryProvider).delete(id);
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-  }
-
-  CareProfile? _profileFor(List<CareProfile> profiles, String memberId) {
-    for (final p in profiles) {
-      if (p.memberId == memberId) return p;
-    }
-    return null;
-  }
-
-  Future<void> _editProfile(BuildContext context, NestMember member) async {
-    final existing = await ref
-        .read(careRepositoryProvider)
-        .profileForMember(member.id);
-    if (!context.mounted) return;
-
-    final result =
-        await showModalBottomSheet<
-          ({
-            String medications,
-            String allergies,
-            String mobilityNotes,
-            String primaryDoctor,
-            String notes,
-          })
-        >(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: AppColors.surface,
-          useSafeArea: true,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          builder: (context) {
-            return _CareProfileSheet(member: member, existing: existing);
-          },
-        );
-
-    if (result == null) return;
-    await ref
-        .read(careRepositoryProvider)
-        .upsertProfile(
-          memberId: member.id,
-          medications: result.medications,
-          allergies: result.allergies,
-          mobilityNotes: result.mobilityNotes,
-          primaryDoctor: result.primaryDoctor,
-          notes: result.notes,
-        );
-    await syncAfterWrite(ref, context: context);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Saved care profile for ${member.name}')),
+  if (result == null) return;
+  await ref.read(careRepositoryProvider).upsertProfile(
+        memberId: member.id,
+        medications: result.medications,
+        allergies: result.allergies,
+        mobilityNotes: result.mobilityNotes,
+        primaryDoctor: result.primaryDoctor,
+        notes: result.notes,
       );
-    }
+  await syncAfterWrite(ref, context: context);
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved care profile for ${member.name}')),
+    );
   }
+}
 
-  Future<void> _showAdd(BuildContext context, {CareItem? existing}) async {
-    final members =
-        List<NestMember>.from(ref.read(membersProvider).valueOrNull ?? const [])
-          ..sort((a, b) {
-            final ag = MemberRoles.normalize(a.role) == MemberRoles.grandparent
-                ? 0
-                : 1;
-            final bg = MemberRoles.normalize(b.role) == MemberRoles.grandparent
-                ? 0
-                : 1;
-            return ag.compareTo(bg);
-          });
+Future<void> _showAdd(
+  BuildContext context,
+  WidgetRef ref, {
+  CareItem? existing,
+}) async {
+  final members =
+      List<NestMember>.from(ref.read(membersProvider).valueOrNull ?? const [])
+        ..sort((a, b) {
+          final ag = MemberRoles.normalize(a.role) == MemberRoles.grandparent
+              ? 0
+              : 1;
+          final bg = MemberRoles.normalize(b.role) == MemberRoles.grandparent
+              ? 0
+              : 1;
+          return ag.compareTo(bg);
+        });
 
-    final result =
-        await showModalBottomSheet<
-          ({String title, String category, int cadence, String memberId})
-        >(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: AppColors.surface,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          builder: (context) {
-            var category = existing?.category ?? 'Home';
-            var cadence = existing?.cadenceDays ?? 7;
-            var memberId = existing?.memberId ?? '';
-            return OwnedControllers(
-              count: 1,
-              builder: (context, c) {
-                if (c[0].text.isEmpty && existing != null) {
-                  c[0].text = existing.title;
-                }
-                return StatefulBuilder(
-                  builder: (context, setModal) {
-                    return sheetBody(
-                      context: context,
-                      children: [
-                        sheetHandle(),
-                        const SizedBox(height: 6),
-                        Text(
-                          existing == null ? 'New care item' : 'Edit care item',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+  final result = await showModalBottomSheet<
+      ({String title, String category, int cadence, String memberId})>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      var category = CareCategory.parse(
+        existing?.category ?? CareCategory.home.label,
+      );
+      var cadence = existing?.cadenceDays ?? 7;
+      var memberId = existing?.memberId ?? '';
+      return OwnedControllers(
+        count: 1,
+        builder: (context, c) {
+          if (c[0].text.isEmpty && existing != null) {
+            c[0].text = existing.title;
+          }
+          return StatefulBuilder(
+            builder: (context, setModal) {
+              return sheetBody(
+                context: context,
+                children: [
+                  sheetHandle(),
+                  const SizedBox(height: 6),
+                  Text(
+                    existing == null ? 'New care item' : 'Edit care item',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c[0],
+                    autofocus: existing == null,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: category == CareCategory.elder
+                          ? 'e.g. Morning medication'
+                          : 'e.g. Change HVAC filter',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final cat in CareCategory.stored)
+                        ChoiceChip(
+                          label: Text(cat.label),
+                          selected: category == cat,
+                          showCheckmark: false,
+                          selectedColor: AppColors.primary,
+                          checkmarkColor: AppColors.onDark,
+                          labelStyle: TextStyle(
+                            color: category == cat
+                                ? AppColors.onDark
+                                : AppColors.ink,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: c[0],
-                          autofocus: existing == null,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: InputDecoration(
-                            hintText: category == 'Elder'
-                                ? 'e.g. Morning medication'
-                                : 'e.g. Change HVAC filter',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            for (final cat in const [
-                              'Elder',
-                              'Home',
-                              'Pet',
-                              'Car',
-                            ])
-                              ChoiceChip(
-                                label: Text(cat),
-                                selected: category == cat,
-                                showCheckmark: false,
-                                selectedColor: AppColors.primary,
-                                checkmarkColor: AppColors.onDark,
-                                labelStyle: TextStyle(
-                                  color: category == cat
-                                      ? AppColors.onDark
-                                      : AppColors.ink,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                onSelected: (_) => setModal(() {
-                                  category = cat;
-                                  if (cat == 'Elder' &&
-                                      memberId.isEmpty &&
-                                      members.isNotEmpty) {
-                                    memberId = members.first.id;
-                                  }
-                                }),
-                              ),
-                          ],
-                        ),
-                        if (category == 'Elder' && members.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          const Text(
-                            'For whom?',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 6,
-                            children: [
-                              for (final m in members)
-                                SoftPill(
-                                  label:
-                                      '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
-                                  selected: memberId == m.id,
-                                  onTap: () => setModal(() => memberId = m.id),
-                                ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        Text(
-                          'Every $cadence day${cadence == 1 ? '' : 's'}',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        Slider(
-                          value: cadence.toDouble(),
-                          min: 1,
-                          max: 90,
-                          divisions: 89,
-                          label: '$cadence days',
-                          onChanged: (v) => setModal(() => cadence = v.round()),
-                        ),
-                        FilledButton(
-                          onPressed: () {
-                            final name = c[0].text.trim();
-                            if (name.isEmpty) {
-                              Navigator.pop(context);
-                              return;
+                          onSelected: (_) => setModal(() {
+                            category = cat;
+                            if (cat == CareCategory.elder &&
+                                memberId.isEmpty &&
+                                members.isNotEmpty) {
+                              memberId = members.first.id;
                             }
-                            Navigator.pop(context, (
-                              title: name,
-                              category: category,
-                              cadence: cadence,
-                              memberId: category == 'Elder' ? memberId : '',
-                            ));
-                          },
-                          child: Text(existing == null ? 'Add' : 'Save'),
+                          }),
                         ),
+                    ],
+                  ),
+                  if (category == CareCategory.elder && members.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'For whom?',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        for (final m in members)
+                          SoftPill(
+                            label:
+                                '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
+                            selected: memberId == m.id,
+                            onTap: () => setModal(() => memberId = m.id),
+                          ),
                       ],
-                    );
-                  },
-                );
-              },
-            );
-          },
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Text(
+                    'Every $cadence day${cadence == 1 ? '' : 's'}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Slider(
+                    value: cadence.toDouble(),
+                    min: 1,
+                    max: 90,
+                    divisions: 89,
+                    label: '$cadence days',
+                    onChanged: (v) => setModal(() => cadence = v.round()),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final name = c[0].text.trim();
+                      if (name.isEmpty) {
+                        Navigator.pop(context);
+                        return;
+                      }
+                      Navigator.pop(context, (
+                        title: name,
+                        category: category.label,
+                        cadence: cadence,
+                        memberId: category == CareCategory.elder ? memberId : '',
+                      ));
+                    },
+                    child: Text(existing == null ? 'Add' : 'Save'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+
+  if (result == null) return;
+  if (existing == null) {
+    await ref.read(careRepositoryProvider).add(
+          title: result.title,
+          category: result.category,
+          cadenceDays: result.cadence,
+          memberId: result.memberId,
         );
-
-    if (result == null) return;
-    if (existing == null) {
-      await ref.read(careRepositoryProvider).add(
-            title: result.title,
-            category: result.category,
-            cadenceDays: result.cadence,
-            memberId: result.memberId,
-          );
-    } else {
-      await ref.read(careRepositoryProvider).update(
-            id: existing.id,
-            title: result.title,
-            category: result.category,
-            cadenceDays: result.cadence,
-            memberId: result.memberId,
-            notes: existing.notes,
-          );
-    }
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
+  } else {
+    await ref.read(careRepositoryProvider).update(
+          id: existing.id,
+          title: result.title,
+          category: result.category,
+          cadenceDays: result.cadence,
+          memberId: result.memberId,
+          notes: existing.notes,
+        );
   }
-
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
 }
 
 class _CareProfileSheet extends StatefulWidget {
@@ -770,25 +782,34 @@ class _CareRow extends StatelessWidget {
               ),
             ),
           ),
-          PopupMenuButton<String>(
+          PopupMenuButton<CareItemAction>(
             icon: const Icon(Icons.more_vert_rounded, color: AppColors.inkMuted),
             onSelected: (value) {
               switch (value) {
-                case 'edit':
+                case CareItemAction.edit:
                   onEdit();
-                case 'snooze':
+                case CareItemAction.snooze:
                   onSnooze();
-                case 'skip':
+                case CareItemAction.skip:
                   onSkip();
-                case 'delete':
+                case CareItemAction.delete:
                   onDelete();
               }
             },
             itemBuilder: (context) => const [
-              PopupMenuItem(value: 'edit', child: Text('Edit')),
-              PopupMenuItem(value: 'snooze', child: Text('Snooze 1 day')),
-              PopupMenuItem(value: 'skip', child: Text('Skip this cycle')),
-              PopupMenuItem(value: 'delete', child: Text('Delete')),
+              PopupMenuItem(value: CareItemAction.edit, child: Text('Edit')),
+              PopupMenuItem(
+                value: CareItemAction.snooze,
+                child: Text('Snooze 1 day'),
+              ),
+              PopupMenuItem(
+                value: CareItemAction.skip,
+                child: Text('Skip this cycle'),
+              ),
+              PopupMenuItem(
+                value: CareItemAction.delete,
+                child: Text('Delete'),
+              ),
             ],
           ),
         ],

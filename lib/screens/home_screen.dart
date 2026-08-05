@@ -130,15 +130,20 @@ class HomeScreen extends ConsumerWidget {
         : 'Plan dinner';
     final inviteCode = nestInfo?.inviteCode.trim() ?? '';
     final showInvite = aloneInNest && inviteCode.isNotEmpty;
-    final tipDismissed =
-        ref.watch(inviteTipDismissedProvider).valueOrNull ?? true;
-    final soloBannerDismissed =
-        ref.watch(inviteSoloBannerDismissedProvider).valueOrNull ?? true;
+    final tipDismissedAsync = ref.watch(inviteTipDismissedProvider);
+    final soloBannerDismissedAsync =
+        ref.watch(inviteSoloBannerDismissedProvider);
+    final tipDismissed = tipDismissedAsync.valueOrNull;
+    final soloBannerDismissed = soloBannerDismissedAsync.valueOrNull;
     final alonePastDay = nestAlonePastDay(nestInfo?.createdAt);
-    final showInviteTip =
-        aloneInNest && showInvite && !tipDismissed && !alonePastDay;
-    final showSoloBanner =
-        aloneInNest && showInvite && alonePastDay && !soloBannerDismissed;
+    final showInviteTip = aloneInNest &&
+        showInvite &&
+        tipDismissed == false &&
+        !alonePastDay;
+    final showSoloBanner = aloneInNest &&
+        showInvite &&
+        alonePastDay &&
+        soloBannerDismissed == false;
     final sync = ref.watch(syncControllerProvider);
 
     return Scaffold(

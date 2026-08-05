@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'auth_repository.dart';
@@ -10,13 +11,40 @@ import 'locator_models.dart';
 import 'nest_home_widget.dart';
 import 'repositories.dart';
 
+/// Nest-scoped Firestore collections that sync from the client.
+const nestCloudSubcollections = <String>[
+  'members',
+  'locations',
+  'tasks',
+  'shoppingLists',
+  'shoppingItems',
+  'events',
+  'expenses',
+  'bills',
+  'emergency',
+  'vault',
+  'timeline',
+  'meals',
+  'care',
+  'careProfiles',
+  'school',
+];
+
 /// Export / leave / delete helpers for privacy and store compliance (no paywall).
 class NestPrivacyService {
-  NestPrivacyService(this._db, {AuthRepository? auth})
-    : _authRepo = auth ?? AuthRepository();
+  NestPrivacyService(
+    this._db, {
+    AuthRepository? auth,
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+  }) : _authRepo = auth ?? AuthRepository(),
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _storage = storage ?? FirebaseStorage.instance;
 
   final AppDatabase _db;
   final AuthRepository _authRepo;
+  final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
 
   Future<Map<String, dynamic>> buildExportPayload() async {
     final nest = await _authRepo.currentNest();
@@ -107,41 +135,22 @@ class NestPrivacyService {
   /// Leaves the current nest but keeps the Nestly account signed in.
   ///
   /// Removes this user from the nest member list and clears local household
-  /// data. Other members keep the nest.
+  /// data. If this was the last member, wipes the nest (Firestore + Storage).
   Future<void> leaveNest() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw StateError('Not signed in');
     }
 
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final nestId = userDoc.data()?['nestId'] as String?;
     if (nestId == null || nestId.isEmpty) {
       throw StateError('You are not in a nest.');
     }
 
-    try {
-      await FirebaseFirestore.instance
-          .collection('nests')
-          .doc(nestId)
-          .collection('locations')
-          .doc(user.uid)
-          .delete();
-    } catch (_) {}
+    await _detachFromNest(nestId: nestId, uid: user.uid);
 
-    try {
-      await FirebaseFirestore.instance
-          .collection('nests')
-          .doc(nestId)
-          .collection('members')
-          .doc(user.uid)
-          .delete();
-    } catch (_) {}
-
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+    await _firestore.collection('users').doc(user.uid).set({
       'nestId': FieldValue.delete(),
     }, SetOptions(merge: true));
 
@@ -160,7 +169,8 @@ class NestPrivacyService {
     await _db.setMeta(locatorLastAccuracyMetaKey, '');
   }
 
-  /// Leaves the nest, deletes Firestore user profile + Auth user, then wipes local DB.
+  /// Leaves the nest (wiping it if last member), deletes Auth user + profile,
+  /// then wipes local DB.
   ///
   /// Pass [password] so Nestly can reauthenticate when Firebase requires a
   /// recent login (common for account deletion).
@@ -175,33 +185,15 @@ class NestPrivacyService {
 
     await _authRepo.reauthenticateWithPassword(password.trim());
 
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final nestId = userDoc.data()?['nestId'] as String?;
 
     if (nestId != null && nestId.isNotEmpty) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('nests')
-            .doc(nestId)
-            .collection('locations')
-            .doc(user.uid)
-            .delete();
-      } catch (_) {}
-      try {
-        await FirebaseFirestore.instance
-            .collection('nests')
-            .doc(nestId)
-            .collection('members')
-            .doc(user.uid)
-            .delete();
-      } catch (_) {}
+      await _detachFromNest(nestId: nestId, uid: user.uid);
     }
 
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+      await _firestore.collection('users').doc(user.uid).delete();
     } catch (_) {}
 
     try {
@@ -222,4 +214,91 @@ class NestPrivacyService {
     await _db.clearHouseholdData();
     await _db.delete(_db.syncMeta).go();
   }
+
+  /// Removes [uid] from the nest. If they were the last member, deletes the
+  /// nest document, invite code, all synced subcollections, and vault Storage.
+  Future<void> _detachFromNest({
+    required String nestId,
+    required String uid,
+  }) async {
+    final nestRef = _firestore.collection('nests').doc(nestId);
+    final membersSnap = await nestRef.collection('members').get();
+    final otherMembers = membersSnap.docs.where((d) => d.id != uid).length;
+    final isLastMember = otherMembers == 0;
+
+    if (isLastMember) {
+      await wipeNestCloudData(
+        firestore: _firestore,
+        storage: _storage,
+        nestId: nestId,
+      );
+      return;
+    }
+
+    try {
+      await nestRef.collection('locations').doc(uid).delete();
+    } catch (_) {}
+    try {
+      await nestRef.collection('members').doc(uid).delete();
+    } catch (_) {}
+  }
+}
+
+/// Deletes nest Storage vault files, all known subcollections, invite code,
+/// and the nest document. Safe to call when the caller is the last member.
+Future<void> wipeNestCloudData({
+  required FirebaseFirestore firestore,
+  required FirebaseStorage storage,
+  required String nestId,
+}) async {
+  await _deleteStorageTree(storage.ref('nests/$nestId'));
+
+  final nestRef = firestore.collection('nests').doc(nestId);
+  String? inviteCode;
+  try {
+    final nest = await nestRef.get();
+    inviteCode = nest.data()?['inviteCode'] as String?;
+  } catch (_) {}
+
+  for (final name in nestCloudSubcollections) {
+    await _deleteCollection(nestRef.collection(name));
+  }
+
+  if (inviteCode != null && inviteCode.isNotEmpty) {
+    try {
+      await firestore.collection('inviteCodes').doc(inviteCode).delete();
+    } catch (_) {}
+  }
+
+  try {
+    await nestRef.delete();
+  } catch (_) {}
+}
+
+Future<void> _deleteCollection(CollectionReference<Map<String, dynamic>> col) async {
+  const page = 400;
+  while (true) {
+    final snap = await col.limit(page).get();
+    if (snap.docs.isEmpty) return;
+    final batch = col.firestore.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+    if (snap.docs.length < page) return;
+  }
+}
+
+Future<void> _deleteStorageTree(Reference root) async {
+  try {
+    final listed = await root.listAll();
+    for (final item in listed.items) {
+      try {
+        await item.delete();
+      } catch (_) {}
+    }
+    for (final prefix in listed.prefixes) {
+      await _deleteStorageTree(prefix);
+    }
+  } catch (_) {}
 }

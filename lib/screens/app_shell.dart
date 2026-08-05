@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/telemetry.dart';
 import '../navigation/app_navigator.dart';
 import '../providers/providers.dart';
+import '../state/shell_ui.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
 import '../widgets/common.dart';
@@ -23,8 +24,6 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  int _index = 0;
-
   @override
   void initState() {
     super.initState();
@@ -34,7 +33,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (pending != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _go(pending);
+        ref.read(shellTabProvider.notifier).go(pending);
         nestlyShellTabRequest.value = null;
       });
     }
@@ -49,36 +48,31 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _onShellTabRequest() {
     final next = nestlyShellTabRequest.value;
     if (next == null || !mounted) return;
-    _go(next);
+    ref.read(shellTabProvider.notifier).go(next);
     nestlyShellTabRequest.value = null;
-  }
-
-  void _go(int index) {
-    if (index == _index) return;
-    setState(() => _index = index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final index = ref.watch(shellTabProvider);
+    final go = ref.read(shellTabProvider.notifier).go;
+
     ref.listen(calendarFocusProvider, (prev, next) {
-      if (next != null) _go(1);
+      if (next != null) go(1);
     });
 
     final pages = [
-      HomeScreen(onOpenTab: _go),
+      HomeScreen(onOpenTab: go),
       const CalendarScreen(),
       const TasksScreen(),
       const ShoppingScreen(),
-      const MoreScreen(),
+      MoreScreen(onOpenTab: go),
     ];
 
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBody: true,
-      body: AnimatedTabBody(
-        index: _index,
-        children: pages,
-      ),
+      body: AnimatedTabBody(index: index, children: pages),
       floatingActionButton: Appear(
         duration: AppMotion.slow,
         offset: const Offset(0, 0.2),
@@ -87,7 +81,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           icon: Icons.add_rounded,
           size: 46,
           semanticLabel: 'Add to Nestly',
-          onTap: () => _showAddSheet(context),
+          onTap: () => _showAddSheet(context, go),
         ),
       ),
       floatingActionButtonLocation: const _FabAboveNav(),
@@ -108,39 +102,39 @@ class _AppShellState extends ConsumerState<AppShell> {
               container: true,
               label: 'Main navigation',
               child: Row(
-              children: [
-                _NavItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  selected: _index == 0,
-                  onTap: () => _go(0),
-                ),
-                _NavItem(
-                  icon: Icons.calendar_month_rounded,
-                  label: 'Calendar',
-                  selected: _index == 1,
-                  onTap: () => _go(1),
-                ),
-                _NavItem(
-                  icon: Icons.checklist_rounded,
-                  label: 'Tasks',
-                  selected: _index == 2,
-                  onTap: () => _go(2),
-                ),
-                _NavItem(
-                  icon: Icons.shopping_bag_rounded,
-                  label: 'Shop',
-                  selected: _index == 3,
-                  onTap: () => _go(3),
-                ),
-              _NavItem(
-                icon: Icons.more_horiz_rounded,
-                label: 'Nest',
-                selected: _index == 4,
-                onTap: () => _go(4),
+                children: [
+                  _NavItem(
+                    icon: Icons.home_rounded,
+                    label: 'Home',
+                    selected: index == 0,
+                    onTap: () => go(0),
+                  ),
+                  _NavItem(
+                    icon: Icons.calendar_month_rounded,
+                    label: 'Calendar',
+                    selected: index == 1,
+                    onTap: () => go(1),
+                  ),
+                  _NavItem(
+                    icon: Icons.checklist_rounded,
+                    label: 'Tasks',
+                    selected: index == 2,
+                    onTap: () => go(2),
+                  ),
+                  _NavItem(
+                    icon: Icons.shopping_bag_rounded,
+                    label: 'Shop',
+                    selected: index == 3,
+                    onTap: () => go(3),
+                  ),
+                  _NavItem(
+                    icon: Icons.more_horiz_rounded,
+                    label: 'Nest',
+                    selected: index == 4,
+                    onTap: () => go(4),
+                  ),
+                ],
               ),
-              ],
-            ),
             ),
           ),
         ),
@@ -148,7 +142,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  void _showAddSheet(BuildContext shellContext) {
+  void _showAddSheet(BuildContext shellContext, ValueChanged<int> go) {
     showModalBottomSheet<void>(
       context: shellContext,
       backgroundColor: AppColors.surface,
@@ -193,7 +187,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 label: 'Event',
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  _go(1);
+                  go(1);
                   ref.read(pendingAddProvider.notifier).state =
                       PendingAdd.event;
                 },
@@ -204,9 +198,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                 label: 'Task',
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  _go(2);
-                  ref.read(pendingAddProvider.notifier).state =
-                      PendingAdd.task;
+                  go(2);
+                  ref.read(pendingAddProvider.notifier).state = PendingAdd.task;
                 },
               ),
               _AddOption(
@@ -215,7 +208,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 label: 'Shopping item',
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  _go(3);
+                  go(3);
                   ref.read(pendingAddProvider.notifier).state =
                       PendingAdd.shopping;
                 },
@@ -344,9 +337,9 @@ class _AddOption extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
             const Icon(Icons.north_east_rounded, color: AppColors.ink),

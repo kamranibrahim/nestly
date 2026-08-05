@@ -1,13 +1,9 @@
 /// Pure Nestly Home Widget snapshot helpers (no plugins).
 library;
 
-/// Which story the small widget should emphasize.
-enum WidgetHeroKind {
-  quiet,
-  tasks,
-  event,
-  dinner,
-}
+import 'enums.dart';
+
+export 'enums.dart' show WidgetHeroKind;
 
 class WidgetHeroSelection {
   const WidgetHeroSelection({

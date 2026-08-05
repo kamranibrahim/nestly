@@ -312,6 +312,45 @@ class NestGridSkeleton extends StatelessWidget {
   }
 }
 
+/// Full-page brand placeholder for cold start / pre-auth (not the Today shell).
+class BrandLoadingScaffold extends StatelessWidget {
+  const BrandLoadingScaffold({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                label: 'Nestly',
+                image: true,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset(
+                    'assets/brand/logos/nestly-logo-lettermark.png',
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Semantics(
+                label: 'Loading',
+                child: const NestShimmerCircle(size: 22),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Full-page home placeholder — mirrors greeting, hero, snapshot, tiles.
 class HomeLoadingSkeleton extends StatelessWidget {
   const HomeLoadingSkeleton({super.key});

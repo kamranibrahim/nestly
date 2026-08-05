@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/app_database.dart';
+import '../../state/onboarding_ui.dart';
 import '../../theme/app_motion.dart';
 import '../../widgets/motion.dart';
 import 'onboarding_illustrations.dart';
@@ -19,70 +20,68 @@ Future<void> markOnboardingSeen(WidgetRef ref) async {
   ref.invalidate(onboardingSeenProvider);
 }
 
-class OnboardingScreen extends ConsumerStatefulWidget {
+const _onboardingPages = [
+  (
+    title: 'Perfectly Organize\nYour Family Life',
+    body:
+        'Manage events, chores, groceries, and daily plans in one simple shared place.',
+    cta: 'Next',
+  ),
+  (
+    title: 'Quiet help when\nyou scan',
+    body:
+        'Nestly’s AI only assists when you scan a receipt or invite — it suggests an event or expense. It doesn’t run your nest for you.',
+    cta: 'Next',
+  ),
+  (
+    title: 'Stay Connected\nTogether',
+    body:
+        'Share plans, assign tasks, and keep your whole family perfectly in sync.',
+    cta: 'Get Started',
+  ),
+];
+
+Future<void> _finish(WidgetRef ref) async {
+  final ctrl = ref.read(onboardingUiProvider.notifier);
+  if (ref.read(onboardingUiProvider).finishing) return;
+  ctrl.setFinishing(true);
+  try {
+    await markOnboardingSeen(ref);
+  } catch (_) {
+    ctrl.setFinishing(false);
+  }
+}
+
+void _next(WidgetRef ref) {
+  final ctrl = ref.read(onboardingUiProvider.notifier);
+  final index = ref.read(onboardingUiProvider).index;
+  if (index >= _onboardingPages.length - 1) {
+    _finish(ref);
+    return;
+  }
+  ctrl.pageController.nextPage(
+    duration: AppMotion.medium,
+    curve: AppMotion.standard,
+  );
+}
+
+void _back(WidgetRef ref) {
+  final ctrl = ref.read(onboardingUiProvider.notifier);
+  if (ref.read(onboardingUiProvider).index == 0) return;
+  ctrl.pageController.previousPage(
+    duration: AppMotion.medium,
+    curve: AppMotion.standard,
+  );
+}
+
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   @override
-  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
-}
-
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final _controller = PageController();
-  int _index = 0;
-  bool _finishing = false;
-
-  static const _pages = [
-    (
-      title: 'Perfectly Organize\nYour Family Life',
-      body:
-          'Manage events, chores, groceries, and daily plans in one simple shared place.',
-      cta: 'Next',
-    ),
-    (
-      title: 'Quiet help when\nyou scan',
-      body:
-          'Nestly’s AI only assists when you scan a receipt or invite — it suggests an event or expense. It doesn’t run your nest for you.',
-      cta: 'Next',
-    ),
-    (
-      title: 'Stay Connected\nTogether',
-      body:
-          'Share plans, assign tasks, and keep your whole family perfectly in sync.',
-      cta: 'Get Started',
-    ),
-  ];
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _finish() async {
-    if (_finishing) return;
-    setState(() => _finishing = true);
-    await markOnboardingSeen(ref);
-  }
-
-  void _next() {
-    if (_index >= _pages.length - 1) {
-      _finish();
-      return;
-    }
-    _controller.nextPage(duration: AppMotion.medium, curve: AppMotion.standard);
-  }
-
-  void _back() {
-    if (_index == 0) return;
-    _controller.previousPage(
-      duration: AppMotion.medium,
-      curve: AppMotion.standard,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final page = _pages[_index];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ui = ref.watch(onboardingUiProvider);
+    final ctrl = ref.read(onboardingUiProvider.notifier);
+    final page = _onboardingPages[ui.index];
 
     return Scaffold(
       backgroundColor: OnboardColors.cream,
@@ -103,9 +102,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   children: [
                     SizedBox(
                       width: 44,
-                      child: _index > 0
+                      child: ui.index > 0
                           ? IconButton(
-                              onPressed: _back,
+                              onPressed: () => _back(ref),
                               icon: const Icon(
                                 Icons.arrow_back_ios_new_rounded,
                                 size: 18,
@@ -115,31 +114,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           : null,
                     ),
                     Expanded(
-                      child: Row(
-                        children: [
-                          for (var i = 0; i < _pages.length; i++) ...[
-                            Expanded(
-                              child: AnimatedContainer(
-                                duration: AppMotion.fast,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: i <= _index
-                                      ? OnboardColors.cocoa
-                                      : OnboardColors.cocoaMuted.withValues(
-                                          alpha: 0.35,
-                                        ),
-                                  borderRadius: BorderRadius.circular(999),
+                      child: Semantics(
+                        label:
+                            'Page ${ui.index + 1} of ${_onboardingPages.length}',
+                        child: Row(
+                          children: [
+                            for (
+                              var i = 0;
+                              i < _onboardingPages.length;
+                              i++
+                            ) ...[
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: AppMotion.fast,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: i <= ui.index
+                                        ? OnboardColors.cocoa
+                                        : OnboardColors.cocoaMuted.withValues(
+                                            alpha: 0.35,
+                                          ),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
                                 ),
                               ),
-                            ),
-                            if (i != _pages.length - 1)
-                              const SizedBox(width: 6),
+                              if (i != _onboardingPages.length - 1)
+                                const SizedBox(width: 6),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                     TextButton(
-                      onPressed: _finishing ? null : _finish,
+                      onPressed: ui.finishing ? null : () => _finish(ref),
                       child: const Text(
                         'Skip',
                         style: TextStyle(
@@ -153,8 +160,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               Expanded(
                 child: PageView(
-                  controller: _controller,
-                  onPageChanged: (i) => setState(() => _index = i),
+                  controller: ctrl.pageController,
+                  onPageChanged: (i) => ctrl.setIndex(i),
                   children: [
                     OnboardFadeSlide(
                       pageKey: 0,
@@ -174,7 +181,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
                 child: OnboardFadeSlide(
-                  pageKey: 'copy-$_index',
+                  pageKey: 'copy-${ui.index}',
                   child: Column(
                     children: [
                       Text(
@@ -206,7 +213,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
                 child: Pressable(
-                  onTap: _finishing ? null : _next,
+                  onTap: ui.finishing ? null : () => _next(ref),
+                  semanticLabel: page.cta,
                   child: AnimatedContainer(
                     duration: AppMotion.fast,
                     width: double.infinity,
@@ -223,7 +231,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                       ],
                     ),
-                    child: _finishing
+                    child: ui.finishing
                         ? const SizedBox(
                             width: 22,
                             height: 22,

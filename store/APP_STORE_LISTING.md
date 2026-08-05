@@ -155,7 +155,7 @@ What’s inside
 • Invite family with a nest code
 • Export data, leave a nest, or delete your account from Privacy / Nest
 
-iOS: add the Nestly Today widget for open tasks, next event, and dinner.
+iOS & Android: add the Nestly home widget for open tasks, next event, and dinner.
 
 Soft launch: core Nestly features are free — no paywall required to run your family nest.
 

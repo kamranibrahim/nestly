@@ -7,6 +7,7 @@ import '../data/db/app_database.dart';
 import '../data/locator_models.dart';
 import '../data/locator_service.dart';
 import '../providers/providers.dart';
+import '../state/locator_ui.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
 import '../widgets/common.dart';
@@ -14,8 +15,6 @@ import '../widgets/first_run_empty_card.dart';
 import '../widgets/locator_map.dart';
 import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
-
-enum _LocatorFilter { all, fresh, stale }
 
 class LocatorScreen extends ConsumerStatefulWidget {
   const LocatorScreen({super.key});
@@ -25,14 +24,6 @@ class LocatorScreen extends ConsumerStatefulWidget {
 }
 
 class _LocatorScreenState extends ConsumerState<LocatorScreen> {
-  bool _busy = false;
-  bool _showMyLocation = false;
-  String? _error;
-  String? _focusMemberId;
-  _LocatorFilter _filter = _LocatorFilter.all;
-  ({double lat, double lng})? _me;
-  bool _didAutoFocus = false;
-  double _sheetSize = 0.36;
   final _sheetController = DraggableScrollableController();
 
   static const _sheetMin = 0.24;
@@ -43,8 +34,8 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _refreshMyLocationFlag();
-      await _refreshMe();
+      await _refreshMyLocationFlag(ref);
+      await _refreshMe(ref);
     });
   }
 
@@ -54,127 +45,10 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
     super.dispose();
   }
 
-  Future<void> _refreshMyLocationFlag() async {
-    final ok = await ref.read(locatorServiceProvider).hasWhenInUsePermission();
-    if (mounted) setState(() => _showMyLocation = ok);
-  }
-
-  Future<void> _refreshMe() async {
-    final me = await ref.read(locatorServiceProvider).peekDevicePosition();
-    if (mounted) setState(() => _me = me);
-  }
-
-  Future<void> _shareNow() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final loc = await ref.read(locatorServiceProvider).shareNow();
-      ref.invalidate(locatorSharingProvider);
-      await _refreshMyLocationFlag();
-      await _refreshMe();
-      if (mounted) {
-        setState(() => _focusMemberId = loc.memberId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (loc.label ?? '').trim().isEmpty
-                  ? 'Shared your location with the nest'
-                  : 'Shared · ${loc.label!.trim()}',
-            ),
-          ),
-        );
-      }
-    } on LocatorException catch (e) {
-      setState(() => _error = e.message);
-    } catch (e) {
-      setState(() => _error = 'Could not get your location. Try again.');
-      debugPrint('Locator shareNow: $e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _setSharing(bool enabled) async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      if (enabled) {
-        final loc = await ref.read(locatorServiceProvider).shareNow();
-        await _refreshMyLocationFlag();
-        await _refreshMe();
-        if (mounted) setState(() => _focusMemberId = loc.memberId);
-      } else {
-        await ref.read(locatorServiceProvider).setSharingEnabled(false);
-      }
-      ref.invalidate(locatorSharingProvider);
-    } on LocatorException catch (e) {
-      setState(() => _error = e.message);
-    } catch (e) {
-      setState(() => _error = 'Could not update sharing.');
-      debugPrint('Locator setSharing: $e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _openMaps(NestLocation loc) async {
-    final uri = Uri.parse(locatorMapsUrl(loc.lat, loc.lng));
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && mounted) {
-      final g = Uri.parse(locatorGoogleMapsUrl(loc.lat, loc.lng));
-      await launchUrl(g, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> _openDirections(NestLocation loc) async {
-    final uri = Uri.parse(locatorDirectionsUrl(loc.lat, loc.lng));
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && mounted) {
-      final g = Uri.parse(locatorGoogleDirectionsUrl(loc.lat, loc.lng));
-      await launchUrl(g, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> _copyPin(NestLocation loc) async {
-    final text =
-        '${loc.lat.toStringAsFixed(5)}, ${loc.lng.toStringAsFixed(5)}';
-    await Clipboard.setData(ClipboardData(text: text));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coordinates copied')),
-    );
-  }
-
-  List<NestLocation> _filtered(List<NestLocation> locs) {
-    switch (_filter) {
-      case _LocatorFilter.all:
-        return locs;
-      case _LocatorFilter.fresh:
-        return locs.where((l) => !l.isStale()).toList();
-      case _LocatorFilter.stale:
-        return locs.where((l) => l.isStale()).toList();
-    }
-  }
-
-  String? _distanceFor(NestLocation loc) {
-    final me = _me;
-    if (me == null || !loc.hasCoordinates) return null;
-    final meters = haversineMeters(
-      lat1: me.lat,
-      lng1: me.lng,
-      lat2: loc.lat,
-      lng2: loc.lng,
-    );
-    final formatted = formatLocatorDistance(meters);
-    return formatted.isEmpty ? null : formatted;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final ui = ref.watch(locatorUiProvider);
+    final uiCtrl = ref.read(locatorUiProvider.notifier);
     final sharingAsync = ref.watch(locatorSharingProvider);
     final locationsAsync = ref.watch(nestLocationsProvider);
     final members = ref.watch(membersProvider).valueOrNull ?? const [];
@@ -184,13 +58,10 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
     final staleCount = locations.length - freshCount;
 
     // Auto-focus newest pin once.
-    if (!_didAutoFocus && _focusMemberId == null && locations.isNotEmpty) {
+    if (locations.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _didAutoFocus) return;
-        setState(() {
-          _didAutoFocus = true;
-          _focusMemberId = locations.first.memberId;
-        });
+        if (!mounted) return;
+        uiCtrl.maybeAutoFocus(locations);
       });
     }
 
@@ -208,7 +79,7 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
             : '$freshCount live · $staleCount stale';
 
     final mapBottomInset =
-        MediaQuery.sizeOf(context).height * _sheetSize + 12;
+        MediaQuery.sizeOf(context).height * ui.sheetSize + 12;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -231,9 +102,7 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
       ),
       body: NotificationListener<DraggableScrollableNotification>(
         onNotification: (n) {
-          if ((n.extent - _sheetSize).abs() > 0.01) {
-            setState(() => _sheetSize = n.extent);
-          }
+          uiCtrl.setSheetSize(n.extent);
           return false;
         },
         child: Stack(
@@ -242,9 +111,9 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
               child: LocatorMap(
                 locations: locations,
                 members: members,
-                focusMemberId: _focusMemberId,
-                onMarkerTap: (id) => setState(() => _focusMemberId = id),
-                showMyLocation: _showMyLocation,
+                focusMemberId: ui.focusMemberId,
+                onMarkerTap: (id) => uiCtrl.setFocusMemberId(id),
+                showMyLocation: ui.showMyLocation,
                 statusText: statusText,
                 edgeToEdge: true,
                 bottomControlsInset: mapBottomInset.clamp(80.0, 420.0),
@@ -311,10 +180,10 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                                   ),
                                   Switch.adaptive(
                                     value: sharing,
-                                    onChanged: _busy
+                                    onChanged: ui.busy
                                         ? null
                                         : (v) {
-                                            _setSharing(v);
+                                            _setSharing(context, ref, v);
                                           },
                                   ),
                                 ],
@@ -323,8 +192,10 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                               SizedBox(
                                 width: double.infinity,
                                 child: FilledButton.icon(
-                                  onPressed: _busy ? null : _shareNow,
-                                  icon: _busy
+                                  onPressed: ui.busy
+                                      ? null
+                                      : () => _shareNow(context, ref),
+                                  icon: ui.busy
                                       ? const SizedBox(
                                           width: 18,
                                           height: 18,
@@ -335,14 +206,14 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                                         )
                                       : const Icon(Icons.my_location_rounded),
                                   label: Text(
-                                    _busy ? 'Pinning…' : 'Share now',
+                                    ui.busy ? 'Pinning…' : 'Share now',
                                   ),
                                 ),
                               ),
-                              if (_error != null) ...[
+                              if (ui.error != null) ...[
                                 const SizedBox(height: 10),
                                 Text(
-                                  _error!,
+                                  ui.error!,
                                   style: const TextStyle(
                                     color: AppColors.danger,
                                     fontWeight: FontWeight.w600,
@@ -363,9 +234,8 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                             children: [
                               SoftPill(
                                 label: 'Everyone',
-                                selected: _focusMemberId == null,
-                                onTap: () =>
-                                    setState(() => _focusMemberId = null),
+                                selected: ui.focusMemberId == null,
+                                onTap: () => uiCtrl.setFocusMemberId(null),
                               ),
                               const SizedBox(width: 8),
                               for (final loc in locations) ...[
@@ -373,10 +243,9 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                                   member: memberFor(loc.memberId),
                                   stale: loc.isStale(),
                                   selected:
-                                      _focusMemberId == loc.memberId,
-                                  onTap: () => setState(
-                                    () => _focusMemberId = loc.memberId,
-                                  ),
+                                      ui.focusMemberId == loc.memberId,
+                                  onTap: () =>
+                                      uiCtrl.setFocusMemberId(loc.memberId),
                                 ),
                                 const SizedBox(width: 8),
                               ],
@@ -392,26 +261,20 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                           ),
                           SoftPill(
                             label: 'All',
-                            selected: _filter == _LocatorFilter.all,
-                            onTap: () => setState(
-                              () => _filter = _LocatorFilter.all,
-                            ),
+                            selected: ui.filter == LocatorFilter.all,
+                            onTap: () => uiCtrl.setFilter(LocatorFilter.all),
                           ),
                           const SizedBox(width: 6),
                           SoftPill(
                             label: 'Live',
-                            selected: _filter == _LocatorFilter.fresh,
-                            onTap: () => setState(
-                              () => _filter = _LocatorFilter.fresh,
-                            ),
+                            selected: ui.filter == LocatorFilter.fresh,
+                            onTap: () => uiCtrl.setFilter(LocatorFilter.fresh),
                           ),
                           const SizedBox(width: 6),
                           SoftPill(
                             label: 'Stale',
-                            selected: _filter == _LocatorFilter.stale,
-                            onTap: () => setState(
-                              () => _filter = _LocatorFilter.stale,
-                            ),
+                            selected: ui.filter == LocatorFilter.stale,
+                            onTap: () => uiCtrl.setFilter(LocatorFilter.stale),
                           ),
                         ],
                       ),
@@ -440,23 +303,23 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                               actionLabel:
                                   sharing ? 'Share now' : 'Turn on sharing',
                               onAction: () {
-                                if (_busy) return;
+                                if (ui.busy) return;
                                 if (sharing) {
-                                  _shareNow();
+                                  _shareNow(context, ref);
                                 } else {
-                                  _setSharing(true);
+                                  _setSharing(context, ref, true);
                                 }
                               },
                             );
                           }
 
-                          final shown = _filtered(locs);
+                          final shown = _filtered(locs, ui.filter);
                           if (shown.isEmpty) {
                             return NestCard(
                               color: AppColors.surfaceMuted,
                               bordered: false,
                               child: Text(
-                                _filter == _LocatorFilter.fresh
+                                ui.filter == LocatorFilter.fresh
                                     ? 'No live pins right now — try All or Share now.'
                                     : 'No stale pins — everyone’s fresh.',
                                 style: const TextStyle(
@@ -481,21 +344,20 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                                       location: shown[i],
                                       member:
                                           memberFor(shown[i].memberId),
-                                      selected: _focusMemberId ==
+                                      selected: ui.focusMemberId ==
                                           shown[i].memberId,
                                       color: AppColors.softCardColors[i %
                                           AppColors.softCardColors.length],
                                       distanceLabel:
-                                          _distanceFor(shown[i]),
-                                      onSelect: () => setState(
-                                        () => _focusMemberId =
-                                            shown[i].memberId,
-                                      ),
+                                          _distanceFor(ui.me, shown[i]),
+                                      onSelect: () => uiCtrl
+                                          .setFocusMemberId(shown[i].memberId),
                                       onOpenMaps: () =>
-                                          _openMaps(shown[i]),
+                                          _openMaps(context, shown[i]),
                                       onDirections: () =>
-                                          _openDirections(shown[i]),
-                                      onCopy: () => _copyPin(shown[i]),
+                                          _openDirections(context, shown[i]),
+                                      onCopy: () =>
+                                          _copyPin(context, shown[i]),
                                     ),
                                   ),
                                 ),
@@ -542,6 +404,119 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
       ),
     );
   }
+}
+
+Future<void> _refreshMyLocationFlag(WidgetRef ref) async {
+  final ok = await ref.read(locatorServiceProvider).hasWhenInUsePermission();
+  ref.read(locatorUiProvider.notifier).setShowMyLocation(ok);
+}
+
+Future<void> _refreshMe(WidgetRef ref) async {
+  final me = await ref.read(locatorServiceProvider).peekDevicePosition();
+  ref.read(locatorUiProvider.notifier).setMe(me);
+}
+
+Future<void> _shareNow(BuildContext context, WidgetRef ref) async {
+  final ctrl = ref.read(locatorUiProvider.notifier);
+  ctrl.beginAction();
+  try {
+    final loc = await ref.read(locatorServiceProvider).shareNow();
+    ref.invalidate(locatorSharingProvider);
+    await _refreshMyLocationFlag(ref);
+    await _refreshMe(ref);
+    ctrl.setFocusMemberId(loc.memberId);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          (loc.label ?? '').trim().isEmpty
+              ? 'Shared your location with the nest'
+              : 'Shared · ${loc.label!.trim()}',
+        ),
+      ),
+    );
+  } on LocatorException catch (e) {
+    ctrl.setError(e.message);
+  } catch (e) {
+    ctrl.setError('Could not get your location. Try again.');
+    debugPrint('Locator shareNow: $e');
+  } finally {
+    ctrl.setBusy(false);
+  }
+}
+
+Future<void> _setSharing(BuildContext context, WidgetRef ref, bool enabled) async {
+  final ctrl = ref.read(locatorUiProvider.notifier);
+  ctrl.beginAction();
+  try {
+    if (enabled) {
+      final loc = await ref.read(locatorServiceProvider).shareNow();
+      await _refreshMyLocationFlag(ref);
+      await _refreshMe(ref);
+      ctrl.setFocusMemberId(loc.memberId);
+    } else {
+      await ref.read(locatorServiceProvider).setSharingEnabled(false);
+    }
+    ref.invalidate(locatorSharingProvider);
+  } on LocatorException catch (e) {
+    ctrl.setError(e.message);
+  } catch (e) {
+    ctrl.setError('Could not update sharing.');
+    debugPrint('Locator setSharing: $e');
+  } finally {
+    ctrl.setBusy(false);
+  }
+}
+
+Future<void> _openMaps(BuildContext context, NestLocation loc) async {
+  final uri = Uri.parse(locatorMapsUrl(loc.lat, loc.lng));
+  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!ok && context.mounted) {
+    final g = Uri.parse(locatorGoogleMapsUrl(loc.lat, loc.lng));
+    await launchUrl(g, mode: LaunchMode.externalApplication);
+  }
+}
+
+Future<void> _openDirections(BuildContext context, NestLocation loc) async {
+  final uri = Uri.parse(locatorDirectionsUrl(loc.lat, loc.lng));
+  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!ok && context.mounted) {
+    final g = Uri.parse(locatorGoogleDirectionsUrl(loc.lat, loc.lng));
+    await launchUrl(g, mode: LaunchMode.externalApplication);
+  }
+}
+
+Future<void> _copyPin(BuildContext context, NestLocation loc) async {
+  final text =
+      '${loc.lat.toStringAsFixed(5)}, ${loc.lng.toStringAsFixed(5)}';
+  await Clipboard.setData(ClipboardData(text: text));
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Coordinates copied')),
+  );
+}
+
+List<NestLocation> _filtered(List<NestLocation> locs, LocatorFilter filter) {
+  switch (filter) {
+    case LocatorFilter.all:
+      return locs;
+    case LocatorFilter.fresh:
+      return locs.where((l) => !l.isStale()).toList();
+    case LocatorFilter.stale:
+      return locs.where((l) => l.isStale()).toList();
+  }
+}
+
+String? _distanceFor(({double lat, double lng})? me, NestLocation loc) {
+  if (me == null || !loc.hasCoordinates) return null;
+  final meters = haversineMeters(
+    lat1: me.lat,
+    lng1: me.lng,
+    lat2: loc.lat,
+    lng2: loc.lng,
+  );
+  final formatted = formatLocatorDistance(meters);
+  return formatted.isEmpty ? null : formatted;
 }
 
 class _MemberFocusChip extends StatelessWidget {

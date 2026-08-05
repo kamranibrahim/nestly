@@ -2,9 +2,9 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
+import 'enums.dart';
 import 'home_tips.dart';
 import 'member_roles.dart';
-import 'vault_upload_status.dart';
 
 class TaskRepository {
   TaskRepository(this._db);
@@ -68,18 +68,8 @@ class TaskRepository {
   }
 
   /// Advances recurring chore labels without a full calendar cadence.
-  static String nextDueLabel(String current) {
-    switch (current.trim().toLowerCase()) {
-      case 'today':
-        return 'Tomorrow';
-      case 'tomorrow':
-        return 'In 7 days';
-      case 'in 7 days':
-        return 'Today';
-      default:
-        return 'Tomorrow';
-    }
-  }
+  static String nextDueLabel(String current) =>
+      TaskDueLabel.parse(current).next.label;
 
   Future<void> addTask({
     required String title,
@@ -936,7 +926,7 @@ class VaultRepository {
       localPath: Value(localPath),
       mimeType: Value(mimeType),
       sizeBytes: Value(sizeBytes),
-      uploadStatus: const Value(VaultUploadStatus.local),
+      uploadStatus: const Value('local'),
       dirty: const Value(true),
       createdAt: Value(now),
       updatedAt: Value(now),
@@ -964,7 +954,7 @@ class VaultRepository {
     )..where((d) => d.id.equals(id))).write(
       VaultDocumentsCompanion(
         storagePath: Value(storagePath),
-        uploadStatus: const Value(VaultUploadStatus.synced),
+        uploadStatus: const Value('synced'),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
@@ -976,7 +966,7 @@ class VaultRepository {
       _db.vaultDocuments,
     )..where((d) => d.id.equals(id))).write(
       VaultDocumentsCompanion(
-        uploadStatus: const Value(VaultUploadStatus.failed),
+        uploadStatus: const Value('failed'),
         updatedAt: Value(DateTime.now()),
       ),
     );
@@ -995,9 +985,11 @@ class VaultRepository {
             (d) =>
                 d.deleted.equals(false) &
                 d.localPath.isNotNull() &
-                (d.uploadStatus.equals(VaultUploadStatus.local) |
-                    d.uploadStatus.equals(VaultUploadStatus.failed) |
-                    d.uploadStatus.equals(VaultUploadStatus.uploading)),
+                (d.uploadStatus.equals(VaultUploadStatus.local.storage) |
+                    d.uploadStatus.equals(VaultUploadStatus.failed.storage) |
+                    d.uploadStatus.equals(
+                      VaultUploadStatus.uploading.storage,
+                    )),
           )
           ..orderBy([(d) => OrderingTerm(expression: d.createdAt)]))
         .get();
@@ -1008,7 +1000,7 @@ class VaultRepository {
           ..where(
             (d) =>
                 d.deleted.equals(false) &
-                d.uploadStatus.equals(VaultUploadStatus.failed),
+                d.uploadStatus.equals(VaultUploadStatus.failed.storage),
           )
           ..orderBy([(d) => OrderingTerm.desc(d.updatedAt)]))
         .watch();
@@ -1020,7 +1012,9 @@ class VaultRepository {
       ..addColumns([count])
       ..where(
         _db.vaultDocuments.deleted.equals(false) &
-            _db.vaultDocuments.uploadStatus.equals(VaultUploadStatus.failed),
+            _db.vaultDocuments.uploadStatus.equals(
+              VaultUploadStatus.failed.storage,
+            ),
       );
     return query.watchSingle().map((row) => row.read(count) ?? 0);
   }
@@ -1667,7 +1661,7 @@ class SchoolRepository {
     assignee ??= members.isEmpty ? null : members.first;
     await TaskRepository(_db).addTask(
       title: title,
-      dueLabel: 'Today',
+      dueLabel: TaskDueLabel.today.label,
       assigneeId: assignee?.id ?? '',
     );
     await TimelineRepository(_db).add(

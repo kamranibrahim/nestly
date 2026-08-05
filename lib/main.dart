@@ -61,6 +61,13 @@ class _NestlyAppState extends State<NestlyApp> {
       title: 'Nestly',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      builder: (context, child) {
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: child,
+        );
+      },
       home: const AuthGate(),
     );
   }

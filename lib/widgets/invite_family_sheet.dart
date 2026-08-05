@@ -9,12 +9,16 @@ import 'common.dart';
 
 export '../data/invite_code.dart' show normalizeInviteCode;
 
+/// Marketing / download page used in invite shares (Netlify soft-launch site).
+const nestlyInviteMarketingUrl = 'https://glowing-strudel-442ff8.netlify.app';
+
 String inviteShareText({required String inviteCode, String? nestName}) {
   final nest = (nestName ?? 'our family nest').trim();
   final label = nest.isEmpty ? 'our family nest' : nest;
   return 'Join $label on Nestly!\n\n'
       'Invite code: $inviteCode\n\n'
-      'Open Nestly → Have an invite code? → paste this code.';
+      'Get the app: $nestlyInviteMarketingUrl\n'
+      'Then open Nestly → Have an invite code? → paste this code.';
 }
 
 Future<void> copyInviteCode(

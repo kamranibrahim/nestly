@@ -3,198 +3,52 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/sync_controller.dart';
-import '../data/vault_upload_status.dart';
 import '../providers/providers.dart';
+import '../state/vault_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 import 'scan_document_flow.dart';
 
-class VaultScreen extends ConsumerStatefulWidget {
-  const VaultScreen({super.key, this.initialCategory = 'All'});
+(IconData, Color) _folderStyle(VaultFolder folder) {
+  return switch (folder) {
+    VaultFolder.family => (Icons.family_restroom_rounded, AppColors.tileBlue),
+    VaultFolder.health => (Icons.medical_services_rounded, AppColors.tilePink),
+    VaultFolder.house => (Icons.home_rounded, AppColors.tileGreen),
+    VaultFolder.work => (Icons.work_rounded, AppColors.tileOrange),
+    VaultFolder.car => (Icons.directions_car_rounded, AppColors.tilePurple),
+    VaultFolder.finance => (
+      Icons.account_balance_rounded,
+      AppColors.tileTeal,
+    ),
+    VaultFolder.ids => (Icons.badge_rounded, AppColors.tileYellow),
+  };
+}
+
+class VaultScreen extends ConsumerWidget {
+  const VaultScreen({super.key, this.initialCategory = VaultFolder.allLabel});
 
   final String initialCategory;
 
   @override
-  ConsumerState<VaultScreen> createState() => _VaultScreenState();
-}
-
-class _VaultScreenState extends ConsumerState<VaultScreen> {
-  static const _folders = [
-    (Icons.family_restroom_rounded, 'Family', AppColors.tileBlue),
-    (Icons.medical_services_rounded, 'Health', AppColors.tilePink),
-    (Icons.home_rounded, 'House', AppColors.tileGreen),
-    (Icons.work_rounded, 'Work', AppColors.tileOrange),
-    (Icons.directions_car_rounded, 'Car', AppColors.tilePurple),
-    (Icons.account_balance_rounded, 'Finance', AppColors.tileTeal),
-    (Icons.badge_rounded, 'IDs', AppColors.tileYellow),
-  ];
-
-  late String _category;
-  String _query = '';
-  bool _selecting = false;
-  final Set<String> _selectedIds = {};
-  bool _retrying = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _category = widget.initialCategory;
-  }
-
-  Future<void> _upload() async {
-    final cat = _category == 'All' ? 'Family' : _category;
-    try {
-      final doc = await ref.read(vaultServiceProvider).pickAndUpload(
-            category: cat,
-            actorName: 'You',
-          );
-      if (!mounted) return;
-      if (doc != null) {
-        final status = doc.uploadStatus;
-        final msg = status == VaultUploadStatus.synced
-            ? 'Saved & synced ${doc.title}'
-            : status == VaultUploadStatus.failed
-                ? 'Saved on device — will upload when online'
-                : 'Saved ${doc.title}';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-        await syncAfterWrite(ref, context: context);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not add file: $e')),
-      );
-    }
-  }
-
-  Future<void> _retryAll() async {
-    setState(() => _retrying = true);
-    try {
-      final n = await ref.read(vaultServiceProvider).retryAllFailed();
-      await syncAfterWrite(ref, context: context, quiet: n == 0);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            n == 0
-                ? 'Still offline — files stay on this device'
-                : 'Uploaded $n file${n == 1 ? '' : 's'}',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _retrying = false);
-    }
-  }
-
-  Future<void> _retryOne(VaultDocument doc) async {
-    final ok = await ref.read(vaultServiceProvider).uploadDocument(doc.id);
-    if (ok) await syncAfterWrite(ref, context: context);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? 'Uploaded ${doc.title}' : 'Upload failed — try again later'),
-      ),
-    );
-  }
-
-  Future<void> _sharePack() async {
-    final all =
-        ref.read(vaultDocumentsProvider('All')).valueOrNull ?? const [];
-    final docs = all.where((d) => _selectedIds.contains(d.id)).toList();
-    if (docs.isEmpty) return;
-    try {
-      final n = await ref.read(vaultServiceProvider).shareDocuments(docs);
-      if (!mounted) return;
-      setState(() {
-        _selecting = false;
-        _selectedIds.clear();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uiCtrl = ref.read(vaultUiProvider.notifier);
+    if (!VaultFolder.isAll(initialCategory)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        uiCtrl.applyInitialCategory(initialCategory);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Shared $n file${n == 1 ? '' : 's'}')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e')),
-      );
     }
-  }
 
-  Future<void> _openDoc(VaultDocument doc) async {
-    if (_selecting) {
-      setState(() {
-        if (_selectedIds.contains(doc.id)) {
-          _selectedIds.remove(doc.id);
-        } else {
-          _selectedIds.add(doc.id);
-        }
-      });
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => _VaultDocSheet(
-        doc: doc,
-        folders: _folders.map((f) => f.$2).toList(),
-        onRetryUpload: () => _retryOne(doc),
-      ),
-    );
-  }
-
-  List<VaultDocument> _filtered(List<VaultDocument> docs) {
-    final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return docs;
-    return docs.where((d) {
-      return d.title.toLowerCase().contains(q) ||
-          d.fileName.toLowerCase().contains(q) ||
-          d.category.toLowerCase().contains(q) ||
-          d.notes.toLowerCase().contains(q);
-    }).toList();
-  }
-
-  Map<String, int> _counts(List<VaultDocument> all) {
-    final map = <String, int>{};
-    for (final doc in all) {
-      map[doc.category] = (map[doc.category] ?? 0) + 1;
-    }
-    return map;
-  }
-
-  Map<String, int> _expiryCounts(List<VaultDocument> expiring) {
-    final map = <String, int>{};
-    for (final doc in expiring) {
-      map[doc.category] = (map[doc.category] ?? 0) + 1;
-    }
-    return map;
-  }
-
-  String _emptyCopy() {
-    if (_query.isNotEmpty) {
-      return 'No documents match “$_query”. Try a title, note, or folder name.';
-    }
-    if (_category == 'All') {
-      return 'No documents yet. Tap + to add IDs, insurance, or house papers.';
-    }
-    return 'Nothing in $_category yet. Tap + to add a file here.';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final docsAsync = ref.watch(vaultDocumentsProvider(_category));
+    final ui = ref.watch(vaultUiProvider);
+    final docsAsync = ref.watch(vaultDocumentsProvider(ui.category));
     final allDocs =
-        ref.watch(vaultDocumentsProvider('All')).valueOrNull ?? const [];
+        ref.watch(vaultDocumentsProvider(VaultFolder.allLabel)).valueOrNull ??
+            const [];
     final docs = docsAsync.valueOrNull ?? const <VaultDocument>[];
-    final filtered = _filtered(docs);
+    final filtered = _filtered(docs, ui.query);
     final counts = _counts(allDocs);
     final expiring =
         ref.watch(vaultExpiringSoonProvider).valueOrNull ?? const [];
@@ -202,342 +56,510 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
     final failedCount =
         ref.watch(vaultFailedUploadCountProvider).valueOrNull ?? 0;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          _selecting
-              ? '${_selectedIds.length} selected'
-              : _category == 'All'
-                  ? 'Documents'
-                  : _category,
-        ),
-        leading: _selecting
-            ? IconButton(
-                tooltip: 'Cancel',
-                onPressed: () => setState(() {
-                  _selecting = false;
-                  _selectedIds.clear();
-                }),
-                icon: const Icon(Icons.close_rounded),
-              )
-            : null,
-        actions: [
-          if (_selecting) ...[
-            IconButton(
-              tooltip: 'Share pack',
-              onPressed: _selectedIds.isEmpty ? null : _sharePack,
-              icon: const Icon(Icons.ios_share_rounded),
-            ),
-          ] else ...[
-            IconButton(
-              tooltip: 'Select to share',
-              onPressed: () => setState(() => _selecting = true),
-              icon: const Icon(Icons.checklist_rounded),
-            ),
-            IconButton(
-              tooltip: 'Scan to calendar',
-              onPressed: () => startDocumentScanFlow(
-                context,
-                ref,
-                hint: 'This may be a family document or invitation',
-              ),
-              icon: const Icon(Icons.document_scanner_rounded),
-            ),
-            if (_category != 'All')
-              TextButton(
-                onPressed: () => setState(() => _category = 'All'),
-                child: const Text('All'),
-              ),
-          ],
-        ],
-      ),
-      floatingActionButton: _selecting
-          ? null
-          : FloatingActionButton(
-              onPressed: _upload,
-              child: const Icon(Icons.upload_file_rounded),
-            ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
-        children: [
-          TextField(
-            onChanged: (value) => setState(() => _query = value),
-            textInputAction: TextInputAction.search,
-            decoration: const InputDecoration(
-              hintText: 'Search by title, notes, or folder',
-              prefixIcon: Icon(Icons.search_rounded),
-              isDense: true,
-            ),
+    return PopScope(
+      canPop: ui.canPopRoute,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        uiCtrl.handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: Text(
+            ui.selecting
+                ? '${ui.selectedIds.length} selected'
+                : VaultFolder.isAll(ui.category)
+                    ? 'Documents'
+                    : ui.category,
           ),
-          if (failedCount > 0 && !_selecting) ...[
-            const SizedBox(height: 10),
-            NestCard(
-              color: const Color(0xFFFFE8D6),
-              bordered: false,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.cloud_off_outlined, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      failedCount == 1
-                          ? '1 file waiting to upload'
-                          : '$failedCount files waiting to upload',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+          leading: ui.selecting
+              ? IconButton(
+                  tooltip: 'Cancel',
+                  onPressed: uiCtrl.cancelSelecting,
+                  icon: const Icon(Icons.close_rounded),
+                )
+              : !VaultFolder.isAll(ui.category)
+                  ? IconButton(
+                      tooltip: 'All folders',
+                      onPressed: uiCtrl.showAllFolders,
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    )
+                  : null,
+          actions: [
+            if (ui.selecting) ...[
+              IconButton(
+                tooltip: 'Share pack',
+                onPressed:
+                    ui.selectedIds.isEmpty ? null : () => _sharePack(context, ref),
+                icon: const Icon(Icons.ios_share_rounded),
+              ),
+            ] else ...[
+              IconButton(
+                tooltip: 'Select to share',
+                onPressed: uiCtrl.startSelecting,
+                icon: const Icon(Icons.checklist_rounded),
+              ),
+              IconButton(
+                tooltip: 'Scan to calendar',
+                onPressed: () => startDocumentScanFlow(
+                  context,
+                  ref,
+                  hint: 'This may be a family document or invitation',
+                ),
+                icon: const Icon(Icons.document_scanner_rounded),
+              ),
+            ],
+          ],
+        ),
+        floatingActionButton: ui.selecting
+            ? null
+            : FloatingActionButton(
+                onPressed: () => _upload(context, ref),
+                child: const Icon(Icons.upload_file_rounded),
+              ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
+          children: [
+            TextField(
+              onChanged: uiCtrl.setQuery,
+              textInputAction: TextInputAction.search,
+              decoration: const InputDecoration(
+                hintText: 'Search by title, notes, or folder',
+                prefixIcon: Icon(Icons.search_rounded),
+                isDense: true,
+              ),
+            ),
+            if (failedCount > 0 && !ui.selecting) ...[
+              const SizedBox(height: 10),
+              NestCard(
+                color: const Color(0xFFFFE8D6),
+                bordered: false,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.cloud_off_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        failedCount == 1
+                            ? '1 file waiting to upload'
+                            : '$failedCount files waiting to upload',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: _retrying ? null : _retryAll,
-                    child: Text(_retrying ? '…' : 'Retry all'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          if (_category == 'All') ...[
-            if (expiring.isNotEmpty && _query.isEmpty && !_selecting) ...[
-              const SectionLabel('Expiring soon'),
-              NestCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    for (var i = 0; i < expiring.take(4).length; i++) ...[
-                      ListTile(
-                        onTap: () => _openDoc(expiring[i]),
-                        leading: const Icon(
-                          Icons.event_busy_rounded,
-                          color: AppColors.accent,
-                        ),
-                        title: Text(
-                          expiring[i].title,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        subtitle: Text(_expiryLabel(expiring[i].expiresAt)),
-                        trailing: SoftPill(
-                          label: _expiryBadge(expiring[i].expiresAt),
-                          selected: true,
-                          onTap: () => _openDoc(expiring[i]),
-                        ),
-                      ),
-                      if (i != expiring.take(4).length - 1)
-                        const Divider(height: 1, indent: 56),
-                    ],
+                    TextButton(
+                      onPressed:
+                          ui.retrying ? null : () => _retryAll(context, ref),
+                      child: Text(ui.retrying ? '…' : 'Retry all'),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
             ],
-            if (_query.isEmpty)
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 6,
-                childAspectRatio: 0.92,
-                children: [
-                  for (final folder in _folders)
-                    NestCard(
-                      onTap: () => setState(() => _category = folder.$2),
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: folder.$3.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(14),
+            const SizedBox(height: 10),
+            if (VaultFolder.isAll(ui.category)) ...[
+              if (expiring.isNotEmpty &&
+                  ui.query.isEmpty &&
+                  !ui.selecting) ...[
+                const SectionLabel('Expiring soon'),
+                NestCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < expiring.take(4).length; i++) ...[
+                        ListTile(
+                          onTap: () => _openDoc(context, ref, expiring[i]),
+                          leading: const Icon(
+                            Icons.event_busy_rounded,
+                            color: AppColors.accent,
+                          ),
+                          title: Text(
+                            expiring[i].title,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(_expiryLabel(expiring[i].expiresAt)),
+                          trailing: SoftPill(
+                            label: _expiryBadge(expiring[i].expiresAt),
+                            selected: true,
+                            onTap: () => _openDoc(context, ref, expiring[i]),
+                          ),
+                        ),
+                        if (i != expiring.take(4).length - 1)
+                          const Divider(height: 1, indent: 56),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (ui.query.isEmpty)
+                GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 6,
+                  crossAxisSpacing: 6,
+                  childAspectRatio: 0.92,
+                  children: [
+                    for (final folder in VaultFolder.values)
+                      NestCard(
+                        onTap: () => uiCtrl.setCategory(folder.label),
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: _folderStyle(folder).$2
+                                        .withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(
+                                    _folderStyle(folder).$1,
+                                    color: _folderStyle(folder).$2,
+                                  ),
                                 ),
-                                child: Icon(folder.$1, color: folder.$3),
-                              ),
-                              if ((expiryByFolder[folder.$2] ?? 0) > 0)
-                                Positioned(
-                                  right: -4,
-                                  top: -4,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 5,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.accent,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      '${expiryByFolder[folder.$2]}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
+                                if ((expiryByFolder[folder.label] ?? 0) > 0)
+                                  Positioned(
+                                    right: -4,
+                                    top: -4,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accent,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '${expiryByFolder[folder.label]}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            folder.$2,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                              ],
                             ),
-                          ),
-                          Text(
-                            '${counts[folder.$2] ?? 0}',
-                            style: const TextStyle(
-                              color: AppColors.inkMuted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(height: 6),
+                            Text(
+                              folder.label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
                             ),
-                          ),
-                        ],
+                            Text(
+                              '${counts[folder.label] ?? 0}',
+                              style: const TextStyle(
+                                color: AppColors.inkMuted,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
-              ),
-            if (_query.isEmpty) ...[
-              const SizedBox(height: 6),
-              const SectionLabel('Recent files'),
+                  ],
+                ),
+              if (ui.query.isEmpty) ...[
+                const SizedBox(height: 6),
+                const SectionLabel('Recent files'),
+              ] else
+                const SectionLabel('Search results'),
             ] else
-              const SectionLabel('Search results'),
-          ] else
-            SectionLabel(_category),
-          docsAsync.when(
-            loading: () => const NestLoadingSkeleton(itemCount: 3),
-            error: (e, _) => NestCard(child: Text('$e')),
-            data: (_) => NestCard(
-              padding: EdgeInsets.zero,
-              child: filtered.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        _emptyCopy(),
-                        style: const TextStyle(color: AppColors.inkMuted),
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        for (var i = 0; i < filtered.length; i++) ...[
-                          ListTile(
-                            onTap: () => _openDoc(filtered[i]),
-                            onLongPress: () {
-                              setState(() {
-                                _selecting = true;
-                                _selectedIds.add(filtered[i].id);
-                              });
-                            },
-                            leading: _selecting
-                                ? Checkbox(
-                                    value: _selectedIds.contains(filtered[i].id),
-                                    onChanged: (_) => _openDoc(filtered[i]),
-                                  )
-                                : Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primarySoft,
-                                      borderRadius: BorderRadius.circular(10),
+              SectionLabel(ui.category),
+            docsAsync.when(
+              loading: () => const NestLoadingSkeleton(itemCount: 3),
+              error: (e, _) => NestCard(child: Text('$e')),
+              data: (_) => NestCard(
+                padding: EdgeInsets.zero,
+                child: filtered.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          _emptyCopy(ui),
+                          style: const TextStyle(color: AppColors.inkMuted),
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          for (var i = 0; i < filtered.length; i++) ...[
+                            ListTile(
+                              onTap: () => _openDoc(context, ref, filtered[i]),
+                              onLongPress: () => uiCtrl.startSelecting(
+                                seedId: filtered[i].id,
+                              ),
+                              leading: ui.selecting
+                                  ? Checkbox(
+                                      value: ui.selectedIds
+                                          .contains(filtered[i].id),
+                                      onChanged: (_) =>
+                                          _openDoc(context, ref, filtered[i]),
+                                    )
+                                  : Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primarySoft,
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        _iconFor(filtered[i]),
+                                        color: AppColors.primary,
+                                        size: 20,
+                                      ),
                                     ),
-                                    child: Icon(
-                                      _iconFor(filtered[i]),
-                                      color: AppColors.primary,
-                                      size: 20,
+                              title: Text(
+                                filtered[i].title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${filtered[i].category} · ${_relative(filtered[i].updatedAt)}'
+                                '${filtered[i].expiresAt == null ? '' : ' · ${_expiryLabel(filtered[i].expiresAt)}'}'
+                                ' · ${VaultUploadStatus.label(filtered[i].uploadStatus)}',
+                              ),
+                              trailing: filtered[i].uploadStatus ==
+                                      VaultUploadStatus.failed.storage
+                                  ? IconButton(
+                                      tooltip: 'Retry upload',
+                                      onPressed: () =>
+                                          _retryOne(context, ref, filtered[i]),
+                                      icon: const Icon(
+                                        Icons.cloud_upload_outlined,
+                                        color: AppColors.accentDeep,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: AppColors.inkMuted,
                                     ),
-                                  ),
-                            title: Text(
-                              filtered[i].title,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600),
                             ),
-                            subtitle: Text(
-                              '${filtered[i].category} · ${_relative(filtered[i].updatedAt)}'
-                              '${filtered[i].expiresAt == null ? '' : ' · ${_expiryLabel(filtered[i].expiresAt)}'}'
-                              ' · ${VaultUploadStatus.label(filtered[i].uploadStatus)}',
-                            ),
-                            trailing: filtered[i].uploadStatus ==
-                                    VaultUploadStatus.failed
-                                ? IconButton(
-                                    tooltip: 'Retry upload',
-                                    onPressed: () => _retryOne(filtered[i]),
-                                    icon: const Icon(
-                                      Icons.cloud_upload_outlined,
-                                      color: AppColors.accentDeep,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: AppColors.inkMuted,
-                                  ),
-                          ),
-                          if (i != filtered.length - 1)
-                            const Divider(height: 1, indent: 72),
+                            if (i != filtered.length - 1)
+                              const Divider(height: 1, indent: 72),
+                          ],
                         ],
-                      ],
-                    ),
+                      ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
 
-  IconData _iconFor(VaultDocument doc) {
-    final name = doc.fileName.toLowerCase();
-    if (name.endsWith('.pdf')) return Icons.picture_as_pdf_rounded;
-    if (name.endsWith('.png') ||
-        name.endsWith('.jpg') ||
-        name.endsWith('.jpeg') ||
-        name.endsWith('.heic')) {
-      return Icons.image_rounded;
+Future<void> _upload(BuildContext context, WidgetRef ref) async {
+  final ui = ref.read(vaultUiProvider);
+  final cat = VaultFolder.isAll(ui.category)
+      ? VaultFolder.family.label
+      : ui.category;
+  try {
+    final doc = await ref.read(vaultServiceProvider).pickAndUpload(
+          category: cat,
+          actorName: 'You',
+        );
+    if (!context.mounted) return;
+    if (doc != null) {
+      final status = doc.uploadStatus;
+      final msg = status == VaultUploadStatus.synced.storage
+          ? 'Saved & synced ${doc.title}'
+          : status == VaultUploadStatus.failed.storage
+              ? 'Saved on device — will upload when online'
+              : 'Saved ${doc.title}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      await syncAfterWrite(ref, context: context);
     }
-    return Icons.insert_drive_file_rounded;
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Could not add file: $e')),
+    );
   }
+}
 
-  String _relative(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat.MMMd().format(dt);
+Future<void> _retryAll(BuildContext context, WidgetRef ref) async {
+  final ctrl = ref.read(vaultUiProvider.notifier);
+  ctrl.setRetrying(true);
+  try {
+    final n = await ref.read(vaultServiceProvider).retryAllFailed();
+    await syncAfterWrite(ref, context: context, quiet: n == 0);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          n == 0
+              ? 'Still offline — files stay on this device'
+              : 'Uploaded $n file${n == 1 ? '' : 's'}',
+        ),
+      ),
+    );
+  } finally {
+    ctrl.setRetrying(false);
   }
+}
 
-  String _expiryLabel(DateTime? expiresAt) {
-    if (expiresAt == null) return '';
-    final today = DateTime.now();
-    final day = DateTime(expiresAt.year, expiresAt.month, expiresAt.day);
-    final now = DateTime(today.year, today.month, today.day);
-    final days = day.difference(now).inDays;
-    if (days < 0) return 'Expired ${DateFormat.MMMd().format(expiresAt)}';
-    if (days == 0) return 'Expires today';
-    if (days == 1) return 'Expires tomorrow';
-    if (days <= 14) return 'Expires in $days days';
-    return 'Expires ${DateFormat.MMMd().format(expiresAt)}';
-  }
+Future<void> _retryOne(
+  BuildContext context,
+  WidgetRef ref,
+  VaultDocument doc,
+) async {
+  final ok = await ref.read(vaultServiceProvider).uploadDocument(doc.id);
+  if (ok) await syncAfterWrite(ref, context: context);
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        ok ? 'Uploaded ${doc.title}' : 'Upload failed — try again later',
+      ),
+    ),
+  );
+}
 
-  String _expiryBadge(DateTime? expiresAt) {
-    if (expiresAt == null) return '';
-    final today = DateTime.now();
-    final day = DateTime(expiresAt.year, expiresAt.month, expiresAt.day);
-    final now = DateTime(today.year, today.month, today.day);
-    final days = day.difference(now).inDays;
-    if (days < 0) return 'Expired';
-    if (days == 0) return 'Today';
-    if (days == 1) return 'Tomorrow';
-    return '${days}d';
+Future<void> _sharePack(BuildContext context, WidgetRef ref) async {
+  final selected = ref.read(vaultUiProvider).selectedIds;
+  final all =
+      ref.read(vaultDocumentsProvider(VaultFolder.allLabel)).valueOrNull ??
+          const [];
+  final docs = all.where((d) => selected.contains(d.id)).toList();
+  if (docs.isEmpty) return;
+  try {
+    final n = await ref.read(vaultServiceProvider).shareDocuments(docs);
+    if (!context.mounted) return;
+    ref.read(vaultUiProvider.notifier).cancelSelecting();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Shared $n file${n == 1 ? '' : 's'}')),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$e')),
+    );
   }
+}
+
+Future<void> _openDoc(
+  BuildContext context,
+  WidgetRef ref,
+  VaultDocument doc,
+) async {
+  final ui = ref.read(vaultUiProvider);
+  if (ui.selecting) {
+    ref.read(vaultUiProvider.notifier).toggleSelected(doc.id);
+    return;
+  }
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    useSafeArea: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+    ),
+    builder: (context) => _VaultDocSheet(
+      doc: doc,
+      folders: VaultFolder.values.map((f) => f.label).toList(),
+      onRetryUpload: () => _retryOne(context, ref, doc),
+    ),
+  );
+}
+
+List<VaultDocument> _filtered(List<VaultDocument> docs, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return docs;
+  return docs.where((d) {
+    return d.title.toLowerCase().contains(q) ||
+        d.fileName.toLowerCase().contains(q) ||
+        d.category.toLowerCase().contains(q) ||
+        d.notes.toLowerCase().contains(q);
+  }).toList();
+}
+
+Map<String, int> _counts(List<VaultDocument> all) {
+  final map = <String, int>{};
+  for (final doc in all) {
+    map[doc.category] = (map[doc.category] ?? 0) + 1;
+  }
+  return map;
+}
+
+Map<String, int> _expiryCounts(List<VaultDocument> expiring) {
+  final map = <String, int>{};
+  for (final doc in expiring) {
+    map[doc.category] = (map[doc.category] ?? 0) + 1;
+  }
+  return map;
+}
+
+String _emptyCopy(VaultUiState ui) {
+  if (ui.query.isNotEmpty) {
+    return 'No documents match “${ui.query}”. Try a title, note, or folder name.';
+  }
+  if (VaultFolder.isAll(ui.category)) {
+    return 'No documents yet. Tap + to add IDs, insurance, or house papers.';
+  }
+  return 'Nothing in ${ui.category} yet. Tap + to add a file here.';
+}
+
+IconData _iconFor(VaultDocument doc) {
+  final name = doc.fileName.toLowerCase();
+  if (name.endsWith('.pdf')) return Icons.picture_as_pdf_rounded;
+  if (name.endsWith('.png') ||
+      name.endsWith('.jpg') ||
+      name.endsWith('.jpeg') ||
+      name.endsWith('.heic')) {
+    return Icons.image_rounded;
+  }
+  return Icons.insert_drive_file_rounded;
+}
+
+String _relative(DateTime dt) {
+  final diff = DateTime.now().difference(dt);
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  if (diff.inDays < 7) return '${diff.inDays}d ago';
+  return DateFormat.MMMd().format(dt);
+}
+
+String _expiryLabel(DateTime? expiresAt) {
+  if (expiresAt == null) return '';
+  final today = DateTime.now();
+  final day = DateTime(expiresAt.year, expiresAt.month, expiresAt.day);
+  final now = DateTime(today.year, today.month, today.day);
+  final days = day.difference(now).inDays;
+  if (days < 0) return 'Expired ${DateFormat.MMMd().format(expiresAt)}';
+  if (days == 0) return 'Expires today';
+  if (days == 1) return 'Expires tomorrow';
+  if (days <= 14) return 'Expires in $days days';
+  return 'Expires ${DateFormat.MMMd().format(expiresAt)}';
+}
+
+String _expiryBadge(DateTime? expiresAt) {
+  if (expiresAt == null) return '';
+  final today = DateTime.now();
+  final day = DateTime(expiresAt.year, expiresAt.month, expiresAt.day);
+  final now = DateTime(today.year, today.month, today.day);
+  final days = day.difference(now).inDays;
+  if (days < 0) return 'Expired';
+  if (days == 0) return 'Today';
+  if (days == 1) return 'Tomorrow';
+  return '${days}d';
 }
 
 class _VaultDocSheet extends ConsumerStatefulWidget {
@@ -695,7 +717,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
           'Status · ${VaultUploadStatus.label(status)}',
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            color: status == VaultUploadStatus.failed
+            color: status == VaultUploadStatus.failed.storage
                 ? AppColors.accentDeep
                 : AppColors.inkSecondary,
           ),

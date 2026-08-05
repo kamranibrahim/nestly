@@ -23,8 +23,29 @@ class AuthGate extends ConsumerWidget {
     final auth = ref.watch(authStateProvider);
 
     return auth.when(
-      loading: () => const HomeLoadingSkeleton(),
-      error: (e, _) => Scaffold(body: Center(child: Text('Auth error: $e'))),
+      loading: () => const BrandLoadingScaffold(),
+      error: (e, _) => Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Could not check sign-in.\n$e',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () => ref.invalidate(authStateProvider),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       data: (user) {
         if (user == null) return const _PreAuthGate();
         return const _NestGate();
@@ -41,7 +62,7 @@ class _PreAuthGate extends ConsumerWidget {
     final seen = ref.watch(onboardingSeenProvider);
 
     return seen.when(
-      loading: () => const HomeLoadingSkeleton(),
+      loading: () => const BrandLoadingScaffold(),
       error: (_, _) => const AuthScreen(),
       data: (done) => done ? const AuthScreen() : const OnboardingScreen(),
     );
@@ -180,7 +201,7 @@ class SyncStatusBanner extends ConsumerWidget {
                 child: Text(
                   sync.isSyncing
                       ? 'Syncing…'
-                      : 'Last synced · ${formatLastSynced(sync.lastSyncAt)}',
+                      : 'Sync failed · tap Retry to try again',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,

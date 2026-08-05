@@ -8,13 +8,21 @@ import 'db/app_database.dart';
 import 'nest_home_widget.dart';
 import 'review_prompt.dart';
 
-/// UI-facing sync state (last sync time, in-flight, last error).
+/// UI-facing sync state (last sync time, in-flight, last error / soft note).
 class SyncUiState {
-  const SyncUiState({this.isSyncing = false, this.lastSyncAt, this.lastError});
+  const SyncUiState({
+    this.isSyncing = false,
+    this.lastSyncAt,
+    this.lastError,
+    this.lastNote,
+  });
 
   final bool isSyncing;
   final DateTime? lastSyncAt;
   final String? lastError;
+
+  /// Soft info after a successful sync (e.g. kept local edits).
+  final String? lastNote;
 
   bool get hasError => lastError != null && lastError!.isNotEmpty;
 
@@ -22,12 +30,15 @@ class SyncUiState {
     bool? isSyncing,
     DateTime? lastSyncAt,
     String? lastError,
+    String? lastNote,
     bool clearError = false,
+    bool clearNote = false,
   }) {
     return SyncUiState(
       isSyncing: isSyncing ?? this.isSyncing,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
       lastError: clearError ? null : (lastError ?? this.lastError),
+      lastNote: clearNote ? null : (lastNote ?? this.lastNote),
     );
   }
 }
@@ -63,7 +74,7 @@ class SyncController extends StateNotifier<SyncUiState> {
   /// Runs [SyncService.syncAll], coalescing concurrent callers.
   ///
   /// Returns `true` on success. When [quiet] is false and [context] is mounted,
-  /// shows a SnackBar on failure.
+  /// shows a SnackBar on failure (and optionally when local edits were kept).
   Future<bool> syncNow({BuildContext? context, bool quiet = false}) {
     final existing = _inFlight;
     if (existing != null) return existing;
@@ -79,7 +90,7 @@ class SyncController extends StateNotifier<SyncUiState> {
 
   Future<bool> _run({BuildContext? context, required bool quiet}) async {
     if (!mounted) return false;
-    state = state.copyWith(isSyncing: true, clearError: true);
+    state = state.copyWith(isSyncing: true, clearError: true, clearNote: true);
     try {
       // Storage uploads first so Firestore meta includes storagePath.
       try {
@@ -87,7 +98,7 @@ class SyncController extends StateNotifier<SyncUiState> {
       } catch (e) {
         debugPrint('Vault retry skipped: $e');
       }
-      await _ref.read(syncServiceProvider).syncAll();
+      final keptLocal = await _ref.read(syncServiceProvider).syncAll();
       try {
         await _ref.read(notificationServiceProvider).rescheduleReminders();
       } catch (e) {
@@ -109,7 +120,20 @@ class SyncController extends StateNotifier<SyncUiState> {
         );
       } catch (_) {}
       if (!mounted) return true;
-      state = SyncUiState(isSyncing: false, lastSyncAt: at);
+      final note = keptLocal > 0
+          ? (keptLocal == 1
+                ? 'Kept 1 local edit while syncing'
+                : 'Kept $keptLocal local edits while syncing')
+          : null;
+      state = SyncUiState(isSyncing: false, lastSyncAt: at, lastNote: note);
+      if (!quiet &&
+          note != null &&
+          context != null &&
+          context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(note), duration: const Duration(seconds: 2)),
+        );
+      }
       return true;
     } catch (e) {
       final message = _friendlyError(e);

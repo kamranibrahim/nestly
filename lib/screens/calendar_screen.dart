@@ -5,8 +5,10 @@ import 'package:intl/intl.dart';
 
 import '../data/calendar_view_math.dart';
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/member_roles.dart';
 import '../providers/providers.dart';
+import '../state/calendar_ui.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
 import '../widgets/common.dart';
@@ -15,37 +17,31 @@ import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
 import '../data/sync_controller.dart';
 
-enum _CalendarBrowseMode { month, week }
-
-class CalendarScreen extends ConsumerStatefulWidget {
+class CalendarScreen extends ConsumerWidget {
   const CalendarScreen({super.key});
 
-  @override
-  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
-}
-
-class _CalendarScreenState extends ConsumerState<CalendarScreen> {
-  late DateTime _selected;
-  String _memberFilter = 'All';
-  _CalendarBrowseMode _mode = _CalendarBrowseMode.month;
-  bool _focusDrainScheduled = false;
-
-  String _pickDefaultMemberId(List<NestMember> members) {
+  static String _pickDefaultMemberId(
+    List<NestMember> members,
+    CalendarMemberFilter memberFilter,
+  ) {
     if (members.isEmpty) return '';
-    if (_memberFilter == 'Adults') {
-      for (final m in members) {
-        if (MemberRoles.isAdultLike(m.role)) return m.id;
-      }
-    } else if (_memberFilter == 'Kids') {
-      for (final m in members) {
-        if (MemberRoles.isKid(m.role)) return m.id;
-      }
-    } else if (_memberFilter == 'Grandparents') {
-      for (final m in members) {
-        if (MemberRoles.normalize(m.role) == MemberRoles.grandparent) {
-          return m.id;
+    switch (memberFilter) {
+      case CalendarMemberFilter.adults:
+        for (final m in members) {
+          if (MemberRoles.isAdultLike(m.role)) return m.id;
         }
-      }
+      case CalendarMemberFilter.kids:
+        for (final m in members) {
+          if (MemberRoles.isKid(m.role)) return m.id;
+        }
+      case CalendarMemberFilter.grandparents:
+        for (final m in members) {
+          if (MemberRoles.normalize(m.role) == MemberRoles.grandparent) {
+            return m.id;
+          }
+        }
+      case CalendarMemberFilter.all:
+        break;
     }
     for (final m in members) {
       if (MemberRoles.isAdultLike(m.role)) return m.id;
@@ -53,66 +49,59 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return members.first.id;
   }
 
-  bool _matchesMemberFilter(String memberId, List<NestMember> members) {
-    if (_memberFilter == 'All') return true;
+  static bool _matchesMemberFilter(
+    String memberId,
+    List<NestMember> members,
+    CalendarMemberFilter memberFilter,
+  ) {
+    if (memberFilter == CalendarMemberFilter.all) return true;
     final member = members.where((m) => m.id == memberId).toList();
     if (member.isEmpty) return true;
     final role = member.first.role;
-    switch (_memberFilter) {
-      case 'Adults':
-        return MemberRoles.isAdultLike(role);
-      case 'Kids':
-        return MemberRoles.isKid(role);
-      case 'Grandparents':
-        return MemberRoles.normalize(role) == MemberRoles.grandparent;
-      default:
-        return true;
-    }
+    return switch (memberFilter) {
+      CalendarMemberFilter.adults => MemberRoles.isAdultLike(role),
+      CalendarMemberFilter.kids => MemberRoles.isKid(role),
+      CalendarMemberFilter.grandparents =>
+        MemberRoles.normalize(role) == MemberRoles.grandparent,
+      CalendarMemberFilter.all => true,
+    };
   }
 
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _selected = DateTime(now.year, now.month, now.day);
-  }
-
-  void _consumeFocus(CalendarFocus focus) {
-    final day = calendarDateOnly(focus.day);
-    setState(() => _selected = day);
-    final eventId = focus.eventId;
+  void _consumeFocus(
+    BuildContext context,
+    WidgetRef ref,
+    CalendarUiController controller,
+    CalendarFocus focus,
+  ) {
+    final eventId = controller.consumeFocus(focus);
     if (eventId == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       final events = ref.read(eventsProvider).valueOrNull ?? const [];
       for (final e in events) {
         if (e.id == eventId) {
-          _showEditEvent(context, e);
+          _showEditEvent(context, ref, e);
           return;
         }
       }
     });
   }
 
-  void _shiftBrowse(int delta) {
-    setState(() {
-      _selected = _mode == _CalendarBrowseMode.month
-          ? shiftMonth(_selected, delta)
-          : shiftWeek(_selected, delta);
-    });
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(eventsProvider);
     final membersAsync = ref.watch(membersProvider);
     final events = eventsAsync.valueOrNull ?? const [];
+    final ui = ref.watch(calendarUiProvider);
+    final controller = ref.read(calendarUiProvider.notifier);
+    final selected = ui.selected;
+    final memberFilter = ui.memberFilter;
 
     ref.listen(pendingAddProvider, (prev, next) {
       if (next == PendingAdd.event) {
         ref.read(pendingAddProvider.notifier).state = PendingAdd.none;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _showAddEvent(context);
+          if (context.mounted) _showAddEvent(context, ref);
         });
       }
     });
@@ -120,24 +109,31 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     ref.listen(calendarFocusProvider, (prev, next) {
       if (next == null) return;
       ref.read(calendarFocusProvider.notifier).state = null;
-      _consumeFocus(next);
+      _consumeFocus(context, ref, controller, next);
     });
 
-    if (!_focusDrainScheduled && ref.read(calendarFocusProvider) != null) {
-      _focusDrainScheduled = true;
+    if (controller.beginFocusDrain(ref.read(calendarFocusProvider))) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _focusDrainScheduled = false;
-        if (!mounted) return;
+        controller.endFocusDrain();
+        if (!context.mounted) return;
         final focus = ref.read(calendarFocusProvider);
         if (focus == null) return;
         ref.read(calendarFocusProvider.notifier).state = null;
-        _consumeFocus(focus);
+        _consumeFocus(context, ref, controller, focus);
       });
     }
 
-    final periodLabel = _mode == _CalendarBrowseMode.month
-        ? DateFormat('MMMM yyyy').format(_selected)
-        : '${DateFormat('MMM d').format(startOfWeekSunday(_selected))} – ${DateFormat('MMM d').format(endOfWeekSaturday(_selected))}';
+    final periodLabel = ui.mode == CalendarBrowseMode.month
+        ? DateFormat('MMMM yyyy').format(selected)
+        : '${DateFormat('MMM d').format(startOfWeekSunday(selected))} – ${DateFormat('MMM d').format(endOfWeekSaturday(selected))}';
+
+    final membersForFilter = membersAsync.valueOrNull ?? const <NestMember>[];
+    final filteredForGrid = events
+        .where(
+          (e) =>
+              _matchesMemberFilter(e.memberId, membersForFilter, memberFilter),
+        )
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -154,32 +150,25 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     background: AppColors.surfaceMuted,
                     foreground: AppColors.ink,
                     size: 38,
-                    onTap: () {
-                      final now = DateTime.now();
-                      setState(() {
-                        _selected = DateTime(now.year, now.month, now.day);
-                      });
-                    },
+                    onTap: controller.goToday,
                   ),
                   const Spacer(),
                   SoftPill(
                     label: 'Month',
-                    selected: _mode == _CalendarBrowseMode.month,
-                    onTap: () =>
-                        setState(() => _mode = _CalendarBrowseMode.month),
+                    selected: ui.mode == CalendarBrowseMode.month,
+                    onTap: () => controller.setMode(CalendarBrowseMode.month),
                   ),
                   const SizedBox(width: 6),
                   SoftPill(
                     label: 'Week',
-                    selected: _mode == _CalendarBrowseMode.week,
-                    onTap: () =>
-                        setState(() => _mode = _CalendarBrowseMode.week),
+                    selected: ui.mode == CalendarBrowseMode.week,
+                    onTap: () => controller.setMode(CalendarBrowseMode.week),
                   ),
                   const SizedBox(width: 8),
                   CircleIconButton(
                     icon: Icons.add_rounded,
                     size: 38,
-                    onTap: () => _showAddEvent(context),
+                    onTap: () => _showAddEvent(context, ref),
                   ),
                 ],
               ),
@@ -204,7 +193,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         background: AppColors.surfaceMuted,
                         foreground: AppColors.ink,
                         size: 34,
-                        onTap: () => _shiftBrowse(-1),
+                        onTap: () => controller.shiftBrowse(-1),
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -214,14 +203,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           onTap: () async {
                             final picked = await showDatePicker(
                               context: context,
-                              initialDate: _selected,
+                              initialDate: selected,
                               firstDate: DateTime(2020),
                               lastDate: DateTime(2035),
                             );
                             if (picked != null) {
-                              setState(() {
-                                _selected = calendarDateOnly(picked);
-                              });
+                              controller.selectDay(picked);
                             }
                           },
                         ),
@@ -232,7 +219,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         background: AppColors.surfaceMuted,
                         foreground: AppColors.ink,
                         size: 34,
-                        onTap: () => _shiftBrowse(1),
+                        onTap: () => controller.shiftBrowse(1),
                       ),
                     ],
                   ),
@@ -241,16 +228,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        for (final filter in const [
-                          'All',
-                          'Adults',
-                          'Kids',
-                          'Grandparents',
-                        ]) ...[
+                        for (final filter in CalendarMemberFilter.pills) ...[
                           SoftPill(
-                            label: filter,
-                            selected: _memberFilter == filter,
-                            onTap: () => setState(() => _memberFilter = filter),
+                            label: filter.label,
+                            selected: memberFilter == filter,
+                            onTap: () => controller.setMemberFilter(filter),
                           ),
                           const SizedBox(width: 6),
                         ],
@@ -265,8 +247,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               child: KeyedSubtree(
                 // Keep month circles and week pills from sharing AnimatedContainer
                 // state (circle ↔ borderRadius tween asserts).
-                key: ValueKey(_mode),
-                child: _mode == _CalendarBrowseMode.month
+                key: ValueKey(ui.mode),
+                child: ui.mode == CalendarBrowseMode.month
                     ? Column(
                         children: [
                           const Row(
@@ -281,10 +263,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                             ],
                           ),
                           const SizedBox(height: 6),
-                          ..._buildMonthRows(events),
+                          ..._buildMonthRows(
+                            filteredForGrid,
+                            selected,
+                            controller,
+                          ),
                         ],
                       )
-                    : _buildWeekStrip(events),
+                    : _buildWeekStrip(filteredForGrid, selected, controller),
               ),
             ),
             const SizedBox(height: 6),
@@ -294,29 +280,78 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 error: (e, _) => Center(child: Text('$e')),
                 data: (allEvents) {
                   final members = membersAsync.valueOrNull ?? [];
+                  final q = ui.searchQuery.trim().toLowerCase();
+                  bool matchesSearch(CalendarEvent e) {
+                    if (q.isEmpty) return true;
+                    return e.title.toLowerCase().contains(q) ||
+                        (e.location ?? '').toLowerCase().contains(q);
+                  }
+
                   final dayEvents = allEvents.where((e) {
-                    return isSameCalendarDay(e.startsAt, _selected) &&
-                        _matchesMemberFilter(e.memberId, members);
+                    return isSameCalendarDay(e.startsAt, selected) &&
+                        _matchesMemberFilter(
+                          e.memberId,
+                          members,
+                          memberFilter,
+                        ) &&
+                        matchesSearch(e);
                   }).toList();
-                  final upcomingCutoff = endOfDayExclusive(_selected);
+                  final upcoming = allEvents
+                      .where(
+                        (e) =>
+                            !e.startsAt.isBefore(endOfDayExclusive(selected)) &&
+                            _matchesMemberFilter(
+                              e.memberId,
+                              members,
+                              memberFilter,
+                            ) &&
+                            matchesSearch(e),
+                      )
+                      .take(4)
+                      .toList();
 
                   return ListView(
                     padding: nestShellPageInsets(context),
                     children: [
+                      NestCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: TextField(
+                          controller: controller.searchController,
+                          onChanged: controller.setSearchQuery,
+                          decoration: const InputDecoration(
+                            hintText: 'Search events',
+                            border: InputBorder.none,
+                            prefixIcon: Icon(Icons.search_rounded),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       if (dayEvents.isEmpty)
                         FirstRunEmptyCard(
                           icon: Icons.event_rounded,
                           color: AppColors.accent,
                           title: allEvents.isEmpty
                               ? 'Add your first family event'
-                              : (_isToday(_selected)
-                                    ? 'Nothing planned today'
-                                    : 'Nothing on this day'),
+                              : (q.isNotEmpty
+                                    ? 'No events match'
+                                    : (_isToday(selected)
+                                          ? 'Nothing planned today'
+                                          : 'Nothing on this day')),
                           body: allEvents.isEmpty
                               ? 'School runs, dinners, and appointments land here — no demo data, just yours.'
-                              : 'Tap to schedule something for this day.',
-                          actionLabel: 'Add event',
-                          onAction: () => _showAddEvent(context),
+                              : (q.isNotEmpty
+                                    ? 'Try a different search, or clear the filter.'
+                                    : 'Tap to schedule something for this day.'),
+                          actionLabel: q.isNotEmpty
+                              ? 'Clear search'
+                              : 'Add event',
+                          onAction: () {
+                            if (q.isNotEmpty) {
+                              controller.clearSearch();
+                            } else {
+                              _showAddEvent(context, ref);
+                            }
+                          },
                         )
                       else
                         for (var i = 0; i < dayEvents.length; i++)
@@ -331,39 +366,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                   members,
                                   dayEvents[i].memberId,
                                 ),
-                                color: AppColors.softCardColors[
-                                    i % AppColors.softCardColors.length],
+                                color:
+                                    AppColors.softCardColors[i %
+                                        AppColors.softCardColors.length],
                                 onTap: () =>
-                                    _showEditEvent(context, dayEvents[i]),
+                                    _showEditEvent(context, ref, dayEvents[i]),
                                 onEdit: () =>
-                                    _showEditEvent(context, dayEvents[i]),
+                                    _showEditEvent(context, ref, dayEvents[i]),
                               ),
                             ),
                           ),
-                      if (allEvents
-                          .where(
-                            (e) =>
-                                !e.startsAt.isBefore(upcomingCutoff) &&
-                                _matchesMemberFilter(e.memberId, members),
-                          )
-                          .isNotEmpty) ...[
+                      if (upcoming.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         const SectionLabel('Upcoming'),
-                        for (final event in allEvents
-                            .where(
-                              (e) =>
-                                  !e.startsAt.isBefore(upcomingCutoff) &&
-                                  _matchesMemberFilter(e.memberId, members),
-                            )
-                            .take(4))
+                        for (final event in upcoming)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: _PastelEventCard(
                               event: event,
                               member: _memberFor(members, event.memberId),
                               color: AppColors.surfaceMuted,
-                              onTap: () => _showEditEvent(context, event),
-                              onEdit: () => _showEditEvent(context, event),
+                              onTap: () => _showEditEvent(context, ref, event),
+                              onEdit: () => _showEditEvent(context, ref, event),
                               showDate: true,
                               bordered: true,
                             ),
@@ -380,29 +404,32 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  NestMember? _memberFor(List<NestMember> members, String id) {
+  static NestMember? _memberFor(List<NestMember> members, String id) {
     for (final m in members) {
       if (m.id == id) return m;
     }
     return members.isEmpty ? null : members.first;
   }
 
-  bool _isToday(DateTime d) {
+  static bool _isToday(DateTime d) {
     final n = DateTime.now();
     return d.year == n.year && d.month == n.month && d.day == n.day;
   }
 
-  DateTime _dateOnly(DateTime d) => calendarDateOnly(d);
+  static DateTime _dateOnly(DateTime d) => calendarDateOnly(d);
 
-  String _dateLabel(DateTime d) => DateFormat('EEE, MMM d').format(d);
+  static String _dateLabel(DateTime d) => DateFormat('EEE, MMM d').format(d);
 
-  String _timeLabel(DateTime d) => DateFormat.jm().format(d);
+  static String _timeLabel(DateTime d) => DateFormat.jm().format(d);
 
-  DateTime _mergeDateAndTime(DateTime date, TimeOfDay time) {
+  static DateTime _mergeDateAndTime(DateTime date, TimeOfDay time) {
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
-  Future<DateTime?> _pickDateFor(BuildContext context, DateTime initial) async {
+  static Future<DateTime?> _pickDateFor(
+    BuildContext context,
+    DateTime initial,
+  ) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -419,7 +446,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Future<DateTime?> _pickTimeFor(BuildContext context, DateTime initial) async {
+  static Future<DateTime?> _pickTimeFor(
+    BuildContext context,
+    DateTime initial,
+  ) async {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(initial),
@@ -428,22 +458,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return _mergeDateAndTime(initial, picked);
   }
 
-  Set<int> _eventDays(List<CalendarEvent> events) {
+  static Set<int> _eventDays(List<CalendarEvent> events, DateTime selected) {
     return events
         .where(
           (e) =>
-              e.startsAt.year == _selected.year &&
-              e.startsAt.month == _selected.month,
+              e.startsAt.year == selected.year &&
+              e.startsAt.month == selected.month,
         )
         .map((e) => e.startsAt.day)
         .toSet();
   }
 
-  Widget _buildWeekStrip(List<CalendarEvent> events) {
-    final days = weekDaysSunday(_selected);
-    final eventDayKeys = {
-      for (final e in events) calendarDateOnly(e.startsAt),
-    };
+  static Widget _buildWeekStrip(
+    List<CalendarEvent> events,
+    DateTime selected,
+    CalendarUiController controller,
+  ) {
+    final days = weekDaysSunday(selected);
+    final eventDayKeys = {for (final e in events) calendarDateOnly(e.startsAt)};
 
     return Column(
       children: [
@@ -464,7 +496,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             for (final day in days)
               Expanded(
                 child: GestureDetector(
-                  onTap: () => setState(() => _selected = day),
+                  onTap: () => controller.selectDay(day),
                   child: AnimatedContainer(
                     duration: AppMotion.fast,
                     curve: AppMotion.standard,
@@ -472,7 +504,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     alignment: Alignment.center,
                     margin: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: isSameCalendarDay(day, _selected)
+                      color: isSameCalendarDay(day, selected)
                           ? AppColors.accent
                           : (_isToday(day) ? AppColors.primary : null),
                       borderRadius: BorderRadius.circular(16),
@@ -485,7 +517,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 15,
-                            color: isSameCalendarDay(day, _selected)
+                            color: isSameCalendarDay(day, selected)
                                 ? AppColors.ink
                                 : (_isToday(day)
                                       ? Colors.white
@@ -499,7 +531,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: eventDayKeys.contains(day)
-                                ? (isSameCalendarDay(day, _selected) ||
+                                ? (isSameCalendarDay(day, selected) ||
                                           _isToday(day)
                                       ? AppColors.ink.withValues(alpha: 0.55)
                                       : AppColors.mint)
@@ -517,23 +549,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  List<Widget> _buildMonthRows(List<CalendarEvent> events) {
-    final first = DateTime(_selected.year, _selected.month, 1);
-    final daysInMonth = DateTime(_selected.year, _selected.month + 1, 0).day;
+  static List<Widget> _buildMonthRows(
+    List<CalendarEvent> events,
+    DateTime selected,
+    CalendarUiController controller,
+  ) {
+    final first = DateTime(selected.year, selected.month, 1);
+    final daysInMonth = DateTime(selected.year, selected.month + 1, 0).day;
     final offset = first.weekday % 7;
-    final eventDays = _eventDays(events);
+    final eventDays = _eventDays(events, selected);
     final cells = <Widget>[];
     for (var i = 0; i < offset; i++) {
       cells.add(const Expanded(child: SizedBox(height: 38)));
     }
     for (var d = 1; d <= daysInMonth; d++) {
-      final day = DateTime(_selected.year, _selected.month, d);
-      final selected = d == _selected.day;
+      final day = DateTime(selected.year, selected.month, d);
+      final isSelected = d == selected.day;
       final today = _isToday(day);
       final hasEvent = eventDays.contains(d);
       Color? fill;
       Color textColor = AppColors.ink;
-      if (selected) {
+      if (isSelected) {
         fill = AppColors.accent;
         textColor = AppColors.ink;
       } else if (today) {
@@ -547,7 +583,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       cells.add(
         Expanded(
           child: GestureDetector(
-            onTap: () => setState(() => _selected = day),
+            onTap: () => controller.selectDay(day),
             child: AnimatedContainer(
               duration: AppMotion.fast,
               curve: AppMotion.standard,
@@ -561,7 +597,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               child: Text(
                 '$d',
                 style: TextStyle(
-                  fontWeight: selected || today || hasEvent
+                  fontWeight: isSelected || today || hasEvent
                       ? FontWeight.w800
                       : FontWeight.w500,
                   color: textColor,
@@ -583,25 +619,33 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return rows;
   }
 
-  Future<void> _showAddEvent(BuildContext context) async {
-    await _showEventSheet(context);
+  static Future<void> _showAddEvent(BuildContext context, WidgetRef ref) async {
+    await _showEventSheet(context, ref);
   }
 
-  Future<void> _showEditEvent(BuildContext context, CalendarEvent event) async {
-    await _showEventSheet(context, existing: event);
+  static Future<void> _showEditEvent(
+    BuildContext context,
+    WidgetRef ref,
+    CalendarEvent event,
+  ) async {
+    await _showEventSheet(context, ref, existing: event);
   }
 
-  Future<void> _showEventSheet(
-    BuildContext context, {
+  static Future<void> _showEventSheet(
+    BuildContext context,
+    WidgetRef ref, {
     CalendarEvent? existing,
   }) async {
+    final ui = ref.read(calendarUiProvider);
+    final selected = ui.selected;
     final members = ref.read(membersProvider).valueOrNull ?? const [];
-    var selectedMemberId = existing?.memberId ?? _pickDefaultMemberId(members);
+    var selectedMemberId =
+        existing?.memberId ?? _pickDefaultMemberId(members, ui.memberFilter);
     var selectedDate =
-        existing?.startsAt ?? _selected.add(const Duration(hours: 9));
+        existing?.startsAt ?? selected.add(const Duration(hours: 9));
     var allDay = existing?.allDay ?? false;
-    var startAt = existing?.startsAt ?? _selected.add(const Duration(hours: 9));
-    var endAt = existing?.endsAt ?? _selected.add(const Duration(hours: 10));
+    var startAt = existing?.startsAt ?? selected.add(const Duration(hours: 9));
+    var endAt = existing?.endsAt ?? selected.add(const Duration(hours: 10));
     var deleteEvent = false;
 
     await showModalBottomSheet<void>(
@@ -634,7 +678,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     .read(eventRepositoryProvider)
                     .deleteEvent(existing.id);
               } else if (existing == null) {
-                await ref.read(eventRepositoryProvider).addEvent(
+                await ref
+                    .read(eventRepositoryProvider)
+                    .addEvent(
                       title: title,
                       startsAt: allDay ? _dateOnly(selectedDate) : startAt,
                       endsAt: allDay ? null : endAt,
@@ -643,7 +689,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       location: location.isEmpty ? null : location,
                     );
               } else {
-                await ref.read(eventRepositoryProvider).updateEvent(
+                await ref
+                    .read(eventRepositoryProvider)
+                    .updateEvent(
                       id: existing.id,
                       title: title,
                       startsAt: allDay ? _dateOnly(selectedDate) : startAt,
@@ -886,8 +934,8 @@ class _PastelEventCard extends StatelessWidget {
     final timeLabel = event.allDay
         ? 'All day'
         : end == null
-            ? DateFormat.jm().format(event.startsAt)
-            : '${DateFormat.jm().format(event.startsAt)} - ${DateFormat.jm().format(end)}';
+        ? DateFormat.jm().format(event.startsAt)
+        : '${DateFormat.jm().format(event.startsAt)} - ${DateFormat.jm().format(end)}';
 
     return NestCard(
       onTap: onTap,

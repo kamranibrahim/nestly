@@ -2,61 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/repositories.dart';
 import '../data/sync_controller.dart';
 import '../providers/providers.dart';
+import '../state/meals_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 
-enum MealsEntry { browse, planWeek, addDinnerToday }
+export '../data/enums.dart' show MealsEntry;
 
-class MealsScreen extends ConsumerStatefulWidget {
+class MealsScreen extends ConsumerWidget {
   const MealsScreen({super.key, this.entry = MealsEntry.browse});
 
   final MealsEntry entry;
 
   @override
-  ConsumerState<MealsScreen> createState() => _MealsScreenState();
-}
-
-class _MealsScreenState extends ConsumerState<MealsScreen> {
-  late int _focusWeekday;
-  bool _handledEntry = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusWeekday = DateTime.now().weekday;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _handleEntry());
-  }
-
-  Future<void> _handleEntry() async {
-    if (_handledEntry || !mounted) return;
-    _handledEntry = true;
-    final meals = ref.read(mealsProvider).valueOrNull ?? const <MealPlan>[];
-    switch (widget.entry) {
-      case MealsEntry.browse:
-        return;
-      case MealsEntry.planWeek:
-        await _showPlanWeek(context, ref, meals);
-        return;
-      case MealsEntry.addDinnerToday:
-        await _showAddMeal(
-          context,
-          ref,
-          weekday: DateTime.now().weekday,
-          initialMealType: 'Dinner',
-        );
-        return;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ui = ref.watch(mealsUiProvider);
+    final uiCtrl = ref.read(mealsUiProvider.notifier);
     final mealsAsync = ref.watch(mealsProvider);
     final today = DateTime.now().weekday;
+
+    if (entry != MealsEntry.browse && uiCtrl.consumeEntry()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        _handleEntry(context, ref, entry);
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -71,12 +47,16 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
           ),
           IconButton(
             tooltip: 'Plan dinner week',
-            onPressed: () =>
-                _showPlanWeek(context, ref, mealsAsync.valueOrNull ?? const []),
+            onPressed: () => _showPlanWeek(
+              context,
+              ref,
+              mealsAsync.valueOrNull ?? const [],
+            ),
             icon: const Icon(Icons.calendar_view_week_rounded),
           ),
           IconButton(
-            onPressed: () => _showAddMeal(context, ref, weekday: _focusWeekday),
+            onPressed: () =>
+                _showAddMeal(context, ref, weekday: ui.focusWeekday),
             icon: const Icon(Icons.add_rounded),
           ),
         ],
@@ -94,6 +74,18 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                   style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
+              if (meals.isEmpty) ...[
+                const SizedBox(height: 8),
+                FirstRunEmptyCard(
+                  icon: Icons.restaurant_rounded,
+                  color: AppColors.tileTeal,
+                  title: 'Plan this week’s dinners',
+                  body:
+                      'Add tonight’s meal or sketch the week — then push ingredients to Shopping in one tap.',
+                  actionLabel: 'Plan dinner week',
+                  onAction: () => _showPlanWeek(context, ref, meals),
+                ),
+              ],
               const SizedBox(height: 8),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -102,8 +94,8 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
                     for (final day in MealRepository.weekdays) ...[
                       SoftPill(
                         label: day.$1 == today ? '${day.$2} · Today' : day.$2,
-                        selected: _focusWeekday == day.$1,
-                        onTap: () => setState(() => _focusWeekday = day.$1),
+                        selected: ui.focusWeekday == day.$1,
+                        onTap: () => uiCtrl.setFocusWeekday(day.$1),
                       ),
                       const SizedBox(width: 6),
                     ],
@@ -113,17 +105,17 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
               const SizedBox(height: 8),
               SectionLabel(
                 MealRepository.weekdays
-                        .firstWhere((d) => d.$1 == _focusWeekday)
+                        .firstWhere((d) => d.$1 == ui.focusWeekday)
                         .$2 +
-                    (_focusWeekday == today ? ' · Today' : ''),
+                    (ui.focusWeekday == today ? ' · Today' : ''),
               ),
-              ..._dayCards(context, ref, _focusWeekday, meals),
+              ..._dayCards(context, ref, ui.focusWeekday, meals),
               const SizedBox(height: 10),
               const SectionLabel('Rest of week'),
               for (final day in MealRepository.weekdays)
-                if (day.$1 != _focusWeekday) ...[
+                if (day.$1 != ui.focusWeekday) ...[
                   NestCard(
-                    onTap: () => setState(() => _focusWeekday = day.$1),
+                    onTap: () => uiCtrl.setFocusWeekday(day.$1),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
@@ -159,328 +151,346 @@ class _MealsScreenState extends ConsumerState<MealsScreen> {
       ),
     );
   }
+}
 
-  String _daySummary(int weekday, List<MealPlan> meals) {
-    final dayMeals = meals.where((m) => m.weekday == weekday).toList();
-    if (dayMeals.isEmpty) return 'Open';
-    final dinner = dayMeals.where((m) => m.mealType.toLowerCase() == 'dinner');
-    if (dinner.isNotEmpty) return dinner.first.title;
-    return '${dayMeals.length} meal${dayMeals.length == 1 ? '' : 's'}';
+Future<void> _handleEntry(
+  BuildContext context,
+  WidgetRef ref,
+  MealsEntry entry,
+) async {
+  final meals = ref.read(mealsProvider).valueOrNull ?? const <MealPlan>[];
+  switch (entry) {
+    case MealsEntry.browse:
+      return;
+    case MealsEntry.planWeek:
+      await _showPlanWeek(context, ref, meals);
+      return;
+    case MealsEntry.addDinnerToday:
+      await _showAddMeal(
+        context,
+        ref,
+        weekday: DateTime.now().weekday,
+        initialMealType: 'Dinner',
+      );
+      return;
   }
+}
 
-  List<Widget> _dayCards(
-    BuildContext context,
-    WidgetRef ref,
-    int weekday,
-    List<MealPlan> meals,
-  ) {
-    final dayMeals = meals.where((m) => m.weekday == weekday).toList();
-    if (dayMeals.isEmpty) {
-      return [
-        NestCard(
-          onTap: () => _showAddMeal(
-            context,
-            ref,
-            weekday: weekday,
-            initialMealType: 'Dinner',
-          ),
-          child: const Text(
-            'No meal planned — tap to add dinner',
-            style: TextStyle(color: AppColors.inkMuted),
-          ),
-        ),
-      ];
-    }
+String _daySummary(int weekday, List<MealPlan> meals) {
+  final dayMeals = meals.where((m) => m.weekday == weekday).toList();
+  if (dayMeals.isEmpty) return 'Open';
+  final dinner = dayMeals.where((m) => m.mealType.toLowerCase() == 'dinner');
+  if (dinner.isNotEmpty) return dinner.first.title;
+  return '${dayMeals.length} meal${dayMeals.length == 1 ? '' : 's'}';
+}
+
+List<Widget> _dayCards(
+  BuildContext context,
+  WidgetRef ref,
+  int weekday,
+  List<MealPlan> meals,
+) {
+  final dayMeals = meals.where((m) => m.weekday == weekday).toList();
+  if (dayMeals.isEmpty) {
     return [
-      for (final meal in dayMeals)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: NestCard(
-            onTap: () => _showEditMeal(context, ref, meal),
-            padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        meal.mealType,
-                        style: const TextStyle(
-                          color: AppColors.inkMuted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        meal.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                      if (meal.ingredients.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          meal.ingredients.replaceAll('\n', ', '),
-                          style: const TextStyle(
-                            color: AppColors.inkSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Add ingredients to list',
-                  onPressed: () => _confirmAddIngredients(
-                    context,
-                    ref,
-                    meals: [meal],
-                    label: meal.title,
-                  ),
-                  icon: const Icon(
-                    Icons.shopping_cart_outlined,
-                    color: AppColors.primary,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Remove',
-                  onPressed: () async {
-                    await ref.read(mealRepositoryProvider).delete(meal.id);
-                    await syncAfterWrite(ref, context: context);
-                  },
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.inkMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       NestCard(
-        onTap: () => _showAddMeal(context, ref, weekday: weekday),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        onTap: () => _showAddMeal(
+          context,
+          ref,
+          weekday: weekday,
+          initialMealType: 'Dinner',
+        ),
         child: const Text(
-          '+ Add another meal',
-          style: TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w600,
-          ),
+          'No meal planned — tap to add dinner',
+          style: TextStyle(color: AppColors.inkMuted),
         ),
       ),
     ];
   }
-
-  Future<void> _showAddMeal(
-    BuildContext context,
-    WidgetRef ref, {
-    required int weekday,
-    String initialMealType = 'Dinner',
-  }) async {
-    await _showMealSheet(
-      context,
-      ref,
-      weekday: weekday,
-      initialMealType: initialMealType,
-    );
-  }
-
-  Future<void> _showEditMeal(
-    BuildContext context,
-    WidgetRef ref,
-    MealPlan meal,
-  ) async {
-    await _showMealSheet(context, ref, weekday: meal.weekday, existing: meal);
-  }
-
-  Future<void> _showMealSheet(
-    BuildContext context,
-    WidgetRef ref, {
-    required int weekday,
-    MealPlan? existing,
-    String initialMealType = 'Dinner',
-  }) async {
-    final result =
-        await showModalBottomSheet<
-          ({String title, String mealType, String ingredients, bool deleteMeal})
-        >(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: AppColors.surface,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  return [
+    for (final meal in dayMeals)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: NestCard(
+          onTap: () => _showEditMeal(context, ref, meal),
+          padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      meal.mealType,
+                      style: const TextStyle(
+                        color: AppColors.inkMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      meal.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (meal.ingredients.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        meal.ingredients.replaceAll('\n', ', '),
+                        style: const TextStyle(
+                          color: AppColors.inkSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Add ingredients to list',
+                onPressed: () => _confirmAddIngredients(
+                  context,
+                  ref,
+                  meals: [meal],
+                  label: meal.title,
+                ),
+                icon: const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: AppColors.primary,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Remove',
+                onPressed: () async {
+                  await ref.read(mealRepositoryProvider).delete(meal.id);
+                  await syncAfterWrite(ref, context: context);
+                },
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.inkMuted,
+                ),
+              ),
+            ],
           ),
-          builder: (context) {
-            var mealType = existing?.mealType ?? initialMealType;
-            return OwnedControllers(
-              count: 2,
-              builder: (context, c) {
-                if (c[0].text.isEmpty && existing != null) {
-                  c[0].text = existing.title;
-                }
-                if (c[1].text.isEmpty && existing != null) {
-                  c[1].text = existing.ingredients;
-                }
-                return StatefulBuilder(
-                  builder: (context, setModal) {
-                    return sheetBody(
-                      context: context,
-                      children: [
-                        sheetHandle(),
-                        const SizedBox(height: 6),
-                        Text(
-                          existing == null ? 'Plan a meal' : 'Edit meal',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            for (final type in const [
-                              'Breakfast',
-                              'Lunch',
-                              'Dinner',
-                            ])
-                              ChoiceChip(
-                                label: Text(type),
-                                selected: mealType == type,
-                                showCheckmark: false,
-                                selectedColor: AppColors.primary,
-                                checkmarkColor: AppColors.onDark,
-                                labelStyle: TextStyle(
-                                  color: mealType == type
-                                      ? AppColors.onDark
-                                      : AppColors.ink,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                onSelected: (_) =>
-                                    setModal(() => mealType = type),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: c[0],
-                          autofocus: true,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Dish name',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: c[1],
-                          minLines: 2,
-                          maxLines: 4,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Ingredients (comma or new line)',
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        FilledButton(
-                          onPressed: () {
-                            final name = c[0].text.trim();
-                            if (name.isEmpty) {
-                              Navigator.pop(context);
-                              return;
-                            }
-                            Navigator.pop(context, (
-                              title: name,
-                              mealType: mealType,
-                              ingredients: c[1].text.trim(),
-                              deleteMeal: false,
-                            ));
-                          },
-                          child: Text(
-                            existing == null ? 'Save meal' : 'Save changes',
-                          ),
-                        ),
-                        if (existing != null) ...[
-                          const SizedBox(height: 8),
-                          OutlinedButton(
-                            onPressed: () => Navigator.pop(context, (
-                              title: existing.title,
-                              mealType: existing.mealType,
-                              ingredients: existing.ingredients,
-                              deleteMeal: true,
-                            )),
-                            child: const Text('Delete meal'),
-                          ),
-                        ],
-                      ],
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
-
-    if (result != null) {
-      if (result.deleteMeal && existing != null) {
-        await ref.read(mealRepositoryProvider).delete(existing.id);
-      } else {
-        await ref
-            .read(mealRepositoryProvider)
-            .upsert(
-              id: existing?.id,
-              weekday: weekday,
-              title: result.title,
-              mealType: result.mealType,
-              ingredients: result.ingredients,
-            );
-      }
-      await syncAfterWrite(ref, context: context);
-    }
-  }
-
-  Future<void> _showPlanWeek(
-    BuildContext context,
-    WidgetRef ref,
-    List<MealPlan> meals,
-  ) async {
-    final result = await showModalBottomSheet<Map<int, String>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       ),
-      builder: (context) => _PlanDinnerWeekSheet(meals: meals),
-    );
+    NestCard(
+      onTap: () => _showAddMeal(context, ref, weekday: weekday),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: const Text(
+        '+ Add another meal',
+        style: TextStyle(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  ];
+}
 
-    if (result == null) return;
-    await ref.read(mealRepositoryProvider).planDinnerWeek(result);
+Future<void> _showAddMeal(
+  BuildContext context,
+  WidgetRef ref, {
+  required int weekday,
+  String initialMealType = 'Dinner',
+}) async {
+  await _showMealSheet(
+    context,
+    ref,
+    weekday: weekday,
+    initialMealType: initialMealType,
+  );
+}
+
+Future<void> _showEditMeal(
+  BuildContext context,
+  WidgetRef ref,
+  MealPlan meal,
+) async {
+  await _showMealSheet(context, ref, weekday: meal.weekday, existing: meal);
+}
+
+Future<void> _showMealSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required int weekday,
+  MealPlan? existing,
+  String initialMealType = 'Dinner',
+}) async {
+  final result = await showModalBottomSheet<
+      ({String title, String mealType, String ingredients, bool deleteMeal})>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      var mealType = existing?.mealType ?? initialMealType;
+      return OwnedControllers(
+        count: 2,
+        builder: (context, c) {
+          if (c[0].text.isEmpty && existing != null) {
+            c[0].text = existing.title;
+          }
+          if (c[1].text.isEmpty && existing != null) {
+            c[1].text = existing.ingredients;
+          }
+          return StatefulBuilder(
+            builder: (context, setModal) {
+              return sheetBody(
+                context: context,
+                children: [
+                  sheetHandle(),
+                  const SizedBox(height: 6),
+                  Text(
+                    existing == null ? 'Plan a meal' : 'Edit meal',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final type in const [
+                        'Breakfast',
+                        'Lunch',
+                        'Dinner',
+                      ])
+                        ChoiceChip(
+                          label: Text(type),
+                          selected: mealType == type,
+                          showCheckmark: false,
+                          selectedColor: AppColors.primary,
+                          checkmarkColor: AppColors.onDark,
+                          labelStyle: TextStyle(
+                            color: mealType == type
+                                ? AppColors.onDark
+                                : AppColors.ink,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          onSelected: (_) => setModal(() => mealType = type),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c[0],
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'Dish name',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c[1],
+                    minLines: 2,
+                    maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'Ingredients (comma or new line)',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  FilledButton(
+                    onPressed: () {
+                      final name = c[0].text.trim();
+                      if (name.isEmpty) {
+                        Navigator.pop(context);
+                        return;
+                      }
+                      Navigator.pop(context, (
+                        title: name,
+                        mealType: mealType,
+                        ingredients: c[1].text.trim(),
+                        deleteMeal: false,
+                      ));
+                    },
+                    child: Text(
+                      existing == null ? 'Save meal' : 'Save changes',
+                    ),
+                  ),
+                  if (existing != null) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context, (
+                        title: existing.title,
+                        mealType: existing.mealType,
+                        ingredients: existing.ingredients,
+                        deleteMeal: true,
+                      )),
+                      child: const Text('Delete meal'),
+                    ),
+                  ],
+                ],
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+
+  if (result != null) {
+    if (result.deleteMeal && existing != null) {
+      await ref.read(mealRepositoryProvider).delete(existing.id);
+    } else {
+      await ref.read(mealRepositoryProvider).upsert(
+            id: existing?.id,
+            weekday: weekday,
+            title: result.title,
+            mealType: result.mealType,
+            ingredients: result.ingredients,
+          );
+    }
     await syncAfterWrite(ref, context: context);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Dinner week updated')));
   }
+}
 
-  Future<void> _shopWeek(
-    BuildContext context,
-    WidgetRef ref,
-    List<MealPlan> meals,
-  ) async {
-    final dinners = meals
-        .where((meal) => meal.mealType.toLowerCase() == 'dinner')
-        .toList();
-    await _confirmAddIngredients(
-      context,
-      ref,
-      meals: dinners,
-      label: 'this week',
-    );
-  }
+Future<void> _showPlanWeek(
+  BuildContext context,
+  WidgetRef ref,
+  List<MealPlan> meals,
+) async {
+  final result = await showModalBottomSheet<Map<int, String>>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) => _PlanDinnerWeekSheet(meals: meals),
+  );
+
+  if (result == null) return;
+  await ref.read(mealRepositoryProvider).planDinnerWeek(result);
+  await syncAfterWrite(ref, context: context);
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(const SnackBar(content: Text('Dinner week updated')));
+}
+
+Future<void> _shopWeek(
+  BuildContext context,
+  WidgetRef ref,
+  List<MealPlan> meals,
+) async {
+  final dinners = meals
+      .where((meal) => meal.mealType.toLowerCase() == 'dinner')
+      .toList();
+  await _confirmAddIngredients(
+    context,
+    ref,
+    meals: dinners,
+    label: 'this week',
+  );
 }
 
 Future<int> confirmAddMealIngredients(

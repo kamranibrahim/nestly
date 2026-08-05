@@ -2,12 +2,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/auth_repository.dart';
+import '../data/enums.dart';
 import '../data/db/app_database.dart';
 import '../data/locator_models.dart';
 import '../data/locator_service.dart';
 import '../data/notification_service.dart';
 import '../data/repositories.dart';
 import '../data/vault_service.dart';
+
+export '../data/enums.dart' show PendingAdd;
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
@@ -127,8 +130,6 @@ final billsProvider = StreamProvider<List<Bill>>((ref) {
 final emergencyProvider = StreamProvider<List<EmergencyEntry>>((ref) {
   return ref.watch(emergencyRepositoryProvider).watchAll();
 });
-
-enum PendingAdd { none, event, task, shopping }
 
 final pendingAddProvider = StateProvider<PendingAdd>((ref) => PendingAdd.none);
 

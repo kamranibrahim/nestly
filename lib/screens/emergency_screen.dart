@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/member_roles.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
@@ -303,22 +304,15 @@ class EmergencyScreen extends ConsumerWidget {
   }
 
   IconData _iconFor(String name) {
-    switch (name) {
-      case 'phone':
-        return Icons.phone_in_talk_outlined;
-      case 'doctor':
-        return Icons.medical_services_outlined;
-      case 'hospital':
-        return Icons.local_hospital_outlined;
-      case 'warning':
-        return Icons.warning_amber_rounded;
-      case 'blood':
-        return Icons.bloodtype_outlined;
-      case 'shield':
-        return Icons.health_and_safety_outlined;
-      default:
-        return Icons.info_outline_rounded;
-    }
+    return switch (EmergencyIcon.parse(name)) {
+      EmergencyIcon.phone => Icons.phone_in_talk_outlined,
+      EmergencyIcon.doctor => Icons.medical_services_outlined,
+      EmergencyIcon.hospital => Icons.local_hospital_outlined,
+      EmergencyIcon.warning => Icons.warning_amber_rounded,
+      EmergencyIcon.blood => Icons.bloodtype_outlined,
+      EmergencyIcon.shield => Icons.health_and_safety_outlined,
+      EmergencyIcon.info => Icons.info_outline_rounded,
+    };
   }
 
   Future<void> _addEntry(BuildContext context, WidgetRef ref) async {

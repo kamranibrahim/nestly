@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,115 +5,68 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/auth_errors.dart';
 import '../../providers/providers.dart';
+import '../../state/reset_password_ui.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/shimmer.dart';
 
 const _supportEmail = 'support@nestly.app';
-const _resendCooldown = Duration(seconds: 45);
+
+Future<void> _send(WidgetRef ref, {bool isResend = false}) async {
+  final ctrl = ref.read(resetPasswordUiProvider.notifier);
+  final email = ctrl.emailController.text.trim();
+  if (email.isEmpty) {
+    ctrl.setError('Enter the email for your Nestly account.');
+    return;
+  }
+  if (isResend && !ref.read(resetPasswordUiProvider).canResend) return;
+
+  ctrl.setBusy(true);
+  ctrl.setError(null);
+  try {
+    await ref.read(authRepositoryProvider).sendPasswordReset(email);
+    ctrl.setSent(true);
+    ctrl.startCooldown();
+  } catch (e) {
+    ctrl.setError(friendlyAuthError(e));
+  } finally {
+    ctrl.setBusy(false);
+  }
+}
+
+Future<void> _emailSupport(BuildContext context, WidgetRef ref) async {
+  final email = ref.read(resetPasswordUiProvider.notifier).emailController.text.trim();
+  final uri = Uri(
+    scheme: 'mailto',
+    path: _supportEmail,
+    queryParameters: {
+      'subject': 'Nestly password reset help',
+      if (email.isNotEmpty) 'body': 'Account email: $email\n\n',
+    },
+  );
+  final ok = await launchUrl(uri);
+  if (!ok && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Email support@nestly.app')),
+    );
+  }
+}
 
 /// Sends a Firebase password-reset email.
-class ResetPasswordScreen extends ConsumerStatefulWidget {
+class ResetPasswordScreen extends ConsumerWidget {
   const ResetPasswordScreen({super.key, this.initialEmail = ''});
 
   final String initialEmail;
 
   @override
-  ConsumerState<ResetPasswordScreen> createState() =>
-      _ResetPasswordScreenState();
-}
-
-class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
-  late final TextEditingController _email;
-  bool _busy = false;
-  bool _sent = false;
-  String? _error;
-  DateTime? _nextResendAt;
-  Timer? _cooldownTicker;
-
-  @override
-  void initState() {
-    super.initState();
-    _email = TextEditingController(text: widget.initialEmail);
-  }
-
-  @override
-  void dispose() {
-    _cooldownTicker?.cancel();
-    _email.dispose();
-    super.dispose();
-  }
-
-  int get _secondsUntilResend {
-    final until = _nextResendAt;
-    if (until == null) return 0;
-    final left = until.difference(DateTime.now()).inSeconds;
-    return left < 0 ? 0 : left;
-  }
-
-  bool get _canResend => _secondsUntilResend == 0 && !_busy;
-
-  void _startCooldown() {
-    _cooldownTicker?.cancel();
-    setState(() {
-      _nextResendAt = DateTime.now().add(_resendCooldown);
-    });
-    _cooldownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      if (_secondsUntilResend == 0) {
-        _cooldownTicker?.cancel();
-        setState(() {});
-        return;
-      }
-      setState(() {});
-    });
-  }
-
-  Future<void> _send({bool isResend = false}) async {
-    final email = _email.text.trim();
-    if (email.isEmpty) {
-      setState(() => _error = 'Enter the email for your Nestly account.');
-      return;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ui = ref.watch(resetPasswordUiProvider);
+    final ctrl = ref.read(resetPasswordUiProvider.notifier);
+    if (initialEmail.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ctrl.applyInitialEmail(initialEmail);
+      });
     }
-    if (isResend && !_canResend) return;
-
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await ref.read(authRepositoryProvider).sendPasswordReset(email);
-      if (!mounted) return;
-      setState(() => _sent = true);
-      _startCooldown();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = friendlyAuthError(e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _emailSupport() async {
-    final email = _email.text.trim();
-    final uri = Uri(
-      scheme: 'mailto',
-      path: _supportEmail,
-      queryParameters: {
-        'subject': 'Nestly password reset help',
-        if (email.isNotEmpty) 'body': 'Account email: $email\n\n',
-      },
-    );
-    final ok = await launchUrl(uri);
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email support@nestly.app')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final wait = _secondsUntilResend;
+    final wait = ui.secondsUntilResend;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -132,12 +83,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          if (_sent) ...[
+          if (ui.sent) ...[
             NestStatusCard(
               icon: Icons.mark_email_read_outlined,
               title: 'Check your inbox',
               body:
-                  'If an account exists for ${_email.text.trim()}, you’ll get a '
+                  'If an account exists for ${ctrl.emailController.text.trim()}, you’ll get a '
                   'reset link shortly. Open it on this device or any browser, '
                   'then log in with your new password.',
             ),
@@ -151,10 +102,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   'another device? Change your password from Nest → Change password '
                   'instead.',
             ),
-            if (_error != null) ...[
+            if (ui.error != null) ...[
               const SizedBox(height: 10),
               Text(
-                _error!,
+                ui.error!,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.danger),
               ),
             ],
@@ -164,53 +115,45 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               child: const Text('Back to log in'),
             ),
             TextButton(
-              onPressed: _canResend ? () => _send(isResend: true) : null,
+              onPressed:
+                  ui.canResend ? () => _send(ref, isResend: true) : null,
               child: Text(
                 wait > 0 ? 'Resend link in ${wait}s' : 'Resend link',
               ),
             ),
             TextButton(
-              onPressed: _busy
-                  ? null
-                  : () {
-                      _cooldownTicker?.cancel();
-                      setState(() {
-                        _sent = false;
-                        _error = null;
-                        _nextResendAt = null;
-                      });
-                    },
+              onPressed: ui.busy ? null : ctrl.useAnotherEmail,
               child: const Text('Use a different email'),
             ),
             TextButton.icon(
-              onPressed: _emailSupport,
+              onPressed: () => _emailSupport(context, ref),
               icon: const Icon(Icons.mail_outline_rounded, size: 18),
               label: const Text('Email support'),
             ),
           ] else ...[
             TextField(
-              controller: _email,
-              autofocus: widget.initialEmail.isEmpty,
+              controller: ctrl.emailController,
+              autofocus: initialEmail.isEmpty,
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
               textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _send(),
+              onSubmitted: (_) => _send(ref),
               decoration: const InputDecoration(labelText: 'Email'),
             ),
-            if (_error != null) ...[
+            if (ui.error != null) ...[
               const SizedBox(height: 10),
               Text(
-                _error!,
+                ui.error!,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.danger),
               ),
             ],
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: _busy ? null : _send,
+              onPressed: ui.busy ? null : () => _send(ref),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
               ),
-              child: _busy
+              child: ui.busy
                   ? Semantics(
                       label: 'Sending',
                       child: const NestShimmerCircle(size: 22),
@@ -219,7 +162,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             ),
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: _emailSupport,
+              onPressed: () => _emailSupport(context, ref),
               icon: const Icon(Icons.mail_outline_rounded, size: 18),
               label: const Text('Email support'),
             ),
@@ -251,68 +194,47 @@ Future<void> showChangePasswordSheet(
   }
 }
 
-class _ChangePasswordSheet extends ConsumerStatefulWidget {
+Future<void> _saveChangedPassword(BuildContext context, WidgetRef ref) async {
+  final ctrl = ref.read(changePasswordUiProvider.notifier);
+  final current = ctrl.currentController.text;
+  final next = ctrl.nextController.text;
+  final confirm = ctrl.confirmController.text;
+  if (current.isEmpty || next.isEmpty) {
+    ctrl.setError('Fill in your current and new password.');
+    return;
+  }
+  if (next != confirm) {
+    ctrl.setError('New passwords don’t match.');
+    return;
+  }
+  if (next.trim().length < 6) {
+    ctrl.setError('Use a password with at least 6 characters.');
+    return;
+  }
+
+  ctrl.setBusy(true);
+  ctrl.setError(null);
+  try {
+    await ref.read(authRepositoryProvider).changePassword(
+          currentPassword: current,
+          newPassword: next,
+        );
+    if (!context.mounted) return;
+    Navigator.pop(context, true);
+  } catch (e) {
+    ctrl.setError(friendlyAuthError(e));
+  } finally {
+    ctrl.setBusy(false);
+  }
+}
+
+class _ChangePasswordSheet extends ConsumerWidget {
   const _ChangePasswordSheet();
 
   @override
-  ConsumerState<_ChangePasswordSheet> createState() =>
-      _ChangePasswordSheetState();
-}
-
-class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
-  final _current = TextEditingController();
-  final _next = TextEditingController();
-  final _confirm = TextEditingController();
-  bool _busy = false;
-  bool _obscure = true;
-  String? _error;
-
-  @override
-  void dispose() {
-    _current.dispose();
-    _next.dispose();
-    _confirm.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    final current = _current.text;
-    final next = _next.text;
-    final confirm = _confirm.text;
-    if (current.isEmpty || next.isEmpty) {
-      setState(() => _error = 'Fill in your current and new password.');
-      return;
-    }
-    if (next != confirm) {
-      setState(() => _error = 'New passwords don’t match.');
-      return;
-    }
-    if (next.trim().length < 6) {
-      setState(() => _error = 'Use a password with at least 6 characters.');
-      return;
-    }
-
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await ref.read(authRepositoryProvider).changePassword(
-            currentPassword: current,
-            newPassword: next,
-          );
-      if (!mounted) return;
-      Navigator.pop(context, true);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = friendlyAuthError(e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ui = ref.watch(changePasswordUiProvider);
+    final ctrl = ref.read(changePasswordUiProvider.notifier);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     final email = FirebaseAuth.instance.currentUser?.email ?? 'your account';
 
@@ -348,46 +270,46 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
           ),
           const SizedBox(height: 14),
           TextField(
-            controller: _current,
-            obscureText: _obscure,
+            controller: ctrl.currentController,
+            obscureText: ui.obscure,
             autofocus: true,
             decoration: const InputDecoration(labelText: 'Current password'),
           ),
           const SizedBox(height: 10),
           TextField(
-            controller: _next,
-            obscureText: _obscure,
+            controller: ctrl.nextController,
+            obscureText: ui.obscure,
             decoration: const InputDecoration(labelText: 'New password'),
           ),
           const SizedBox(height: 10),
           TextField(
-            controller: _confirm,
-            obscureText: _obscure,
+            controller: ctrl.confirmController,
+            obscureText: ui.obscure,
             textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _save(),
+            onSubmitted: (_) => _saveChangedPassword(context, ref),
             decoration: InputDecoration(
               labelText: 'Confirm new password',
               suffixIcon: IconButton(
-                onPressed: () => setState(() => _obscure = !_obscure),
+                onPressed: ctrl.toggleObscure,
                 icon: Icon(
-                  _obscure
+                  ui.obscure
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
                 ),
               ),
             ),
           ),
-          if (_error != null) ...[
+          if (ui.error != null) ...[
             const SizedBox(height: 10),
             Text(
-              _error!,
+              ui.error!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.danger),
             ),
           ],
           const SizedBox(height: 14),
           FilledButton(
-            onPressed: _busy ? null : _save,
-            child: _busy
+            onPressed: ui.busy ? null : () => _saveChangedPassword(context, ref),
+            child: ui.busy
                 ? Semantics(
                     label: 'Working',
                     child: const NestShimmerCircle(size: 22),

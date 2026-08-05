@@ -10,6 +10,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'db/app_database.dart';
+import 'enums.dart';
 import '../navigation/app_navigator.dart';
 import 'repositories.dart';
 
@@ -97,13 +98,15 @@ class NotificationService {
     }, SetOptions(merge: true));
   }
 
-  /// Bills + care + school — prefer this after any schedule change.
+  /// Bills + care + school + events + tasks — prefer this after any schedule change.
   Future<void> rescheduleReminders() async {
     if (!_ready) return;
     await _local.cancelAll();
     await _scheduleBillReminders();
     await _scheduleCareReminders();
     await _scheduleSchoolReminders();
+    await _scheduleEventReminders();
+    await _scheduleTaskReminders();
     await _scheduleTomorrowPreview();
   }
 
@@ -158,6 +161,12 @@ class NotificationService {
     final bills = await BillRepository(_db).watchAll().first;
     final careItems = await CareRepository(_db).watchAll().first;
     final schoolItems = await SchoolRepository(_db).watchAll().first;
+    final events = await (_db.select(_db.calendarEvents)
+          ..where((e) => e.deleted.equals(false)))
+        .get();
+    final tasks = await (_db.select(_db.tasks)
+          ..where((t) => t.done.equals(false) & t.deleted.equals(false)))
+        .get();
 
     final billCount = bills
         .where(
@@ -179,11 +188,22 @@ class NotificationService {
               _isSameDayWindow(item.nextAt, targetDay, nextDay),
         )
         .length;
+    final eventCount = events
+        .where((e) => _isSameDayWindow(e.startsAt, targetDay, nextDay))
+        .length;
+    final taskCount = tasks
+        .where((t) {
+          final due = _dueDateForTaskLabel(t.dueLabel, now: previewAt);
+          return due != null && _isSameDayWindow(due, targetDay, nextDay);
+        })
+        .length;
 
     final parts = <String>[];
     if (billCount > 0) parts.add(_countLabel(billCount, 'bill'));
     if (careCount > 0) parts.add(_countLabel(careCount, 'care task'));
     if (schoolCount > 0) parts.add(_countLabel(schoolCount, 'school item'));
+    if (eventCount > 0) parts.add(_countLabel(eventCount, 'event'));
+    if (taskCount > 0) parts.add(_countLabel(taskCount, 'task'));
     if (parts.isEmpty) return;
 
     final when = tz.TZDateTime.from(previewAt, tz.local);
@@ -347,4 +367,103 @@ class NotificationService {
       if (i >= 20) break;
     }
   }
+
+  Future<void> _scheduleEventReminders() async {
+    final now = DateTime.now();
+    final horizon = now.add(const Duration(days: 3));
+    final events =
+        await (_db.select(_db.calendarEvents)
+              ..where(
+                (e) =>
+                    e.deleted.equals(false) &
+                    e.startsAt.isBiggerThanValue(now) &
+                    e.startsAt.isSmallerOrEqualValue(horizon),
+              )
+              ..orderBy([(e) => OrderingTerm(expression: e.startsAt)]))
+            .get();
+
+    var i = 0;
+    for (final event in events) {
+      var remindAt = event.startsAt.subtract(const Duration(minutes: 30));
+      if (!remindAt.isAfter(now)) {
+        remindAt = now.add(const Duration(minutes: 5));
+      }
+      if (!remindAt.isAfter(now) || !remindAt.isBefore(event.startsAt)) {
+        continue;
+      }
+
+      final when = tz.TZDateTime.from(remindAt, tz.local);
+      await _local.zonedSchedule(
+        id: 5000 + i,
+        title: 'Coming up',
+        body: event.title,
+        scheduledDate: when,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'nestly_events',
+            'Events',
+            channelDescription: 'Reminders before calendar events',
+            importance: Importance.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: const NotificationIntent(
+          NotificationDestination.calendar,
+        ).payload,
+      );
+      i++;
+      if (i >= 20) break;
+    }
+  }
+
+  Future<void> _scheduleTaskReminders() async {
+    final now = DateTime.now();
+    final tasks =
+        await (_db.select(_db.tasks)
+              ..where((t) => t.done.equals(false) & t.deleted.equals(false))
+              ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+            .get();
+
+    var i = 0;
+    for (final task in tasks) {
+      final dueDay = _dueDateForTaskLabel(task.dueLabel, now: now);
+      if (dueDay == null) continue;
+      var remindAt = DateTime(dueDay.year, dueDay.month, dueDay.day, 9);
+      if (!remindAt.isAfter(now)) {
+        remindAt = now.add(const Duration(hours: 1));
+      }
+      if (!remindAt.isAfter(now)) continue;
+      // Skip far-future labels beyond a week.
+      if (remindAt.isAfter(now.add(const Duration(days: 8)))) continue;
+
+      final when = tz.TZDateTime.from(remindAt, tz.local);
+      await _local.zonedSchedule(
+        id: 6000 + i,
+        title: 'Task due',
+        body: task.title,
+        scheduledDate: when,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'nestly_tasks',
+            'Tasks',
+            channelDescription: 'Reminders for open nest tasks',
+            importance: Importance.defaultImportance,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: const NotificationIntent(
+          NotificationDestination.tasks,
+        ).payload,
+      );
+      i++;
+      if (i >= 20) break;
+    }
+  }
+}
+
+/// Maps Nestly relative due labels to a calendar day (local midnight).
+DateTime? _dueDateForTaskLabel(String label, {required DateTime now}) {
+  return TaskDueLabel.dueDateFor(label, now: now);
 }

@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/member_roles.dart';
 import '../providers/providers.dart';
+import '../state/school_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/first_run_empty_card.dart';
@@ -12,19 +14,13 @@ import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
 
-class SchoolScreen extends ConsumerStatefulWidget {
+class SchoolScreen extends ConsumerWidget {
   const SchoolScreen({super.key});
 
   @override
-  ConsumerState<SchoolScreen> createState() => _SchoolScreenState();
-}
-
-class _SchoolScreenState extends ConsumerState<SchoolScreen> {
-  static const _kinds = ['All', 'School', 'Sports', 'Pickup', 'Club'];
-  String _filter = 'All';
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ui = ref.watch(schoolUiProvider);
+    final uiCtrl = ref.read(schoolUiProvider.notifier);
     final itemsAsync = ref.watch(schoolActivitiesProvider);
     final members = ref.watch(membersProvider).valueOrNull ?? const [];
     final now = DateTime.now();
@@ -36,7 +32,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
         title: const Text('School & activities'),
         actions: [
           IconButton(
-            onPressed: () => _showSheet(context),
+            onPressed: () => _showSheet(context, ref),
             icon: const Icon(Icons.add_rounded),
           ),
         ],
@@ -46,9 +42,9 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
         error: (_, _) =>
             const Center(child: Text('Could not load activities.')),
         data: (all) {
-          final items = _filter == 'All'
+          final items = ui.filter.isAll
               ? all
-              : all.where((i) => i.kind == _filter).toList();
+              : all.where((i) => i.kind == ui.filter.label).toList();
           final due = items.where((i) => !i.nextAt.isAfter(endToday)).toList();
           final upcoming = items
               .where((i) => i.nextAt.isAfter(endToday))
@@ -68,11 +64,11 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    for (final kind in _kinds) ...[
+                    for (final kind in SchoolKind.values) ...[
                       SoftPill(
-                        label: kind,
-                        selected: _filter == kind,
-                        onTap: () => setState(() => _filter = kind),
+                        label: kind.label,
+                        selected: ui.filter == kind,
+                        onTap: () => uiCtrl.setFilter(kind),
                       ),
                       const SizedBox(width: 6),
                     ],
@@ -86,12 +82,12 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                   color: all.isEmpty ? AppColors.accent : null,
                   title: all.isEmpty
                       ? 'Add your first school run'
-                      : 'Nothing in $_filter',
+                      : 'Nothing in ${ui.filter.label}',
                   body: all.isEmpty
                       ? 'Pickups, sports, and clubs — mark done to roll the next date, or turn one into a same-day pickup task.'
-                      : 'Try another filter, or add a $_filter activity.',
+                      : 'Try another filter, or add a ${ui.filter.label} activity.',
                   actionLabel: 'Add activity',
-                  onAction: () => _showSheet(context),
+                  onAction: () => _showSheet(context, ref),
                 )
               else ...[
                 if (due.isNotEmpty) ...[
@@ -105,13 +101,15 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                             item: due[i],
                             member: _memberFor(members, due[i].memberId),
                             highlight: true,
-                            onOpen: () => _showSheet(context, existing: due[i]),
-                            onDone: () => _markDone(due[i]),
-                            onPickup: () => _pickup(due[i]),
-                            onCalendar: () => _toCalendar(due[i]),
-                            onSnooze: () => _snooze(due[i]),
-                            onSkip: () => _skip(due[i]),
-                            onDelete: () => _delete(due[i].id),
+                            onOpen: () =>
+                                _showSheet(context, ref, existing: due[i]),
+                            onDone: () => _markDone(context, ref, due[i]),
+                            onPickup: () => _pickup(context, ref, due[i]),
+                            onCalendar: () =>
+                                _toCalendar(context, ref, due[i]),
+                            onSnooze: () => _snooze(context, ref, due[i]),
+                            onSkip: () => _skip(context, ref, due[i]),
+                            onDelete: () => _delete(context, ref, due[i].id),
                           ),
                           if (i != due.length - 1)
                             const Divider(height: 1, indent: 68),
@@ -132,14 +130,20 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                             item: upcoming[i],
                             member: _memberFor(members, upcoming[i].memberId),
                             highlight: false,
-                            onOpen: () =>
-                                _showSheet(context, existing: upcoming[i]),
-                            onDone: () => _markDone(upcoming[i]),
-                            onPickup: () => _pickup(upcoming[i]),
-                            onCalendar: () => _toCalendar(upcoming[i]),
-                            onSnooze: () => _snooze(upcoming[i]),
-                            onSkip: () => _skip(upcoming[i]),
-                            onDelete: () => _delete(upcoming[i].id),
+                            onOpen: () => _showSheet(
+                              context,
+                              ref,
+                              existing: upcoming[i],
+                            ),
+                            onDone: () => _markDone(context, ref, upcoming[i]),
+                            onPickup: () => _pickup(context, ref, upcoming[i]),
+                            onCalendar: () =>
+                                _toCalendar(context, ref, upcoming[i]),
+                            onSnooze: () =>
+                                _snooze(context, ref, upcoming[i]),
+                            onSkip: () => _skip(context, ref, upcoming[i]),
+                            onDelete: () =>
+                                _delete(context, ref, upcoming[i].id),
                           ),
                           if (i != upcoming.length - 1)
                             const Divider(height: 1, indent: 68),
@@ -155,336 +159,344 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
       ),
     );
   }
+}
 
-  NestMember? _memberFor(List<NestMember> members, String memberId) {
-    if (memberId.isEmpty) return null;
-    for (final m in members) {
-      if (m.id == memberId) return m;
-    }
-    return null;
+NestMember? _memberFor(List<NestMember> members, String memberId) {
+  if (memberId.isEmpty) return null;
+  for (final m in members) {
+    if (m.id == memberId) return m;
   }
+  return null;
+}
 
-  Future<void> _markDone(SchoolActivity item) async {
-    await ref.read(schoolRepositoryProvider).markDone(item);
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-  }
+Future<void> _markDone(
+  BuildContext context,
+  WidgetRef ref,
+  SchoolActivity item,
+) async {
+  await ref.read(schoolRepositoryProvider).markDone(item);
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
+}
 
-  Future<void> _pickup(SchoolActivity item) async {
-    final assignee =
-        await ref.read(schoolRepositoryProvider).createPickupTask(item);
-    await syncAfterWrite(ref, context: context);
-    if (!mounted) return;
-    final who = (assignee == null || assignee.trim().isEmpty)
-        ? 'today'
-        : 'for ${assignee.split(' ').first}';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Pickup task added $who')),
-    );
-  }
+Future<void> _pickup(
+  BuildContext context,
+  WidgetRef ref,
+  SchoolActivity item,
+) async {
+  final assignee =
+      await ref.read(schoolRepositoryProvider).createPickupTask(item);
+  await syncAfterWrite(ref, context: context);
+  if (!context.mounted) return;
+  final who = (assignee == null || assignee.trim().isEmpty)
+      ? 'today'
+      : 'for ${assignee.split(' ').first}';
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Pickup task added $who')),
+  );
+}
 
-  Future<void> _toCalendar(SchoolActivity item) async {
-    await ref.read(schoolRepositoryProvider).createCalendarEvent(item);
-    await syncAfterWrite(ref, context: context);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Calendar event added · ${DateFormat.MMMd().format(item.nextAt)}',
-        ),
+Future<void> _toCalendar(
+  BuildContext context,
+  WidgetRef ref,
+  SchoolActivity item,
+) async {
+  await ref.read(schoolRepositoryProvider).createCalendarEvent(item);
+  await syncAfterWrite(ref, context: context);
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        'Calendar event added · ${DateFormat.MMMd().format(item.nextAt)}',
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Future<void> _snooze(SchoolActivity item) async {
-    await ref.read(schoolRepositoryProvider).snooze(item);
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Snoozed ${item.title} by 1 day')),
-    );
-  }
+Future<void> _snooze(
+  BuildContext context,
+  WidgetRef ref,
+  SchoolActivity item,
+) async {
+  await ref.read(schoolRepositoryProvider).snooze(item);
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Snoozed ${item.title} by 1 day')),
+  );
+}
 
-  Future<void> _skip(SchoolActivity item) async {
-    await ref.read(schoolRepositoryProvider).skipCycle(item);
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Skipped ${item.title} this cycle')),
-    );
-  }
+Future<void> _skip(
+  BuildContext context,
+  WidgetRef ref,
+  SchoolActivity item,
+) async {
+  await ref.read(schoolRepositoryProvider).skipCycle(item);
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Skipped ${item.title} this cycle')),
+  );
+}
 
-  Future<void> _delete(String id) async {
-    await ref.read(schoolRepositoryProvider).delete(id);
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
-  }
+Future<void> _delete(BuildContext context, WidgetRef ref, String id) async {
+  await ref.read(schoolRepositoryProvider).delete(id);
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
+}
 
-  Future<void> _showSheet(
-    BuildContext context, {
-    SchoolActivity? existing,
-  }) async {
-    final members = List<NestMember>.from(
-      ref.read(membersProvider).valueOrNull ?? const [],
-    )..sort((a, b) => MemberRoles.kidsFirst(a.role, b.role));
+Future<void> _showSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  SchoolActivity? existing,
+}) async {
+  final members = List<NestMember>.from(
+    ref.read(membersProvider).valueOrNull ?? const [],
+  )..sort((a, b) => MemberRoles.kidsFirst(a.role, b.role));
 
-    final result =
-        await showModalBottomSheet<
-          ({
-            String title,
-            String kind,
-            int cadence,
-            String location,
-            String memberId,
-            String notes,
-            DateTime nextAt,
-            bool deleteItem,
-          })
-        >(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: AppColors.surface,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          builder: (context) {
-            var kind = existing?.kind ?? 'School';
-            var cadence = existing?.cadenceDays ?? 7;
-            var memberId = existing?.memberId.isNotEmpty == true
-                ? existing!.memberId
-                : (members.isEmpty ? '' : members.first.id);
-            var nextAt =
-                existing?.nextAt ?? DateTime.now().add(Duration(days: cadence));
-            return OwnedControllers(
-              count: 3,
-              builder: (context, c) {
-                if (c[0].text.isEmpty && existing != null) {
-                  c[0].text = existing.title;
-                }
-                if (c[1].text.isEmpty && existing != null) {
-                  c[1].text = existing.location;
-                }
-                if (c[2].text.isEmpty && existing != null) {
-                  c[2].text = existing.notes;
-                }
-                return StatefulBuilder(
-                  builder: (context, setModal) {
-                    return sheetBody(
-                      context: context,
+  final result = await showModalBottomSheet<
+      ({
+        String title,
+        String kind,
+        int cadence,
+        String location,
+        String memberId,
+        String notes,
+        DateTime nextAt,
+        bool deleteItem,
+      })>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      var kind = SchoolKind.parse(existing?.kind ?? SchoolKind.school.label);
+      var cadence = existing?.cadenceDays ?? 7;
+      var memberId = existing?.memberId.isNotEmpty == true
+          ? existing!.memberId
+          : (members.isEmpty ? '' : members.first.id);
+      var nextAt =
+          existing?.nextAt ?? DateTime.now().add(Duration(days: cadence));
+      return OwnedControllers(
+        count: 3,
+        builder: (context, c) {
+          if (c[0].text.isEmpty && existing != null) {
+            c[0].text = existing.title;
+          }
+          if (c[1].text.isEmpty && existing != null) {
+            c[1].text = existing.location;
+          }
+          if (c[2].text.isEmpty && existing != null) {
+            c[2].text = existing.notes;
+          }
+          return StatefulBuilder(
+            builder: (context, setModal) {
+              return sheetBody(
+                context: context,
+                children: [
+                  sheetHandle(),
+                  const SizedBox(height: 6),
+                  Text(
+                    existing == null ? 'New activity' : 'Edit activity',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c[0],
+                    autofocus: existing == null,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Soccer practice',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c[1],
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'Location (optional)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: c[2],
+                    minLines: 2,
+                    maxLines: 3,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'Notes (optional)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final k in SchoolKind.stored)
+                        ChoiceChip(
+                          label: Text(k.label),
+                          selected: kind == k,
+                          showCheckmark: false,
+                          selectedColor: AppColors.primary,
+                          checkmarkColor: AppColors.onDark,
+                          labelStyle: TextStyle(
+                            color:
+                                kind == k ? AppColors.onDark : AppColors.ink,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          onSelected: (_) => setModal(() => kind = k),
+                        ),
+                    ],
+                  ),
+                  if (members.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Who is this for?',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
                       children: [
-                        sheetHandle(),
-                        const SizedBox(height: 6),
-                        Text(
-                          existing == null ? 'New activity' : 'Edit activity',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                        for (final m in members)
+                          SoftPill(
+                            label:
+                                '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
+                            selected: memberId == m.id,
+                            onTap: () => setModal(() => memberId = m.id),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: c[0],
-                          autofocus: existing == null,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. Soccer practice',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: c[1],
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Location (optional)',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: c[2],
-                          minLines: 2,
-                          maxLines: 3,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Notes (optional)',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            for (final k in const [
-                              'School',
-                              'Sports',
-                              'Pickup',
-                              'Club',
-                            ])
-                              ChoiceChip(
-                                label: Text(k),
-                                selected: kind == k,
-                                showCheckmark: false,
-                                selectedColor: AppColors.primary,
-                                checkmarkColor: AppColors.onDark,
-                                labelStyle: TextStyle(
-                                  color: kind == k
-                                      ? AppColors.onDark
-                                      : AppColors.ink,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                onSelected: (_) => setModal(() => kind = k),
-                              ),
-                          ],
-                        ),
-                        if (members.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Who is this for?',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 6,
-                            children: [
-                              for (final m in members)
-                                SoftPill(
-                                  label:
-                                      '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
-                                  selected: memberId == m.id,
-                                  onTap: () => setModal(() => memberId = m.id),
-                                ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        SoftPill(
-                          label:
-                              'Next · ${DateFormat('EEE, MMM d').format(nextAt)}',
-                          selected: true,
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: nextAt,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2035),
-                            );
-                            if (picked == null) return;
-                            setModal(() {
-                              nextAt = DateTime(
-                                picked.year,
-                                picked.month,
-                                picked.day,
-                              );
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Every $cadence day${cadence == 1 ? '' : 's'}',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        Slider(
-                          value: cadence.toDouble(),
-                          min: 1,
-                          max: 30,
-                          divisions: 29,
-                          label: '$cadence days',
-                          onChanged: (v) => setModal(() => cadence = v.round()),
-                        ),
-                        FilledButton(
-                          onPressed: () {
-                            final name = c[0].text.trim();
-                            if (name.isEmpty) {
-                              Navigator.pop(context);
-                              return;
-                            }
-                            Navigator.pop(context, (
-                              title: name,
-                              kind: kind,
-                              cadence: cadence,
-                              location: c[1].text.trim(),
-                              memberId: memberId,
-                              notes: c[2].text.trim(),
-                              nextAt: nextAt,
-                              deleteItem: false,
-                            ));
-                          },
-                          child: Text(
-                            existing == null ? 'Add' : 'Save changes',
-                          ),
-                        ),
-                        if (existing != null) ...[
-                          const SizedBox(height: 8),
-                          OutlinedButton(
-                            onPressed: () => Navigator.pop(context, (
-                              title: existing.title,
-                              kind: existing.kind,
-                              cadence: existing.cadenceDays,
-                              location: existing.location,
-                              memberId: existing.memberId,
-                              notes: existing.notes,
-                              nextAt: existing.nextAt,
-                              deleteItem: true,
-                            )),
-                            child: const Text('Delete activity'),
-                          ),
-                        ],
                       ],
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
-
-    if (result == null) return;
-
-    if (result.deleteItem && existing != null) {
-      await _delete(existing.id);
-      return;
-    }
-
-    if (existing == null) {
-      await ref
-          .read(schoolRepositoryProvider)
-          .add(
-            title: result.title,
-            kind: result.kind,
-            cadenceDays: result.cadence,
-            location: result.location,
-            memberId: result.memberId,
-            notes: result.notes,
-            nextAt: result.nextAt,
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  SoftPill(
+                    label: 'Next · ${DateFormat('EEE, MMM d').format(nextAt)}',
+                    selected: true,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: nextAt,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                      );
+                      if (picked == null) return;
+                      setModal(() {
+                        nextAt = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Every $cadence day${cadence == 1 ? '' : 's'}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Slider(
+                    value: cadence.toDouble(),
+                    min: 1,
+                    max: 30,
+                    divisions: 29,
+                    label: '$cadence days',
+                    onChanged: (v) => setModal(() => cadence = v.round()),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final name = c[0].text.trim();
+                      if (name.isEmpty) {
+                        Navigator.pop(context);
+                        return;
+                      }
+                      Navigator.pop(context, (
+                        title: name,
+                        kind: kind.label,
+                        cadence: cadence,
+                        location: c[1].text.trim(),
+                        memberId: memberId,
+                        notes: c[2].text.trim(),
+                        nextAt: nextAt,
+                        deleteItem: false,
+                      ));
+                    },
+                    child: Text(
+                      existing == null ? 'Add' : 'Save changes',
+                    ),
+                  ),
+                  if (existing != null) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context, (
+                        title: existing.title,
+                        kind: existing.kind,
+                        cadence: existing.cadenceDays,
+                        location: existing.location,
+                        memberId: existing.memberId,
+                        notes: existing.notes,
+                        nextAt: existing.nextAt,
+                        deleteItem: true,
+                      )),
+                      child: const Text('Delete activity'),
+                    ),
+                  ],
+                ],
+              );
+            },
           );
-    } else {
-      await ref
-          .read(schoolRepositoryProvider)
-          .update(
-            id: existing.id,
-            title: result.title,
-            kind: result.kind,
-            cadenceDays: result.cadence,
-            location: result.location,
-            memberId: result.memberId,
-            notes: result.notes,
-            nextAt: result.nextAt,
-          );
-    }
-    await syncAfterWrite(ref, context: context);
-    try {
-      await ref.read(notificationServiceProvider).rescheduleReminders();
-    } catch (_) {}
+        },
+      );
+    },
+  );
+
+  if (result == null) return;
+
+  if (result.deleteItem && existing != null) {
+    await _delete(context, ref, existing.id);
+    return;
   }
+
+  if (existing == null) {
+    await ref.read(schoolRepositoryProvider).add(
+          title: result.title,
+          kind: result.kind,
+          cadenceDays: result.cadence,
+          location: result.location,
+          memberId: result.memberId,
+          notes: result.notes,
+          nextAt: result.nextAt,
+        );
+  } else {
+    await ref.read(schoolRepositoryProvider).update(
+          id: existing.id,
+          title: result.title,
+          kind: result.kind,
+          cadenceDays: result.cadence,
+          location: result.location,
+          memberId: result.memberId,
+          notes: result.notes,
+          nextAt: result.nextAt,
+        );
+  }
+  await syncAfterWrite(ref, context: context);
+  try {
+    await ref.read(notificationServiceProvider).rescheduleReminders();
+  } catch (_) {}
 }
 
 class _SchoolRow extends StatelessWidget {
@@ -574,28 +586,37 @@ class _SchoolRow extends StatelessWidget {
               ),
             ),
           ),
-          PopupMenuButton<String>(
+          PopupMenuButton<SchoolItemAction>(
             icon: const Icon(Icons.more_vert_rounded, color: AppColors.inkMuted),
             onSelected: (value) {
               switch (value) {
-                case 'calendar':
+                case SchoolItemAction.calendar:
                   onCalendar();
-                case 'snooze':
+                case SchoolItemAction.snooze:
                   onSnooze();
-                case 'skip':
+                case SchoolItemAction.skip:
                   onSkip();
-                case 'delete':
+                case SchoolItemAction.delete:
                   onDelete();
               }
             },
             itemBuilder: (context) => const [
               PopupMenuItem(
-                value: 'calendar',
+                value: SchoolItemAction.calendar,
                 child: Text('Create calendar event'),
               ),
-              PopupMenuItem(value: 'snooze', child: Text('Snooze 1 day')),
-              PopupMenuItem(value: 'skip', child: Text('Skip this cycle')),
-              PopupMenuItem(value: 'delete', child: Text('Delete')),
+              PopupMenuItem(
+                value: SchoolItemAction.snooze,
+                child: Text('Snooze 1 day'),
+              ),
+              PopupMenuItem(
+                value: SchoolItemAction.skip,
+                child: Text('Skip this cycle'),
+              ),
+              PopupMenuItem(
+                value: SchoolItemAction.delete,
+                child: Text('Delete'),
+              ),
             ],
           ),
         ],

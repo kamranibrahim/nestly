@@ -1,27 +1,6 @@
-/// Maps timeline copy to a module so Home / Timeline can deep-link.
-enum TimelineModule {
-  all,
-  tasks,
-  shopping,
-  care,
-  meals,
-  vault,
-  school,
-  other,
-}
+import 'enums.dart';
 
-extension TimelineModuleLabel on TimelineModule {
-  String get label => switch (this) {
-        TimelineModule.all => 'All',
-        TimelineModule.tasks => 'Tasks',
-        TimelineModule.shopping => 'Lists',
-        TimelineModule.care => 'Care',
-        TimelineModule.meals => 'Meals',
-        TimelineModule.vault => 'Vault',
-        TimelineModule.school => 'School',
-        TimelineModule.other => 'Other',
-      };
-}
+export 'enums.dart' show TimelineModule;
 
 TimelineModule classifyTimelineMessage(String message) {
   final m = message.toLowerCase();

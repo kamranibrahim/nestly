@@ -3,24 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/member_roles.dart';
 import '../data/repositories.dart';
 import '../providers/providers.dart';
+import '../state/expenses_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
+import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
-
-const _expenseCategories = [
-  'Groceries',
-  'Transport',
-  'Kids',
-  'Home',
-  'Dining',
-  'Health',
-  'General',
-];
 
 class ExpensesScreen extends ConsumerWidget {
   const ExpensesScreen({super.key});
@@ -28,20 +21,26 @@ class ExpensesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currency = NumberFormat.simpleCurrency();
+    final ui = ref.watch(expensesUiProvider);
+    final controller = ref.read(expensesUiProvider.notifier);
     final expensesAsync = ref.watch(expensesProvider);
     final spent = ref.watch(monthSpendProvider).valueOrNull ?? 0;
-    final budget = ref.watch(monthBudgetProvider).valueOrNull ??
+    final budget =
+        ref.watch(monthBudgetProvider).valueOrNull ??
         ExpenseRepository.defaultMonthBudget;
     final categoryTotals =
         ref.watch(monthCategoryTotalsProvider).valueOrNull ?? const [];
     final billsAsync = ref.watch(billsProvider);
-    final safeBudget = budget <= 0 ? ExpenseRepository.defaultMonthBudget : budget;
+    final safeBudget = budget <= 0
+        ? ExpenseRepository.defaultMonthBudget
+        : budget;
     final progress = (spent / safeBudget).clamp(0.0, 1.0).toDouble();
     final over = spent > safeBudget;
     final remaining = safeBudget - spent;
     final expenses = expensesAsync.valueOrNull ?? const <Expense>[];
     final bills = billsAsync.valueOrNull ?? const <Bill>[];
     final emptyNest = expenses.isEmpty && bills.isEmpty;
+    final q = ui.searchQuery.trim().toLowerCase();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -142,47 +141,59 @@ class ExpensesScreen extends ConsumerWidget {
           ],
           if (emptyNest) ...[
             const SizedBox(height: 6),
-            NestCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Set up your nest budget',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Pick a monthly spending target, log a few expenses, and track bills so nothing slips.',
-                    style: TextStyle(color: AppColors.inkMuted),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () =>
-                        showBudgetSheet(context, ref, current: safeBudget),
-                    child: const Text('Set month budget'),
-                  ),
-                  const SizedBox(height: 6),
-                  OutlinedButton(
-                    onPressed: () => showBillSheet(context, ref),
-                    child: const Text('Add a bill'),
-                  ),
-                ],
-              ),
+            FirstRunEmptyCard(
+              icon: Icons.account_balance_wallet_rounded,
+              color: AppColors.tileYellow,
+              title: 'Set up your nest budget',
+              body:
+                  'Pick a monthly spending target, log a few expenses, and track bills so nothing slips.',
+              actionLabel: 'Set month budget',
+              onAction: () =>
+                  showBudgetSheet(context, ref, current: safeBudget),
+            ),
+            const SizedBox(height: 6),
+            OutlinedButton(
+              onPressed: () => showBillSheet(context, ref),
+              child: const Text('Add a bill'),
             ),
           ],
+          const SizedBox(height: 6),
+          NestCard(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: TextField(
+              controller: controller.searchController,
+              onChanged: controller.setSearchQuery,
+              decoration: const InputDecoration(
+                hintText: 'Search expenses & bills',
+                border: InputBorder.none,
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+            ),
+          ),
           const SizedBox(height: 6),
           const SectionLabel('Recent'),
           expensesAsync.when(
             loading: () => const NestLoadingSkeleton(itemCount: 2),
             error: (e, _) => NestCard(child: Text('$e')),
             data: (items) {
-              if (items.isEmpty) {
+              final filtered = q.isEmpty
+                  ? items
+                  : items
+                        .where(
+                          (e) =>
+                              e.title.toLowerCase().contains(q) ||
+                              e.category.toLowerCase().contains(q) ||
+                              e.paidBy.toLowerCase().contains(q),
+                        )
+                        .toList();
+              if (filtered.isEmpty) {
                 return NestCard(
                   child: Text(
-                    emptyNest
-                        ? 'No expenses yet — tap + when you spend.'
-                        : 'No expenses this nest yet. Tap + to add one.',
+                    items.isEmpty
+                        ? (emptyNest
+                              ? 'No expenses yet — tap + when you spend.'
+                              : 'No expenses this nest yet. Tap + to add one.')
+                        : 'No expenses match this search.',
                     style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 );
@@ -191,10 +202,13 @@ class ExpensesScreen extends ConsumerWidget {
                 padding: EdgeInsets.zero,
                 child: Column(
                   children: [
-                    for (var i = 0; i < items.length; i++) ...[
+                    for (var i = 0; i < filtered.length; i++) ...[
                       ListTile(
-                        onTap: () =>
-                            showExpenseSheet(context, ref, existing: items[i]),
+                        onTap: () => showExpenseSheet(
+                          context,
+                          ref,
+                          existing: filtered[i],
+                        ),
                         leading: const CircleAvatar(
                           backgroundColor: AppColors.primarySoft,
                           child: Icon(
@@ -204,19 +218,19 @@ class ExpensesScreen extends ConsumerWidget {
                           ),
                         ),
                         title: Text(
-                          items[i].title,
+                          filtered[i].title,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: Text(
-                          '${items[i].category}'
-                          '${items[i].paidBy.isEmpty ? '' : ' · ${items[i].paidBy}'}',
+                          '${filtered[i].category}'
+                          '${filtered[i].paidBy.isEmpty ? '' : ' · ${filtered[i].paidBy}'}',
                         ),
                         trailing: Text(
-                          currency.format(items[i].amount),
+                          currency.format(filtered[i].amount),
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
-                      if (i != items.length - 1)
+                      if (i != filtered.length - 1)
                         const Divider(height: 1, indent: 72),
                     ],
                   ],
@@ -238,12 +252,19 @@ class ExpensesScreen extends ConsumerWidget {
             loading: () => const SizedBox.shrink(),
             error: (e, _) => Text('$e'),
             data: (billsList) {
-              if (billsList.isEmpty) {
+              final filtered = q.isEmpty
+                  ? billsList
+                  : billsList
+                        .where((b) => b.title.toLowerCase().contains(q))
+                        .toList();
+              if (filtered.isEmpty) {
                 return NestCard(
                   child: Text(
-                    emptyNest
-                        ? 'Track rent, utilities, and subscriptions here.'
-                        : 'No bills tracked yet.',
+                    billsList.isEmpty
+                        ? (emptyNest
+                              ? 'Track rent, utilities, and subscriptions here.'
+                              : 'No bills tracked yet.')
+                        : 'No bills match this search.',
                     style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 );
@@ -252,22 +273,16 @@ class ExpensesScreen extends ConsumerWidget {
                 padding: EdgeInsets.zero,
                 child: Column(
                   children: [
-                    for (var i = 0; i < billsList.length; i++) ...[
+                    for (var i = 0; i < filtered.length; i++) ...[
                       _BillTile(
-                        bill: billsList[i],
+                        bill: filtered[i],
                         currency: currency,
-                        onOpen: () => showBillSheet(
-                          context,
-                          ref,
-                          existing: billsList[i],
-                        ),
-                        onToggle: () => _toggleBillPaid(
-                          context,
-                          ref,
-                          billsList[i],
-                        ),
+                        onOpen: () =>
+                            showBillSheet(context, ref, existing: filtered[i]),
+                        onToggle: () =>
+                            _toggleBillPaid(context, ref, filtered[i]),
                       ),
-                      if (i != billsList.length - 1)
+                      if (i != filtered.length - 1)
                         const Divider(height: 1, indent: 56),
                     ],
                   ],
@@ -326,9 +341,9 @@ class ExpensesScreen extends ConsumerWidget {
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () async {
-            final latest = (await ref.read(billsProvider.future))
-                .where((b) => b.id == bill.id)
-                .firstOrNull;
+            final latest = (await ref.read(
+              billsProvider.future,
+            )).where((b) => b.id == bill.id).firstOrNull;
             final target = latest ?? bill.copyWith(paid: markingPaid);
             await ref.read(billRepositoryProvider).togglePaid(target);
             try {
@@ -379,8 +394,9 @@ class ExpensesScreen extends ConsumerWidget {
             TextField(
               controller: controller,
               autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Amount',
                 prefixText: '\$ ',
@@ -397,7 +413,13 @@ class ExpensesScreen extends ConsumerWidget {
               spacing: 8,
               runSpacing: 6,
               children: [
-                for (final amount in const [1000.0, 1500.0, 1800.0, 2500.0, 3000.0])
+                for (final amount in const [
+                  1000.0,
+                  1500.0,
+                  1800.0,
+                  2500.0,
+                  3000.0,
+                ])
                   SoftPill(
                     label: NumberFormat.simpleCurrency().format(amount),
                     selected: current == amount,
@@ -441,25 +463,25 @@ class ExpensesScreen extends ConsumerWidget {
       ref.read(membersProvider).valueOrNull ?? const [],
     )..sort((a, b) => MemberRoles.adultLikeFirst(a.role, b.role));
 
-    final result = await showModalBottomSheet<
-        ({
-          String title,
-          double amount,
-          String category,
-          String paidBy,
-          bool deleteExpense,
-        })>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => _ExpenseSheet(
-        existing: existing,
-        members: members,
-      ),
-    );
+    final result =
+        await showModalBottomSheet<
+          ({
+            String title,
+            double amount,
+            String category,
+            String paidBy,
+            bool deleteExpense,
+          })
+        >(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: AppColors.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) =>
+              _ExpenseSheet(existing: existing, members: members),
+        );
 
     if (result == null) return;
 
@@ -472,14 +494,18 @@ class ExpensesScreen extends ConsumerWidget {
     if (result.title.isEmpty) return;
 
     if (existing == null) {
-      await ref.read(expenseRepositoryProvider).addExpense(
+      await ref
+          .read(expenseRepositoryProvider)
+          .addExpense(
             title: result.title,
             amount: result.amount,
             category: result.category,
             paidBy: result.paidBy,
           );
     } else {
-      await ref.read(expenseRepositoryProvider).updateExpense(
+      await ref
+          .read(expenseRepositoryProvider)
+          .updateExpense(
             id: existing.id,
             title: result.title,
             amount: result.amount,
@@ -495,21 +521,18 @@ class ExpensesScreen extends ConsumerWidget {
     WidgetRef ref, {
     Bill? existing,
   }) async {
-    final result = await showModalBottomSheet<
-        ({
-          String title,
-          double amount,
-          DateTime dueAt,
-          bool deleteBill,
-        })>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => _BillSheet(existing: existing),
-    );
+    final result =
+        await showModalBottomSheet<
+          ({String title, double amount, DateTime dueAt, bool deleteBill})
+        >(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: AppColors.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) => _BillSheet(existing: existing),
+        );
 
     if (result == null) return;
 
@@ -523,13 +546,17 @@ class ExpensesScreen extends ConsumerWidget {
     if (result.title.isEmpty) return;
 
     if (existing == null) {
-      await ref.read(billRepositoryProvider).addBill(
+      await ref
+          .read(billRepositoryProvider)
+          .addBill(
             title: result.title,
             amount: result.amount,
             dueAt: result.dueAt,
           );
     } else {
-      await ref.read(billRepositoryProvider).updateBill(
+      await ref
+          .read(billRepositoryProvider)
+          .updateBill(
             id: existing.id,
             title: result.title,
             amount: result.amount,
@@ -567,8 +594,8 @@ class _BillTile extends StatelessWidget {
           color: bill.paid
               ? AppColors.tileGreen
               : overdue
-                  ? AppColors.danger
-                  : AppColors.tileOrange,
+              ? AppColors.danger
+              : AppColors.tileOrange,
         ),
       ),
       title: Text(
@@ -597,10 +624,7 @@ class _BillTile extends StatelessWidget {
 }
 
 class _ExpenseSheet extends StatefulWidget {
-  const _ExpenseSheet({
-    required this.members,
-    this.existing,
-  });
+  const _ExpenseSheet({required this.members, this.existing});
 
   final List<NestMember> members;
   final Expense? existing;
@@ -621,11 +645,13 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
     final existing = widget.existing;
     _title = TextEditingController(text: existing?.title ?? '');
     _amount = TextEditingController(
-      text: existing == null ? '' : existing.amount.toStringAsFixed(
-            existing.amount == existing.amount.roundToDouble() ? 0 : 2,
-          ),
+      text: existing == null
+          ? ''
+          : existing.amount.toStringAsFixed(
+              existing.amount == existing.amount.roundToDouble() ? 0 : 2,
+            ),
     );
-    _category = existing?.category ?? 'General';
+    _category = existing?.category ?? ExpenseCategory.general.label;
     _paidBy = existing?.paidBy ?? '';
   }
 
@@ -643,24 +669,21 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
       Navigator.pop(context);
       return;
     }
-    Navigator.pop(
-      context,
-      (
-        title: name,
-        amount: parsed ?? 0,
-        category: _category,
-        paidBy: _paidBy,
-        deleteExpense: deleteExpense,
-      ),
-    );
+    Navigator.pop(context, (
+      title: name,
+      amount: parsed ?? 0,
+      category: _category,
+      paidBy: _paidBy,
+      deleteExpense: deleteExpense,
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     final existing = widget.existing;
     final cats = {
-      ..._expenseCategories,
-      if (!_expenseCategories.contains(_category)) _category,
+      ...ExpenseCategory.values.map((c) => c.label),
+      if (!ExpenseCategory.values.any((c) => c.label == _category)) _category,
     }.toList();
 
     return sheetBody(
@@ -687,10 +710,7 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
           onSubmitted: (_) => _submit(),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Category',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
+        const Text('Category', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -706,10 +726,7 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
         ),
         if (widget.members.isNotEmpty) ...[
           const SizedBox(height: 12),
-          const Text(
-            'Paid by',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
+          const Text('Paid by', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -767,12 +784,15 @@ class _BillSheetState extends State<_BillSheet> {
     final existing = widget.existing;
     _title = TextEditingController(text: existing?.title ?? '');
     _amount = TextEditingController(
-      text: existing == null ? '' : existing.amount.toStringAsFixed(
-            existing.amount == existing.amount.roundToDouble() ? 0 : 2,
-          ),
+      text: existing == null
+          ? ''
+          : existing.amount.toStringAsFixed(
+              existing.amount == existing.amount.roundToDouble() ? 0 : 2,
+            ),
     );
     final now = DateTime.now();
-    _dueAt = existing?.dueAt ??
+    _dueAt =
+        existing?.dueAt ??
         DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
   }
 
@@ -790,15 +810,12 @@ class _BillSheetState extends State<_BillSheet> {
       Navigator.pop(context);
       return;
     }
-    Navigator.pop(
-      context,
-      (
-        title: name,
-        amount: parsed ?? 0,
-        dueAt: _dueAt,
-        deleteBill: deleteBill,
-      ),
-    );
+    Navigator.pop(context, (
+      title: name,
+      amount: parsed ?? 0,
+      dueAt: _dueAt,
+      deleteBill: deleteBill,
+    ));
   }
 
   Future<void> _pickDue() async {
@@ -856,8 +873,11 @@ class _BillSheetState extends State<_BillSheet> {
                 onTap: () {
                   final now = DateTime.now();
                   setState(() {
-                    _dueAt = DateTime(now.year, now.month, now.day)
-                        .add(Duration(days: days));
+                    _dueAt = DateTime(
+                      now.year,
+                      now.month,
+                      now.day,
+                    ).add(Duration(days: days));
                   });
                 },
               ),

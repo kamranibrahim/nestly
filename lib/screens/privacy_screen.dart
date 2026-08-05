@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/auth_errors.dart';
 import '../data/db/app_database.dart';
 import '../data/nest_privacy_service.dart';
+import '../state/privacy_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/shimmer.dart';
@@ -78,9 +79,10 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This removes $email from your nest, deletes your Nestly '
-              'account, and clears data on this device. Other family members '
-              'keep the nest. This cannot be undone.',
+              'This removes $email from Nestly and clears data on this device. '
+              'If you are the last member, the nest (including vault files) is '
+              'deleted. Otherwise other family members keep the nest. '
+              'This cannot be undone.',
               style: const TextStyle(height: 1.4),
             ),
             const SizedBox(height: 16),
@@ -126,46 +128,43 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   }
 }
 
+Future<void> _export(BuildContext context, WidgetRef ref) async {
+  final ctrl = ref.read(privacyUiProvider.notifier);
+  ctrl.setBusy(true);
+  try {
+    await ref.read(nestPrivacyServiceProvider).shareExport();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Export ready to share')),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Export failed: $e')),
+    );
+  } finally {
+    ctrl.setBusy(false);
+  }
+}
+
+Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
+  final ctrl = ref.read(privacyUiProvider.notifier);
+  ctrl.setBusy(true);
+  try {
+    await confirmAndDeleteAccount(context, ref);
+  } finally {
+    ctrl.setBusy(false);
+  }
+}
+
 /// In-app privacy summary for store closed testing / review.
-class PrivacyScreen extends ConsumerStatefulWidget {
+class PrivacyScreen extends ConsumerWidget {
   const PrivacyScreen({super.key});
 
   @override
-  ConsumerState<PrivacyScreen> createState() => _PrivacyScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final busy = ref.watch(privacyUiProvider).busy;
 
-class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
-  bool _busy = false;
-
-  Future<void> _export() async {
-    setState(() => _busy = true);
-    try {
-      await ref.read(nestPrivacyServiceProvider).shareExport();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Export ready to share')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _deleteAccount() async {
-    setState(() => _busy = true);
-    try {
-      await confirmAndDeleteAccount(context, ref);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Privacy')),
@@ -322,7 +321,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           const SizedBox(height: 10),
           const SectionLabel('Your controls'),
           NestCard(
-            onTap: _busy ? null : _export,
+            onTap: busy ? null : () => _export(context, ref),
             child: Row(
               children: [
                 const Icon(Icons.download_rounded, color: AppColors.accentDeep),
@@ -347,7 +346,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                     ],
                   ),
                 ),
-                if (_busy)
+                if (busy)
                   const SizedBox(
                     width: 18,
                     height: 18,
@@ -363,7 +362,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           ),
           const SizedBox(height: 6),
           NestCard(
-            onTap: _busy ? null : _deleteAccount,
+            onTap: busy ? null : () => _deleteAccount(context, ref),
             child: const Row(
               children: [
                 Icon(Icons.delete_forever_rounded, color: AppColors.danger),

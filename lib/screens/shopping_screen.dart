@@ -2,62 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
+import '../data/enums.dart';
 import '../data/sync_controller.dart';
 import '../providers/providers.dart';
+import '../state/shopping_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/first_run_empty_card.dart';
 import '../widgets/shimmer.dart';
 
-const _shopCategories = [
-  'Produce',
-  'Dairy',
-  'Meat',
-  'Bakery',
-  'Pantry',
-  'Frozen',
-  'Household',
-  'General',
-  'Meals',
-];
-
 const _qtyPresets = ['1', '2', '3', '6', '12', '1 kg', '2 L'];
 
-class ShoppingScreen extends ConsumerStatefulWidget {
+class ShoppingScreen extends ConsumerWidget {
   const ShoppingScreen({super.key});
 
-  @override
-  ConsumerState<ShoppingScreen> createState() => _ShoppingScreenState();
-}
-
-class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
-  final _addController = TextEditingController();
-  final _searchController = TextEditingController();
-  final _addFocus = FocusNode();
-  String _addCategory = 'General';
-  String _filterCategory = 'All';
-  String _searchQuery = '';
-  bool _boughtExpanded = false;
-
-  @override
-  void dispose() {
-    _addController.dispose();
-    _searchController.dispose();
-    _addFocus.dispose();
-    super.dispose();
-  }
-
-  Future<void> _addItem() async {
-    final name = _addController.text.trim();
-    if (name.isEmpty) return;
+  Future<void> _addItem(
+    BuildContext context,
+    WidgetRef ref,
+    ShoppingUiController controller,
+    String category,
+  ) async {
+    final name = controller.submitName();
+    if (name == null) return;
     await ref
         .read(shoppingRepositoryProvider)
-        .addItem(name: name, category: _addCategory);
-    _addController.clear();
+        .addItem(name: name, category: category);
+    controller.clearAddField();
     await syncAfterWrite(ref, context: context);
   }
 
-  Future<void> _clearBought() async {
+  Future<void> _clearBought(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -77,10 +51,10 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
     final cleared = await ref.read(shoppingRepositoryProvider).clearCompleted();
     await syncAfterWrite(ref, context: context);
-    if (!mounted) return;
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -92,10 +66,11 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     );
   }
 
-  List<ShoppingItem> _filtered(List<ShoppingItem> items) {
-    final q = _searchQuery.trim().toLowerCase();
+  List<ShoppingItem> _filtered(List<ShoppingItem> items, ShoppingUiState ui) {
+    final q = ui.searchQuery.trim().toLowerCase();
     return items.where((item) {
-      if (_filterCategory != 'All' && item.category != _filterCategory) {
+      if (!ui.filterCategory.isAll &&
+          item.category != ui.filterCategory.label) {
         return false;
       }
       if (q.isEmpty) return true;
@@ -105,15 +80,17 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(shoppingItemsProvider);
     final members = ref.watch(membersProvider).valueOrNull ?? const [];
+    final ui = ref.watch(shoppingUiProvider);
+    final controller = ref.read(shoppingUiProvider.notifier);
 
     ref.listen(pendingAddProvider, (prev, next) {
       if (next == PendingAdd.shopping) {
         ref.read(pendingAddProvider.notifier).state = PendingAdd.none;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _addFocus.requestFocus();
+          if (context.mounted) controller.addFocus.requestFocus();
         });
       }
     });
@@ -141,7 +118,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   ),
                   IconButton(
                     tooltip: 'Clear bought',
-                    onPressed: _clearBought,
+                    onPressed: () => _clearBought(context, ref),
                     icon: const Icon(Icons.cleaning_services_outlined),
                   ),
                 ],
@@ -154,7 +131,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                   child: Text('Could not load list. Try again later.'),
                 ),
                 data: (items) {
-                  final filtered = _filtered(items);
+                  final filtered = _filtered(items, ui);
                   final openItems = filtered
                       .where((i) => !i.done)
                       .toList(growable: false);
@@ -220,77 +197,76 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                       ),
                       const SizedBox(height: 6),
                       NestCard(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                        bordered: true,
+                        padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             TextField(
-                              controller: _addController,
-                              focusNode: _addFocus,
+                              controller: controller.addController,
+                              focusNode: controller.addFocus,
                               textInputAction: TextInputAction.done,
-                              onSubmitted: (_) => _addItem(),
+                              textCapitalization: TextCapitalization.sentences,
+                              onSubmitted: (_) => _addItem(
+                                context,
+                                ref,
+                                controller,
+                                ui.addCategory.label,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Add an item',
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
                                 filled: false,
-                                prefixIcon: IconButton(
-                                  onPressed: _addItem,
-                                  icon: const Icon(
-                                    Icons.add_circle_outline_rounded,
-                                    color: AppColors.ink,
+                                isDense: true,
+                                prefixIcon: const Icon(Icons.add_rounded),
+                                suffixIcon: IconButton(
+                                  tooltip: 'Add to list',
+                                  onPressed: () => _addItem(
+                                    context,
+                                    ref,
+                                    controller,
+                                    ui.addCategory.label,
                                   ),
-                                ),
-                                hintStyle: const TextStyle(
-                                  color: AppColors.inkMuted,
+                                  icon: const Icon(Icons.arrow_upward_rounded),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Category',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                                color: AppColors.inkMuted,
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+                              child: Row(
+                                children: [
+                                  for (final cat
+                                      in ShoppingCategory.listValues) ...[
+                                    SoftPill(
+                                      label: cat.label,
+                                      selected: ui.addCategory == cat,
+                                      onTap: () =>
+                                          controller.setAddCategory(cat),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: [
-                                for (final cat in _shopCategories)
-                                  SoftPill(
-                                    label: cat,
-                                    selected: _addCategory == cat,
-                                    onTap: () =>
-                                        setState(() => _addCategory = cat),
-                                  ),
-                              ],
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 6),
                       NestCard(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 4,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: TextField(
-                          controller: _searchController,
-                          onChanged: (value) =>
-                              setState(() => _searchQuery = value),
+                          controller: controller.searchController,
+                          onChanged: controller.setSearchQuery,
                           decoration: const InputDecoration(
                             hintText: 'Search list',
                             border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            filled: false,
                             prefixIcon: Icon(Icons.search_rounded),
-                            hintStyle: TextStyle(color: AppColors.inkMuted),
                           ),
                         ),
                       ),
@@ -300,18 +276,21 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                         child: Row(
                           children: [
                             SoftPill(
-                              label: 'All',
-                              selected: _filterCategory == 'All',
-                              onTap: () =>
-                                  setState(() => _filterCategory = 'All'),
+                              label: ShoppingListFilter.all.label,
+                              selected: ui.filterCategory.isAll,
+                              onTap: () => controller.setFilterCategory(
+                                ShoppingListFilter.all,
+                              ),
                             ),
                             const SizedBox(width: 6),
-                            for (final cat in _shopCategories) ...[
+                            for (final cat in ShoppingCategory.listValues) ...[
                               SoftPill(
-                                label: cat,
-                                selected: _filterCategory == cat,
-                                onTap: () =>
-                                    setState(() => _filterCategory = cat),
+                                label: cat.label,
+                                selected: ui.filterCategory ==
+                                    ShoppingListFilter.fromCategory(cat),
+                                onTap: () => controller.setFilterCategory(
+                                  ShoppingListFilter.fromCategory(cat),
+                                ),
                               ),
                               const SizedBox(width: 6),
                             ],
@@ -325,9 +304,9 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                           color: AppColors.tileOrange,
                           title: 'Start the grocery list',
                           body:
-                              'Add milk, eggs, or anything else — pick a category, then tap +.',
+                              'Add milk, eggs, or anything else — pick a category in the field, then add.',
                           actionLabel: 'Add an item',
-                          onAction: () => _addFocus.requestFocus(),
+                          onAction: () => controller.addFocus.requestFocus(),
                         )
                       else if (openItems.isEmpty && boughtItems.isEmpty)
                         const NestCard(
@@ -399,9 +378,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                         ],
                         if (boughtItems.isNotEmpty) ...[
                           NestCard(
-                            onTap: () => setState(
-                              () => _boughtExpanded = !_boughtExpanded,
-                            ),
+                            onTap: controller.toggleBoughtExpanded,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 10,
@@ -409,7 +386,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                             child: Row(
                               children: [
                                 Icon(
-                                  _boughtExpanded
+                                  ui.boughtExpanded
                                       ? Icons.expand_less_rounded
                                       : Icons.expand_more_rounded,
                                   color: AppColors.inkMuted,
@@ -424,13 +401,13 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: _clearBought,
+                                  onPressed: () => _clearBought(context, ref),
                                   child: const Text('Clear'),
                                 ),
                               ],
                             ),
                           ),
-                          if (_boughtExpanded) ...[
+                          if (ui.boughtExpanded) ...[
                             const SizedBox(height: 6),
                             NestCard(
                               padding: EdgeInsets.zero,
@@ -565,8 +542,9 @@ class _ItemSheetState extends State<_ItemSheet> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     final cats = {
-      ..._shopCategories,
-      if (!_shopCategories.contains(_category)) _category,
+      ...ShoppingCategory.listValues.map((c) => c.label),
+      if (!ShoppingCategory.listValues.any((c) => c.label == _category))
+        _category,
     }.toList();
 
     return Padding(
@@ -726,7 +704,9 @@ class _SuggestionsStrip extends ConsumerWidget {
     final overdue =
         DateTime.now().difference(habit.lastBoughtAt).inDays -
         habit.cadenceDays;
-    final cat = habit.category.trim().isEmpty ? 'General' : habit.category;
+    final cat = habit.category.trim().isEmpty
+        ? ShoppingCategory.general.label
+        : habit.category;
     final when = overdue >= 2
         ? '${overdue}d overdue'
         : overdue >= 0

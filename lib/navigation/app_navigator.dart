@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../data/enums.dart';
 import '../data/nest_home_widget.dart';
 import '../screens/care_screen.dart';
 import '../screens/expenses_screen.dart';
 import '../screens/meals_screen.dart';
 import '../screens/school_screen.dart';
+
+export '../data/enums.dart' show NotificationDestination, NestlyDeepLink;
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -17,31 +20,17 @@ abstract final class NestlyShellTab {
   static const more = 4;
 }
 
-enum NotificationDestination { bills, care, school }
-
 class NotificationIntent {
   const NotificationIntent(this.destination);
 
   final NotificationDestination destination;
 
-  String get payload => switch (destination) {
-    NotificationDestination.bills => 'bills',
-    NotificationDestination.care => 'care',
-    NotificationDestination.school => 'school',
-  };
+  String get payload => destination.payload;
 
   static NotificationIntent? fromPayload(String? payload) {
-    switch (payload?.trim().toLowerCase()) {
-      case 'bills':
-      case 'budget':
-        return const NotificationIntent(NotificationDestination.bills);
-      case 'care':
-        return const NotificationIntent(NotificationDestination.care);
-      case 'school':
-        return const NotificationIntent(NotificationDestination.school);
-      default:
-        return null;
-    }
+    final destination = NotificationDestination.tryParse(payload);
+    if (destination == null) return null;
+    return NotificationIntent(destination);
   }
 
   static NotificationIntent? fromMessageData(Map<String, dynamic> data) {
@@ -51,14 +40,28 @@ class NotificationIntent {
 }
 
 void openNotificationIntent(NotificationIntent intent) {
-  _pushWhenReady(
-    (_) => switch (intent.destination) {
-      NotificationDestination.bills => const ExpensesScreen(),
-      NotificationDestination.care => const CareScreen(),
-      NotificationDestination.school => const SchoolScreen(),
-    },
-    attempt: 0,
-  );
+  switch (intent.destination) {
+    case NotificationDestination.calendar:
+      nestlyShellTabRequest.value = NestlyShellTab.calendar;
+      return;
+    case NotificationDestination.tasks:
+      nestlyShellTabRequest.value = NestlyShellTab.tasks;
+      return;
+    case NotificationDestination.bills:
+    case NotificationDestination.care:
+    case NotificationDestination.school:
+      _pushWhenReady(
+        (_) => switch (intent.destination) {
+          NotificationDestination.bills => const ExpensesScreen(),
+          NotificationDestination.care => const CareScreen(),
+          NotificationDestination.school => const SchoolScreen(),
+          NotificationDestination.calendar ||
+          NotificationDestination.tasks =>
+            throw StateError('unreachable'),
+        },
+        attempt: 0,
+      );
+  }
 }
 
 /// Handles `nestly://…` launches from the Home Screen widget (and similar).
@@ -68,27 +71,17 @@ void openNestlyUri(Uri uri) {
   final path = uri.path.toLowerCase();
   final key = host.isNotEmpty ? host : path.replaceFirst('/', '');
 
-  switch (key) {
-    case 'home':
-    case '':
+  switch (NestlyDeepLink.parse(key)) {
+    case NestlyDeepLink.home:
       nestlyShellTabRequest.value = NestlyShellTab.home;
-      return;
-    case 'calendar':
+    case NestlyDeepLink.calendar:
       nestlyShellTabRequest.value = NestlyShellTab.calendar;
-      return;
-    case 'tasks':
+    case NestlyDeepLink.tasks:
       nestlyShellTabRequest.value = NestlyShellTab.tasks;
-      return;
-    case 'meals':
-    case 'dinner':
+    case NestlyDeepLink.meals:
       _pushWhenReady((_) => const MealsScreen(), attempt: 0);
-      return;
-    case 'shopping':
+    case NestlyDeepLink.shopping:
       nestlyShellTabRequest.value = NestlyShellTab.shopping;
-      return;
-    default:
-      // Unknown — open home.
-      nestlyShellTabRequest.value = NestlyShellTab.home;
   }
 }
 

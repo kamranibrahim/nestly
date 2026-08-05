@@ -22,7 +22,9 @@ import 'privacy_screen.dart';
 import 'timeline_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
-  const MoreScreen({super.key});
+  const MoreScreen({super.key, this.onOpenTab});
+
+  final ValueChanged<int>? onOpenTab;
 
   Future<void> _loadShowcase(BuildContext context, WidgetRef ref) async {
     final nest = await ref.read(nestInfoProvider.future);
@@ -192,6 +194,9 @@ class MoreScreen extends ConsumerWidget {
                                 ? 'Syncing…'
                                 : sync.hasError
                                 ? 'Sync needed · Retry'
+                                : (sync.lastNote != null &&
+                                      sync.lastNote!.isNotEmpty)
+                                ? sync.lastNote!
                                 : 'Last synced · ${formatLastSynced(sync.lastSyncAt)}',
                             style: TextStyle(
                               fontSize: 12,
@@ -370,7 +375,10 @@ class MoreScreen extends ConsumerWidget {
             Appear(
               delay: const Duration(milliseconds: 100),
               child: NestCard(
-                onTap: () => nestPush(context, const TimelineScreen()),
+                onTap: () => nestPush(
+                  context,
+                  TimelineScreen(onOpenTab: onOpenTab),
+                ),
                 child: const Row(
                   children: [
                     Icon(Icons.history_rounded, color: AppColors.accentDeep),

@@ -7,11 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
+import 'enums.dart';
 import 'invite_code.dart';
 import 'nest_home_widget.dart';
 import 'repositories.dart';
 import 'telemetry.dart';
-import 'vault_upload_status.dart';
 
 class NestInfo {
   const NestInfo({
@@ -205,7 +205,7 @@ class AuthRepository {
 
     final code = normalizeInviteCode(inviteCode);
     if (code.length < 6) {
-      throw StateError('Invite code not found');
+      throw StateError('Invite codes are 6 characters.');
     }
     final invite = await _firestore.collection('inviteCodes').doc(code).get();
     if (!invite.exists) {
@@ -273,6 +273,20 @@ class SyncService {
 
   final AppDatabase _db;
   final FirebaseFirestore _firestore;
+  int _keptLocalDuringPull = 0;
+
+  /// Prefer local dirty / newer rows over remote during pull.
+  bool _shouldKeepLocal({
+    required bool dirty,
+    required DateTime localUpdated,
+    required DateTime remoteUpdated,
+  }) {
+    if (dirty || localUpdated.isAfter(remoteUpdated)) {
+      _keptLocalDuringPull++;
+      return true;
+    }
+    return false;
+  }
 
   Future<void> bindNest(String nestId) async {
     final previous = await _db.getMeta('nestId');
@@ -322,7 +336,11 @@ class SyncService {
         _db.nestMembers,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -373,10 +391,13 @@ class SyncService {
     }
   }
 
-  Future<void> syncAll() async {
+  /// Syncs nest cloud ↔ local. Returns how many remote rows were skipped
+  /// because a dirtier/newer local copy won (last-write-wins).
+  Future<int> syncAll() async {
     final nestId = await _db.getMeta('nestId');
-    if (nestId == null || nestId.isEmpty) return;
-    if (FirebaseAuth.instance.currentUser == null) return;
+    if (nestId == null || nestId.isEmpty) return 0;
+    if (FirebaseAuth.instance.currentUser == null) return 0;
+    _keptLocalDuringPull = 0;
 
     Future<void> step(Future<void> Function() action) async {
       if (FirebaseAuth.instance.currentUser == null) {
@@ -418,9 +439,11 @@ class SyncService {
       await _db.setMeta('lastSyncAt', DateTime.now().toIso8601String());
       sw.stop();
       await NestlyTelemetry.syncSuccess(durationMs: sw.elapsedMilliseconds);
+      return _keptLocalDuringPull;
     } on _SignedOutDuringSync {
       sw.stop();
       debugPrint('Sync aborted: signed out');
+      return 0;
     } catch (e, st) {
       // Sign-out / auth race: rules deny unauthenticated reads.
       if (e is FirebaseException &&
@@ -428,7 +451,7 @@ class SyncService {
           FirebaseAuth.instance.currentUser == null) {
         sw.stop();
         debugPrint('Sync aborted: signed out during sync');
-        return;
+        return 0;
       }
       sw.stop();
       debugPrint('Sync failed: $e\n$st');
@@ -485,7 +508,11 @@ class SyncService {
         _db.tasks,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -600,7 +627,11 @@ class SyncService {
         _db.shoppingItems,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -672,7 +703,11 @@ class SyncService {
         _db.calendarEvents,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -741,7 +776,11 @@ class SyncService {
         _db.expenses,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -809,7 +848,11 @@ class SyncService {
         _db.bills,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -856,7 +899,11 @@ class SyncService {
       _db.nestSettings,
     )..where((s) => s.id.equals(nestId))).getSingleOrNull();
     if (local != null &&
-        (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+        _shouldKeepLocal(
+          dirty: local.dirty,
+          localUpdated: local.updatedAt,
+          remoteUpdated: remoteUpdated,
+        )) {
       return;
     }
     final budget =
@@ -918,7 +965,11 @@ class SyncService {
         _db.emergencyEntries,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -985,7 +1036,11 @@ class SyncService {
         _db.vaultDocuments,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -995,7 +1050,9 @@ class SyncService {
               id: doc.id,
               nestId: Value(nestId),
               title: data['title'] as String? ?? '',
-              category: Value(data['category'] as String? ?? 'Family'),
+              category: Value(
+                data['category'] as String? ?? VaultFolder.family.label,
+              ),
               fileName: data['fileName'] as String? ?? 'file',
               storagePath: Value(data['storagePath'] as String?),
               mimeType: Value(data['mimeType'] as String?),
@@ -1004,8 +1061,8 @@ class SyncService {
               expiresAt: Value((data['expiresAt'] as Timestamp?)?.toDate()),
               uploadStatus: Value(
                 (data['storagePath'] as String?)?.isNotEmpty == true
-                    ? VaultUploadStatus.synced
-                    : VaultUploadStatus.local,
+                    ? VaultUploadStatus.synced.storage
+                    : VaultUploadStatus.local.storage,
               ),
               dirty: const Value(false),
               createdAt: Value(
@@ -1116,7 +1173,11 @@ class SyncService {
         _db.mealPlans,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -1185,7 +1246,11 @@ class SyncService {
         _db.careItems,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -1256,7 +1321,11 @@ class SyncService {
         _db.careProfiles,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
@@ -1329,7 +1398,11 @@ class SyncService {
         _db.schoolActivities,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
       if (local != null &&
-          (local.dirty || local.updatedAt.isAfter(remoteUpdated))) {
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
         continue;
       }
       await _db
