@@ -123,6 +123,40 @@ void main() {
     expect(names, contains('Yogurt'));
   });
 
+  test('second shopping list isolates items', () async {
+    final second = await shopping.addList(name: 'Pharmacy');
+    await shopping.addItem(
+      name: 'Bandages',
+      category: 'Health',
+      listId: second.id,
+    );
+    await shopping.addItem(name: 'Soap', category: 'Home');
+
+    final defaultItems = await shopping.watchItems().first;
+    final pharmacyItems = await shopping.watchItems(listId: second.id).first;
+
+    expect(defaultItems.any((i) => i.name == 'Soap'), isTrue);
+    expect(defaultItems.any((i) => i.name == 'Bandages'), isFalse);
+    expect(pharmacyItems.any((i) => i.name == 'Bandages'), isTrue);
+    expect(pharmacyItems.any((i) => i.name == 'Soap'), isFalse);
+  });
+
+  test('soft-deleting a list hides it and its items', () async {
+    final temp = await shopping.addList(name: 'Costco');
+    await shopping.addItem(name: 'Bulk rice', listId: temp.id);
+    await shopping.softDeleteList(temp.id);
+
+    final lists = await shopping.watchLists().first;
+    expect(lists.any((l) => l.id == temp.id), isFalse);
+
+    final items = await shopping.watchItems(listId: temp.id).first;
+    expect(items, isEmpty);
+
+    await shopping.softDeleteList(ShoppingRepository.defaultListId);
+    final listsAfter = await shopping.watchLists().first;
+    expect(listsAfter.any((l) => l.id == ShoppingRepository.defaultListId), isTrue);
+  });
+
   test('shopping items can be updated for qty and category', () async {
     await shopping.addItem(name: 'Oats', category: 'Pantry', qty: '1');
     final added =

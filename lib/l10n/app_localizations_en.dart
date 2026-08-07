@@ -2505,6 +2505,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shopBasedOnUsual => 'Based on what you usually buy';
 
   @override
+  String get shopNewList => 'New list';
+
+  @override
+  String get shopListNameHint => 'List name';
+
+  @override
+  String get shopCreateList => 'Create list';
+
+  @override
+  String get shopRenameList => 'Rename list';
+
+  @override
+  String get shopDeleteList => 'Delete list';
+
+  @override
+  String get shopDeleteListBody =>
+      'Removes this list and its items from your nest.';
+
+  @override
+  String get shopEmptyListTitle => 'This list is empty';
+
+  @override
+  String get shopEmptyListBody => 'Add items for this store or occasion.';
+
+  @override
+  String get shopRestock => 'Restock';
+
+  @override
   String get tasksNoMatch => 'No tasks match this search.';
 
   @override

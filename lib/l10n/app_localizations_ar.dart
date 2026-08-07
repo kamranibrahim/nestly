@@ -2491,6 +2491,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shopBasedOnUsual => 'بناءً على ما تشتريه عادةً';
 
   @override
+  String get shopNewList => 'قائمة جديدة';
+
+  @override
+  String get shopListNameHint => 'اسم القائمة';
+
+  @override
+  String get shopCreateList => 'إنشاء قائمة';
+
+  @override
+  String get shopRenameList => 'إعادة تسمية القائمة';
+
+  @override
+  String get shopDeleteList => 'حذف القائمة';
+
+  @override
+  String get shopDeleteListBody => 'تزيل هذه القائمة وعناصرها من العش.';
+
+  @override
+  String get shopEmptyListTitle => 'هذه القائمة فارغة';
+
+  @override
+  String get shopEmptyListBody => 'أضف عناصر لهذا المتجر أو المناسبة.';
+
+  @override
+  String get shopRestock => 'إعادة تخزين';
+
+  @override
   String get tasksNoMatch => 'لا مهام تطابق هذا البحث.';
 
   @override

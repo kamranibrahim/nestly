@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/app_database.dart';
 import '../data/enums.dart';
+import '../data/repositories.dart';
 import '../data/sync_controller.dart';
 import '../providers/providers.dart';
 import '../state/shopping_ui.dart';
@@ -29,17 +30,22 @@ class ShoppingScreen extends ConsumerWidget {
     WidgetRef ref,
     ShoppingUiController controller,
     String category,
+    String listId,
   ) async {
     final name = controller.submitName();
     if (name == null) return;
     await ref
         .read(shoppingRepositoryProvider)
-        .addItem(name: name, category: category);
+        .addItem(name: name, category: category, listId: listId);
     controller.clearAddField();
     await syncAfterWrite(ref, context: context);
   }
 
-  Future<void> _clearBought(BuildContext context, WidgetRef ref) async {
+  Future<void> _clearBought(
+    BuildContext context,
+    WidgetRef ref,
+    String listId,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -58,7 +64,9 @@ class ShoppingScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    final cleared = await ref.read(shoppingRepositoryProvider).clearCompleted();
+    final cleared = await ref
+        .read(shoppingRepositoryProvider)
+        .clearCompleted(listId: listId);
     await syncAfterWrite(ref, context: context);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -70,6 +78,84 @@ class ShoppingScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showNewListSheet(BuildContext context, WidgetRef ref) async {
+    final name = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => const _NewListSheet(),
+    );
+    if (name == null || name.trim().isEmpty || !context.mounted) return;
+    final list = await ref.read(shoppingRepositoryProvider).addList(name: name);
+    ref.read(shoppingUiProvider.notifier).setSelectedListId(list.id);
+    await syncAfterWrite(ref, context: context);
+  }
+
+  Future<void> _showListOptionsSheet(
+    BuildContext context,
+    WidgetRef ref,
+    ShoppingList list,
+    ShoppingUiController controller,
+  ) async {
+    if (list.id == ShoppingRepository.defaultListId) return;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => _ListOptionsSheet(listName: list.name),
+    );
+    if (action == null || !context.mounted) return;
+
+    if (action == 'rename') {
+      final newName = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        builder: (context) => _RenameListSheet(initialName: list.name),
+      );
+      if (newName == null || newName.trim().isEmpty || !context.mounted) {
+        return;
+      }
+      await ref
+          .read(shoppingRepositoryProvider)
+          .renameList(list.id, newName.trim());
+      await syncAfterWrite(ref, context: context);
+      return;
+    }
+
+    if (action == 'delete') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(context.l10n.shopDeleteList),
+          content: Text(context.l10n.shopDeleteListBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.l10n.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(context.l10n.shopDeleteList),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+      await ref.read(shoppingRepositoryProvider).softDeleteList(list.id);
+      controller.setSelectedListId(ShoppingRepository.defaultListId);
+      await syncAfterWrite(ref, context: context);
+    }
   }
 
   List<ShoppingItem> _filtered(List<ShoppingItem> items, ShoppingUiState ui) {
@@ -88,9 +174,23 @@ class ShoppingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(shoppingItemsProvider);
+    final listsAsync = ref.watch(shoppingListsProvider);
     final members = ref.watch(membersProvider).valueOrNull ?? const [];
     final ui = ref.watch(shoppingUiProvider);
     final controller = ref.read(shoppingUiProvider.notifier);
+    final listId = ui.selectedListId;
+
+    ref.listen(shoppingListsProvider, (prev, next) {
+      next.whenData((lists) {
+        if (lists.isEmpty) return;
+        final current = ref.read(shoppingUiProvider).selectedListId;
+        if (lists.any((l) => l.id == current)) return;
+        final fallback = lists.any((l) => l.id == ShoppingRepository.defaultListId)
+            ? ShoppingRepository.defaultListId
+            : lists.first.id;
+        ref.read(shoppingUiProvider.notifier).setSelectedListId(fallback);
+      });
+    });
 
     ref.listen(pendingAddProvider, (prev, next) {
       if (next == PendingAdd.shopping) {
@@ -124,11 +224,50 @@ class ShoppingScreen extends ConsumerWidget {
                   ),
                   IconButton(
                     tooltip: context.l10n.clearBought,
-                    onPressed: () => _clearBought(context, ref),
+                    onPressed: () => _clearBought(context, ref, listId),
                     icon: const Icon(Icons.cleaning_services_outlined),
                   ),
                 ],
               ),
+            ),
+            listsAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (lists) {
+                if (lists.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final list in lists) ...[
+                          GestureDetector(
+                            onLongPress: list.id == ShoppingRepository.defaultListId
+                                ? null
+                                : () => _showListOptionsSheet(
+                                      context,
+                                      ref,
+                                      list,
+                                      controller,
+                                    ),
+                            child: SoftPill(
+                              label: list.name,
+                              selected: list.id == listId,
+                              onTap: () => controller.setSelectedListId(list.id),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        SoftPill(
+                          label: context.l10n.shopNewList,
+                          onTap: () => _showNewListSheet(context, ref),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
             Expanded(
               child: itemsAsync.when(
@@ -202,6 +341,7 @@ class ShoppingScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 6),
                       _SuggestionsStrip(
+                        listId: listId,
                         onAdded: () async {
                           await syncAfterWrite(ref, context: context);
                         },
@@ -223,6 +363,7 @@ class ShoppingScreen extends ConsumerWidget {
                                 ref,
                                 controller,
                                 ui.addCategory.label,
+                                listId,
                               ),
                               decoration: InputDecoration(
                                 hintText: context.l10n.hintAddItem,
@@ -242,6 +383,7 @@ class ShoppingScreen extends ConsumerWidget {
                                     ref,
                                     controller,
                                     ui.addCategory.label,
+                                    listId,
                                   ),
                                   icon: const Icon(Icons.arrow_upward_rounded),
                                 ),
@@ -309,8 +451,8 @@ class ShoppingScreen extends ConsumerWidget {
                         FirstRunEmptyCard(
                           icon: Icons.shopping_bag_outlined,
                           color: AppColors.tileOrange,
-                          title: context.l10n.emptyShoppingTitle,
-                          body: context.l10n.emptyShoppingBody,
+                          title: context.l10n.shopEmptyListTitle,
+                          body: context.l10n.shopEmptyListBody,
                           actionLabel: context.l10n.emptyShoppingAction,
                           onAction: () => controller.addFocus.requestFocus(),
                         )
@@ -407,7 +549,8 @@ class ShoppingScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: () => _clearBought(context, ref),
+                                  onPressed: () =>
+                                      _clearBought(context, ref, listId),
                                   child: Text(context.l10n.commonClear),
                                 ),
                               ],
@@ -702,8 +845,9 @@ class _ShopRow extends StatelessWidget {
 }
 
 class _SuggestionsStrip extends ConsumerWidget {
-  const _SuggestionsStrip({required this.onAdded});
+  const _SuggestionsStrip({required this.listId, required this.onAdded});
 
+  final String listId;
   final VoidCallback onAdded;
 
   static String _restockLabel(GroceryHabit habit) {
@@ -734,13 +878,13 @@ class _SuggestionsStrip extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.replay_rounded, size: 18, color: AppColors.ink),
-              SizedBox(width: 6),
+              const Icon(Icons.replay_rounded, size: 18, color: AppColors.ink),
+              const SizedBox(width: 6),
               Text(
-                'Restock',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                context.l10n.shopRestock,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
               ),
             ],
           ),
@@ -766,7 +910,7 @@ class _SuggestionsStrip extends ConsumerWidget {
                     onTap: () async {
                       await ref
                           .read(shoppingRepositoryProvider)
-                          .addSuggestion(habit);
+                          .addSuggestion(habit, listId: listId);
                       onAdded();
                     },
                   ),
@@ -774,6 +918,206 @@ class _SuggestionsStrip extends ConsumerWidget {
                 ],
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NewListSheet extends StatefulWidget {
+  const _NewListSheet();
+
+  @override
+  State<_NewListSheet> createState() => _NewListSheetState();
+}
+
+class _NewListSheetState extends State<_NewListSheet> {
+  late final TextEditingController _name;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final trimmed = _name.text.trim();
+    if (trimmed.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(context, trimmed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            context.l10n.shopNewList,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(hintText: context.l10n.shopListNameHint),
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: _submit,
+            child: Text(context.l10n.shopCreateList),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RenameListSheet extends StatefulWidget {
+  const _RenameListSheet({required this.initialName});
+
+  final String initialName;
+
+  @override
+  State<_RenameListSheet> createState() => _RenameListSheetState();
+}
+
+class _RenameListSheetState extends State<_RenameListSheet> {
+  late final TextEditingController _name;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final trimmed = _name.text.trim();
+    if (trimmed.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(context, trimmed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            context.l10n.shopRenameList,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(hintText: context.l10n.shopListNameHint),
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: _submit,
+            child: Text(context.l10n.commonSave),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ListOptionsSheet extends StatelessWidget {
+  const _ListOptionsSheet({required this.listName});
+
+  final String listName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            listName,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: Text(context.l10n.shopRenameList),
+            onTap: () => Navigator.pop(context, 'rename'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+            title: Text(
+              context.l10n.shopDeleteList,
+              style: const TextStyle(color: AppColors.danger),
+            ),
+            onTap: () => Navigator.pop(context, 'delete'),
           ),
         ],
       ),

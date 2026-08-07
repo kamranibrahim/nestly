@@ -413,6 +413,8 @@ class SyncService {
       await step(() => _pullTasks(nestId));
       await step(() => _pushShopping(nestId));
       await step(() => _pullShopping(nestId));
+      await step(() => _pushGroceryHabits(nestId));
+      await step(() => _pullGroceryHabits(nestId));
       await step(() => _pushEvents(nestId));
       await step(() => _pullEvents(nestId));
       await step(() => _pushExpenses(nestId));
@@ -671,6 +673,74 @@ class SyncService {
               createdAt: Value(
                 (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
               ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushGroceryHabits(String nestId) async {
+    final dirty = await (_db.select(
+      _db.groceryHabits,
+    )..where((t) => t.dirty.equals(true))).get();
+    for (final habit in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('groceryHabits')
+          .doc(habit.id);
+      if (habit.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'name': habit.name,
+          'category': habit.category,
+          'buyCount': habit.buyCount,
+          'cadenceDays': habit.cadenceDays,
+          'lastBoughtAt': Timestamp.fromDate(habit.lastBoughtAt),
+          'updatedAt': Timestamp.fromDate(habit.updatedAt),
+        });
+      }
+      await (_db.update(_db.groceryHabits)..where((t) => t.id.equals(habit.id)))
+          .write(const GroceryHabitsCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullGroceryHabits(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('groceryHabits')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(
+        _db.groceryHabits,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
+      if (local != null &&
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
+        continue;
+      }
+      await _db
+          .into(_db.groceryHabits)
+          .insertOnConflictUpdate(
+            GroceryHabitsCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              name: data['name'] as String? ?? '',
+              category: Value(data['category'] as String? ?? 'General'),
+              buyCount: Value(data['buyCount'] as int? ?? 0),
+              cadenceDays: Value(data['cadenceDays'] as int? ?? 7),
+              lastBoughtAt:
+                  (data['lastBoughtAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              dirty: const Value(false),
+              deleted: const Value(false),
               updatedAt: Value(remoteUpdated),
             ),
           );

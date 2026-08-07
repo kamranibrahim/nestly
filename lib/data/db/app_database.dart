@@ -273,10 +273,11 @@ class SchoolActivities extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// Local-only recurring grocery memory (device-side; not synced).
+/// Recurring grocery memory synced per nest (LWW on updatedAt).
 class GroceryHabits extends Table {
   /// Normalized lowercase name key.
   TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
   TextColumn get name => text()();
   TextColumn get category => text().withDefault(const Constant('General'))();
   IntColumn get buyCount => integer().withDefault(const Constant(0))();
@@ -284,6 +285,8 @@ class GroceryHabits extends Table {
   /// Learned restock interval in days (updated from purchase gaps).
   IntColumn get cadenceDays => integer().withDefault(const Constant(7))();
   DateTimeColumn get lastBoughtAt => dateTime()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -329,7 +332,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -422,6 +425,18 @@ class AppDatabase extends _$AppDatabase {
           calendarEvents,
           calendarEvents.recurrenceUntil,
         );
+      }
+      if (from < 16) {
+        await _addColumnIfMissing(m, groceryHabits, groceryHabits.nestId);
+        await _addColumnIfMissing(m, groceryHabits, groceryHabits.dirty);
+        await _addColumnIfMissing(m, groceryHabits, groceryHabits.deleted);
+        final nestId = await getMeta('nestId');
+        if (nestId != null && nestId.isNotEmpty) {
+          await customStatement(
+            'UPDATE grocery_habits SET nest_id = ? WHERE nest_id IS NULL',
+            [Variable.withString(nestId)],
+          );
+        }
       }
     },
   );

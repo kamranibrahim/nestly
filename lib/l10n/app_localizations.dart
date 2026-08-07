@@ -4352,6 +4352,60 @@ abstract class AppLocalizations {
   /// **'Based on what you usually buy'**
   String get shopBasedOnUsual;
 
+  /// No description provided for @shopNewList.
+  ///
+  /// In en, this message translates to:
+  /// **'New list'**
+  String get shopNewList;
+
+  /// No description provided for @shopListNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'List name'**
+  String get shopListNameHint;
+
+  /// No description provided for @shopCreateList.
+  ///
+  /// In en, this message translates to:
+  /// **'Create list'**
+  String get shopCreateList;
+
+  /// No description provided for @shopRenameList.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename list'**
+  String get shopRenameList;
+
+  /// No description provided for @shopDeleteList.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete list'**
+  String get shopDeleteList;
+
+  /// No description provided for @shopDeleteListBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes this list and its items from your nest.'**
+  String get shopDeleteListBody;
+
+  /// No description provided for @shopEmptyListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This list is empty'**
+  String get shopEmptyListTitle;
+
+  /// No description provided for @shopEmptyListBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add items for this store or occasion.'**
+  String get shopEmptyListBody;
+
+  /// No description provided for @shopRestock.
+  ///
+  /// In en, this message translates to:
+  /// **'Restock'**
+  String get shopRestock;
+
   /// No description provided for @tasksNoMatch.
   ///
   /// In en, this message translates to:

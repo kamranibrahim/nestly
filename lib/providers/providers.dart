@@ -8,6 +8,7 @@ import '../data/locator_models.dart';
 import '../data/locator_service.dart';
 import '../data/notification_service.dart';
 import '../data/repositories.dart';
+import '../state/shopping_ui.dart';
 import '../data/vault_service.dart';
 
 export '../data/enums.dart' show PendingAdd;
@@ -82,8 +83,13 @@ final openTaskCountProvider = StreamProvider<int>((ref) {
   return ref.watch(taskRepositoryProvider).watchOpenCount();
 });
 
+final shoppingListsProvider = StreamProvider<List<ShoppingList>>((ref) {
+  return ref.watch(shoppingRepositoryProvider).watchLists();
+});
+
 final shoppingItemsProvider = StreamProvider<List<ShoppingItem>>((ref) {
-  return ref.watch(shoppingRepositoryProvider).watchItems();
+  final listId = ref.watch(shoppingUiProvider).selectedListId;
+  return ref.watch(shoppingRepositoryProvider).watchItems(listId: listId);
 });
 
 final openShoppingCountProvider = StreamProvider<int>((ref) {
@@ -91,7 +97,8 @@ final openShoppingCountProvider = StreamProvider<int>((ref) {
 });
 
 final grocerySuggestionsProvider = StreamProvider<List<GroceryHabit>>((ref) {
-  return ref.watch(shoppingRepositoryProvider).watchSuggestions();
+  final listId = ref.watch(shoppingUiProvider).selectedListId;
+  return ref.watch(shoppingRepositoryProvider).watchSuggestions(listId: listId);
 });
 
 final eventsProvider = StreamProvider<List<CalendarEvent>>((ref) {

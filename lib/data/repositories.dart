@@ -175,6 +175,111 @@ class ShoppingRepository {
   static String normalizeName(String name) =>
       name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
+  Stream<List<ShoppingList>> watchLists() {
+    return (_db.select(_db.shoppingLists)
+          ..where((l) => l.deleted.equals(false))
+          ..orderBy([
+            (l) => OrderingTerm(
+              expression: l.id.equals(defaultListId),
+              mode: OrderingMode.desc,
+            ),
+            (l) => OrderingTerm(expression: l.createdAt),
+          ]))
+        .watch();
+  }
+
+  Future<void> ensureDefaultList({String? nestId}) async {
+    final existing =
+        await (_db.select(_db.shoppingLists)
+              ..where((l) => l.id.equals(defaultListId)))
+            .getSingleOrNull();
+    if (existing != null) {
+      if (existing.deleted) {
+        final now = DateTime.now();
+        await (_db.update(_db.shoppingLists)
+              ..where((l) => l.id.equals(defaultListId)))
+            .write(
+          ShoppingListsCompanion(
+            deleted: const Value(false),
+            dirty: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+      return;
+    }
+    final now = DateTime.now();
+    final resolvedNest = nestId ?? await _db.getMeta('nestId');
+    await _db.into(_db.shoppingLists).insert(
+          ShoppingListsCompanion.insert(
+            id: defaultListId,
+            nestId: Value(resolvedNest),
+            name: 'Groceries',
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  Future<ShoppingList> addList({
+    required String name,
+    String? nestId,
+  }) async {
+    await ensureDefaultList(nestId: nestId);
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('List name cannot be empty');
+    }
+    final now = DateTime.now();
+    final resolvedNest = nestId ?? await _db.getMeta('nestId');
+    final id = _uuid.v4();
+    await _db.into(_db.shoppingLists).insert(
+          ShoppingListsCompanion.insert(
+            id: id,
+            nestId: Value(resolvedNest),
+            name: trimmed,
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    return (_db.select(_db.shoppingLists)..where((l) => l.id.equals(id)))
+        .getSingle();
+  }
+
+  Future<void> renameList(String id, String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    await (_db.update(_db.shoppingLists)..where((l) => l.id.equals(id))).write(
+      ShoppingListsCompanion(
+        name: Value(trimmed),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> softDeleteList(String id) async {
+    if (id == defaultListId) return;
+    final now = DateTime.now();
+    await (_db.update(_db.shoppingLists)..where((l) => l.id.equals(id))).write(
+      ShoppingListsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+    await (_db.update(_db.shoppingItems)..where((i) => i.listId.equals(id)))
+        .write(
+      ShoppingItemsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
   Stream<List<ShoppingItem>> watchItems({String listId = defaultListId}) {
     return (_db.select(_db.shoppingItems)
           ..where((i) => i.listId.equals(listId) & i.deleted.equals(false))
@@ -200,6 +305,7 @@ class ShoppingRepository {
   /// Habits ready to restock: bought 2+ times, past learned cadence, not open.
   Stream<List<GroceryHabit>> watchSuggestions({String listId = defaultListId}) {
     return _db.select(_db.groceryHabits).watch().asyncMap((habits) async {
+      final nestId = await _db.getMeta('nestId');
       final open =
           await (_db.select(_db.shoppingItems)..where(
                 (i) =>
@@ -212,6 +318,13 @@ class ShoppingRepository {
       final now = DateTime.now();
       final due =
           habits.where((h) {
+            if (h.deleted) return false;
+            if (nestId != null &&
+                nestId.isNotEmpty &&
+                h.nestId != null &&
+                h.nestId != nestId) {
+              return false;
+            }
             if (h.buyCount < 2) return false;
             if (openNames.contains(h.id)) return false;
             final staleDays = h.cadenceDays.clamp(2, 60);
@@ -267,6 +380,7 @@ class ShoppingRepository {
     final key = normalizeName(item.name);
     if (key.isEmpty) return;
     final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
     final existing = await (_db.select(
       _db.groceryHabits,
     )..where((h) => h.id.equals(key))).getSingleOrNull();
@@ -276,11 +390,13 @@ class ShoppingRepository {
           .insert(
             GroceryHabitsCompanion.insert(
               id: key,
+              nestId: Value(nestId),
               name: item.name.trim(),
               category: Value(item.category),
               buyCount: const Value(1),
               cadenceDays: const Value(7),
               lastBoughtAt: now,
+              dirty: const Value(true),
               updatedAt: Value(now),
             ),
           );
@@ -296,11 +412,13 @@ class ShoppingRepository {
         _db.groceryHabits,
       )..where((h) => h.id.equals(key))).write(
         GroceryHabitsCompanion(
+          nestId: nestId != null ? Value(nestId) : const Value.absent(),
           name: Value(item.name.trim()),
           category: Value(item.category),
           buyCount: Value(nextCount),
           cadenceDays: Value(cadence),
           lastBoughtAt: Value(now),
+          dirty: const Value(true),
           updatedAt: Value(now),
         ),
       );
@@ -369,8 +487,11 @@ class ShoppingRepository {
         );
   }
 
-  Future<void> addSuggestion(GroceryHabit habit) {
-    return addItem(name: habit.name, category: habit.category);
+  Future<void> addSuggestion(
+    GroceryHabit habit, {
+    String listId = defaultListId,
+  }) {
+    return addItem(name: habit.name, category: habit.category, listId: listId);
   }
 
   Future<void> updateItem({
