@@ -2490,6 +2490,30 @@ class $CalendarEventsTable extends CalendarEvents
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _recurrenceMeta = const VerificationMeta(
+    'recurrence',
+  );
+  @override
+  late final GeneratedColumn<String> recurrence = GeneratedColumn<String>(
+    'recurrence',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none'),
+  );
+  static const VerificationMeta _recurrenceUntilMeta = const VerificationMeta(
+    'recurrenceUntil',
+  );
+  @override
+  late final GeneratedColumn<DateTime> recurrenceUntil =
+      GeneratedColumn<DateTime>(
+        'recurrence_until',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
   late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
@@ -2553,6 +2577,8 @@ class $CalendarEventsTable extends CalendarEvents
     startsAt,
     endsAt,
     allDay,
+    recurrence,
+    recurrenceUntil,
     dirty,
     deleted,
     createdAt,
@@ -2627,6 +2653,21 @@ class $CalendarEventsTable extends CalendarEvents
         allDay.isAcceptableOrUnknown(data['all_day']!, _allDayMeta),
       );
     }
+    if (data.containsKey('recurrence')) {
+      context.handle(
+        _recurrenceMeta,
+        recurrence.isAcceptableOrUnknown(data['recurrence']!, _recurrenceMeta),
+      );
+    }
+    if (data.containsKey('recurrence_until')) {
+      context.handle(
+        _recurrenceUntilMeta,
+        recurrenceUntil.isAcceptableOrUnknown(
+          data['recurrence_until']!,
+          _recurrenceUntilMeta,
+        ),
+      );
+    }
     if (data.containsKey('dirty')) {
       context.handle(
         _dirtyMeta,
@@ -2696,6 +2737,14 @@ class $CalendarEventsTable extends CalendarEvents
         DriftSqlType.bool,
         data['${effectivePrefix}all_day'],
       )!,
+      recurrence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence'],
+      )!,
+      recurrenceUntil: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recurrence_until'],
+      ),
       dirty: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
@@ -2731,6 +2780,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
   final DateTime startsAt;
   final DateTime? endsAt;
   final bool allDay;
+  final String recurrence;
+  final DateTime? recurrenceUntil;
   final bool dirty;
   final bool deleted;
   final DateTime createdAt;
@@ -2745,6 +2796,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     required this.startsAt,
     this.endsAt,
     required this.allDay,
+    required this.recurrence,
+    this.recurrenceUntil,
     required this.dirty,
     required this.deleted,
     required this.createdAt,
@@ -2768,6 +2821,10 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       map['ends_at'] = Variable<DateTime>(endsAt);
     }
     map['all_day'] = Variable<bool>(allDay);
+    map['recurrence'] = Variable<String>(recurrence);
+    if (!nullToAbsent || recurrenceUntil != null) {
+      map['recurrence_until'] = Variable<DateTime>(recurrenceUntil);
+    }
     map['dirty'] = Variable<bool>(dirty);
     map['deleted'] = Variable<bool>(deleted);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -2792,6 +2849,10 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           ? const Value.absent()
           : Value(endsAt),
       allDay: Value(allDay),
+      recurrence: Value(recurrence),
+      recurrenceUntil: recurrenceUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenceUntil),
       dirty: Value(dirty),
       deleted: Value(deleted),
       createdAt: Value(createdAt),
@@ -2814,6 +2875,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       startsAt: serializer.fromJson<DateTime>(json['startsAt']),
       endsAt: serializer.fromJson<DateTime?>(json['endsAt']),
       allDay: serializer.fromJson<bool>(json['allDay']),
+      recurrence: serializer.fromJson<String>(json['recurrence']),
+      recurrenceUntil: serializer.fromJson<DateTime?>(json['recurrenceUntil']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deleted: serializer.fromJson<bool>(json['deleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -2833,6 +2896,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       'startsAt': serializer.toJson<DateTime>(startsAt),
       'endsAt': serializer.toJson<DateTime?>(endsAt),
       'allDay': serializer.toJson<bool>(allDay),
+      'recurrence': serializer.toJson<String>(recurrence),
+      'recurrenceUntil': serializer.toJson<DateTime?>(recurrenceUntil),
       'dirty': serializer.toJson<bool>(dirty),
       'deleted': serializer.toJson<bool>(deleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -2850,6 +2915,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     DateTime? startsAt,
     Value<DateTime?> endsAt = const Value.absent(),
     bool? allDay,
+    String? recurrence,
+    Value<DateTime?> recurrenceUntil = const Value.absent(),
     bool? dirty,
     bool? deleted,
     DateTime? createdAt,
@@ -2864,6 +2931,10 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     startsAt: startsAt ?? this.startsAt,
     endsAt: endsAt.present ? endsAt.value : this.endsAt,
     allDay: allDay ?? this.allDay,
+    recurrence: recurrence ?? this.recurrence,
+    recurrenceUntil: recurrenceUntil.present
+        ? recurrenceUntil.value
+        : this.recurrenceUntil,
     dirty: dirty ?? this.dirty,
     deleted: deleted ?? this.deleted,
     createdAt: createdAt ?? this.createdAt,
@@ -2880,6 +2951,12 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       startsAt: data.startsAt.present ? data.startsAt.value : this.startsAt,
       endsAt: data.endsAt.present ? data.endsAt.value : this.endsAt,
       allDay: data.allDay.present ? data.allDay.value : this.allDay,
+      recurrence: data.recurrence.present
+          ? data.recurrence.value
+          : this.recurrence,
+      recurrenceUntil: data.recurrenceUntil.present
+          ? data.recurrenceUntil.value
+          : this.recurrenceUntil,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -2899,6 +2976,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           ..write('startsAt: $startsAt, ')
           ..write('endsAt: $endsAt, ')
           ..write('allDay: $allDay, ')
+          ..write('recurrence: $recurrence, ')
+          ..write('recurrenceUntil: $recurrenceUntil, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -2918,6 +2997,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     startsAt,
     endsAt,
     allDay,
+    recurrence,
+    recurrenceUntil,
     dirty,
     deleted,
     createdAt,
@@ -2936,6 +3017,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           other.startsAt == this.startsAt &&
           other.endsAt == this.endsAt &&
           other.allDay == this.allDay &&
+          other.recurrence == this.recurrence &&
+          other.recurrenceUntil == this.recurrenceUntil &&
           other.dirty == this.dirty &&
           other.deleted == this.deleted &&
           other.createdAt == this.createdAt &&
@@ -2952,6 +3035,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
   final Value<DateTime> startsAt;
   final Value<DateTime?> endsAt;
   final Value<bool> allDay;
+  final Value<String> recurrence;
+  final Value<DateTime?> recurrenceUntil;
   final Value<bool> dirty;
   final Value<bool> deleted;
   final Value<DateTime> createdAt;
@@ -2967,6 +3052,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     this.startsAt = const Value.absent(),
     this.endsAt = const Value.absent(),
     this.allDay = const Value.absent(),
+    this.recurrence = const Value.absent(),
+    this.recurrenceUntil = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2983,6 +3070,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     required DateTime startsAt,
     this.endsAt = const Value.absent(),
     this.allDay = const Value.absent(),
+    this.recurrence = const Value.absent(),
+    this.recurrenceUntil = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3001,6 +3090,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     Expression<DateTime>? startsAt,
     Expression<DateTime>? endsAt,
     Expression<bool>? allDay,
+    Expression<String>? recurrence,
+    Expression<DateTime>? recurrenceUntil,
     Expression<bool>? dirty,
     Expression<bool>? deleted,
     Expression<DateTime>? createdAt,
@@ -3017,6 +3108,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
       if (startsAt != null) 'starts_at': startsAt,
       if (endsAt != null) 'ends_at': endsAt,
       if (allDay != null) 'all_day': allDay,
+      if (recurrence != null) 'recurrence': recurrence,
+      if (recurrenceUntil != null) 'recurrence_until': recurrenceUntil,
       if (dirty != null) 'dirty': dirty,
       if (deleted != null) 'deleted': deleted,
       if (createdAt != null) 'created_at': createdAt,
@@ -3035,6 +3128,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     Value<DateTime>? startsAt,
     Value<DateTime?>? endsAt,
     Value<bool>? allDay,
+    Value<String>? recurrence,
+    Value<DateTime?>? recurrenceUntil,
     Value<bool>? dirty,
     Value<bool>? deleted,
     Value<DateTime>? createdAt,
@@ -3051,6 +3146,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
       startsAt: startsAt ?? this.startsAt,
       endsAt: endsAt ?? this.endsAt,
       allDay: allDay ?? this.allDay,
+      recurrence: recurrence ?? this.recurrence,
+      recurrenceUntil: recurrenceUntil ?? this.recurrenceUntil,
       dirty: dirty ?? this.dirty,
       deleted: deleted ?? this.deleted,
       createdAt: createdAt ?? this.createdAt,
@@ -3089,6 +3186,12 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     if (allDay.present) {
       map['all_day'] = Variable<bool>(allDay.value);
     }
+    if (recurrence.present) {
+      map['recurrence'] = Variable<String>(recurrence.value);
+    }
+    if (recurrenceUntil.present) {
+      map['recurrence_until'] = Variable<DateTime>(recurrenceUntil.value);
+    }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
@@ -3119,6 +3222,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
           ..write('startsAt: $startsAt, ')
           ..write('endsAt: $endsAt, ')
           ..write('allDay: $allDay, ')
+          ..write('recurrence: $recurrence, ')
+          ..write('recurrenceUntil: $recurrenceUntil, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -11679,6 +11784,8 @@ typedef $$CalendarEventsTableCreateCompanionBuilder =
       required DateTime startsAt,
       Value<DateTime?> endsAt,
       Value<bool> allDay,
+      Value<String> recurrence,
+      Value<DateTime?> recurrenceUntil,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -11696,6 +11803,8 @@ typedef $$CalendarEventsTableUpdateCompanionBuilder =
       Value<DateTime> startsAt,
       Value<DateTime?> endsAt,
       Value<bool> allDay,
+      Value<String> recurrence,
+      Value<DateTime?> recurrenceUntil,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -11754,6 +11863,16 @@ class $$CalendarEventsTableFilterComposer
 
   ColumnFilters<bool> get allDay => $composableBuilder(
     column: $table.allDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get recurrenceUntil => $composableBuilder(
+    column: $table.recurrenceUntil,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11832,6 +11951,16 @@ class $$CalendarEventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get recurrenceUntil => $composableBuilder(
+    column: $table.recurrenceUntil,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get dirty => $composableBuilder(
     column: $table.dirty,
     builder: (column) => ColumnOrderings(column),
@@ -11889,6 +12018,16 @@ class $$CalendarEventsTableAnnotationComposer
   GeneratedColumn<bool> get allDay =>
       $composableBuilder(column: $table.allDay, builder: (column) => column);
 
+  GeneratedColumn<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get recurrenceUntil => $composableBuilder(
+    column: $table.recurrenceUntil,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
@@ -11944,6 +12083,8 @@ class $$CalendarEventsTableTableManager
                 Value<DateTime> startsAt = const Value.absent(),
                 Value<DateTime?> endsAt = const Value.absent(),
                 Value<bool> allDay = const Value.absent(),
+                Value<String> recurrence = const Value.absent(),
+                Value<DateTime?> recurrenceUntil = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -11959,6 +12100,8 @@ class $$CalendarEventsTableTableManager
                 startsAt: startsAt,
                 endsAt: endsAt,
                 allDay: allDay,
+                recurrence: recurrence,
+                recurrenceUntil: recurrenceUntil,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,
@@ -11976,6 +12119,8 @@ class $$CalendarEventsTableTableManager
                 required DateTime startsAt,
                 Value<DateTime?> endsAt = const Value.absent(),
                 Value<bool> allDay = const Value.absent(),
+                Value<String> recurrence = const Value.absent(),
+                Value<DateTime?> recurrenceUntil = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -11991,6 +12136,8 @@ class $$CalendarEventsTableTableManager
                 startsAt: startsAt,
                 endsAt: endsAt,
                 allDay: allDay,
+                recurrence: recurrence,
+                recurrenceUntil: recurrenceUntil,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,

@@ -20,6 +20,23 @@ extension CalendarMemberFilterL10n on CalendarMemberFilter {
       };
 }
 
+extension CalendarBrowseModeL10n on CalendarBrowseMode {
+  String display(AppLocalizations l10n) => switch (this) {
+        CalendarBrowseMode.month => l10n.calendarBrowseMonth,
+        CalendarBrowseMode.week => l10n.calendarBrowseWeek,
+        CalendarBrowseMode.agenda => l10n.calendarBrowseAgenda,
+      };
+}
+
+extension EventRecurrenceL10n on EventRecurrence {
+  String display(AppLocalizations l10n) => switch (this) {
+        EventRecurrence.none => l10n.eventRecurrenceNone,
+        EventRecurrence.daily => l10n.eventRecurrenceDaily,
+        EventRecurrence.weekly => l10n.eventRecurrenceWeekly,
+        EventRecurrence.monthly => l10n.eventRecurrenceMonthly,
+      };
+}
+
 extension CareViewModeL10n on CareViewMode {
   String display(AppLocalizations l10n) => switch (this) {
         CareViewMode.due => l10n.careViewDue,

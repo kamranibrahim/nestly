@@ -678,6 +678,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarTitle => 'Family calendar';
 
   @override
+  String get calendarTitleAgenda => 'Agenda';
+
+  @override
+  String get calendarBrowseMonth => 'Month';
+
+  @override
+  String get calendarBrowseWeek => 'Week';
+
+  @override
+  String get calendarBrowseAgenda => 'Agenda';
+
+  @override
+  String get calendarAgendaUpcoming => 'Next 7 days';
+
+  @override
+  String get eventRecurrence => 'Repeats';
+
+  @override
+  String get eventRecurrenceNone => 'Does not repeat';
+
+  @override
+  String get eventRecurrenceDaily => 'Every day';
+
+  @override
+  String get eventRecurrenceWeekly => 'Every week';
+
+  @override
+  String get eventRecurrenceMonthly => 'Every month';
+
+  @override
+  String get eventRecurrenceUntil => 'Repeat until (optional)';
+
+  @override
+  String get calendarEditSeriesHint =>
+      'Changes apply to the whole repeating series.';
+
+  @override
   String get homeTodaySnapshot => 'Today snapshot';
 
   @override

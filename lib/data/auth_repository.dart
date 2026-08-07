@@ -700,6 +700,10 @@ class SyncService {
               ? null
               : Timestamp.fromDate(event.endsAt!),
           'allDay': event.allDay,
+          'recurrence': event.recurrence,
+          'recurrenceUntil': event.recurrenceUntil == null
+              ? null
+              : Timestamp.fromDate(event.recurrenceUntil!),
           'updatedAt': Timestamp.fromDate(event.updatedAt),
           'createdAt': Timestamp.fromDate(event.createdAt),
         });
@@ -745,6 +749,10 @@ class SyncService {
                   (data['startsAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
               endsAt: Value((data['endsAt'] as Timestamp?)?.toDate()),
               allDay: Value(data['allDay'] as bool? ?? false),
+              recurrence: Value(data['recurrence'] as String? ?? 'none'),
+              recurrenceUntil: Value(
+                (data['recurrenceUntil'] as Timestamp?)?.toDate(),
+              ),
               dirty: const Value(false),
               createdAt: Value(
                 (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,

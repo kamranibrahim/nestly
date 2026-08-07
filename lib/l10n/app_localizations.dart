@@ -1268,6 +1268,78 @@ abstract class AppLocalizations {
   /// **'Family calendar'**
   String get calendarTitle;
 
+  /// No description provided for @calendarTitleAgenda.
+  ///
+  /// In en, this message translates to:
+  /// **'Agenda'**
+  String get calendarTitleAgenda;
+
+  /// No description provided for @calendarBrowseMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get calendarBrowseMonth;
+
+  /// No description provided for @calendarBrowseWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get calendarBrowseWeek;
+
+  /// No description provided for @calendarBrowseAgenda.
+  ///
+  /// In en, this message translates to:
+  /// **'Agenda'**
+  String get calendarBrowseAgenda;
+
+  /// No description provided for @calendarAgendaUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 7 days'**
+  String get calendarAgendaUpcoming;
+
+  /// No description provided for @eventRecurrence.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats'**
+  String get eventRecurrence;
+
+  /// No description provided for @eventRecurrenceNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Does not repeat'**
+  String get eventRecurrenceNone;
+
+  /// No description provided for @eventRecurrenceDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get eventRecurrenceDaily;
+
+  /// No description provided for @eventRecurrenceWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every week'**
+  String get eventRecurrenceWeekly;
+
+  /// No description provided for @eventRecurrenceMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every month'**
+  String get eventRecurrenceMonthly;
+
+  /// No description provided for @eventRecurrenceUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat until (optional)'**
+  String get eventRecurrenceUntil;
+
+  /// No description provided for @calendarEditSeriesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes apply to the whole repeating series.'**
+  String get calendarEditSeriesHint;
+
   /// No description provided for @homeTodaySnapshot.
   ///
   /// In en, this message translates to:

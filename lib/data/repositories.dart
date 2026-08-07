@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
+import 'calendar_view_math.dart';
 import 'db/app_database.dart';
 import 'enums.dart';
 import 'home_tips.dart';
@@ -434,6 +435,39 @@ class EventRepository {
   final AppDatabase _db;
   static const _uuid = Uuid();
 
+  RecurringEventAnchor _anchor(CalendarEvent event) => RecurringEventAnchor(
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        allDay: event.allDay,
+        recurrence: EventRecurrence.parse(event.recurrence),
+        recurrenceUntil: event.recurrenceUntil,
+      );
+
+  CalendarEvent _withOccurrence(CalendarEvent master, EventOccurrence occ) =>
+      master.copyWith(
+        startsAt: occ.startsAt,
+        endsAt: Value(occ.endsAt),
+      );
+
+  List<CalendarEvent> expandInRange(
+    List<CalendarEvent> events,
+    DateTime rangeStart,
+    DateTime rangeEnd,
+  ) {
+    final expanded = <CalendarEvent>[];
+    for (final event in events) {
+      for (final occ in expandRecurringEvent(
+        _anchor(event),
+        rangeStart,
+        rangeEnd,
+      )) {
+        expanded.add(_withOccurrence(event, occ));
+      }
+    }
+    expanded.sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    return expanded;
+  }
+
   Stream<List<CalendarEvent>> watchAll() {
     return (_db.select(_db.calendarEvents)
           ..where((e) => e.deleted.equals(false))
@@ -464,6 +498,8 @@ class EventRepository {
     bool allDay = false,
     DateTime? endsAt,
     String? nestId,
+    EventRecurrence recurrence = EventRecurrence.none,
+    DateTime? recurrenceUntil,
   }) async {
     final now = DateTime.now();
     final resolvedNest = nestId ?? await _db.getMeta('nestId');
@@ -480,6 +516,8 @@ class EventRepository {
             startsAt: startsAt,
             endsAt: Value(endsAt),
             allDay: Value(allDay),
+            recurrence: Value(recurrence.storage),
+            recurrenceUntil: Value(recurrenceUntil),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -496,6 +534,8 @@ class EventRepository {
     String? location,
     bool allDay = false,
     DateTime? endsAt,
+    EventRecurrence recurrence = EventRecurrence.none,
+    DateTime? recurrenceUntil,
   }) {
     return (_db.update(
       _db.calendarEvents,
@@ -508,6 +548,8 @@ class EventRepository {
         startsAt: Value(startsAt),
         endsAt: Value(endsAt),
         allDay: Value(allDay),
+        recurrence: Value(recurrence.storage),
+        recurrenceUntil: Value(recurrenceUntil),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),

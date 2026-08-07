@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
+import 'package:nestly/data/enums.dart';
 import 'package:nestly/data/repositories.dart';
 import 'package:nestly/data/vault_upload_status.dart';
 
@@ -335,6 +336,28 @@ void main() {
     await events.deleteEvent(added.id);
     final remaining = await events.watchAll().first;
     expect(remaining.any((e) => e.id == added.id), isFalse);
+  });
+
+  test('weekly recurring event expands to expected count', () async {
+    final startsAt = DateTime(2026, 7, 6, 9); // Monday
+    await events.addEvent(
+      title: 'Pickup',
+      startsAt: startsAt,
+      memberId: 'dad',
+      recurrence: EventRecurrence.weekly,
+    );
+
+    final stored = (await events.watchAll().first)
+        .firstWhere((e) => e.title == 'Pickup');
+    expect(stored.recurrence, EventRecurrence.weekly.storage);
+
+    final expanded = events.expandInRange(
+      [stored],
+      DateTime(2026, 7, 1),
+      DateTime(2026, 7, 31),
+    );
+    expect(expanded, hasLength(4));
+    expect(expanded.map((e) => e.startsAt.day).toList(), [6, 13, 20, 27]);
   });
 
   test('school activities can be updated with next date and notes', () async {

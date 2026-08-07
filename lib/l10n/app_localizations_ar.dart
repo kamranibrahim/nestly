@@ -672,6 +672,43 @@ class AppLocalizationsAr extends AppLocalizations {
   String get calendarTitle => 'تقويم العائلة';
 
   @override
+  String get calendarTitleAgenda => 'جدول الأعمال';
+
+  @override
+  String get calendarBrowseMonth => 'شهر';
+
+  @override
+  String get calendarBrowseWeek => 'أسبوع';
+
+  @override
+  String get calendarBrowseAgenda => 'جدول';
+
+  @override
+  String get calendarAgendaUpcoming => 'الأيام السبعة القادمة';
+
+  @override
+  String get eventRecurrence => 'يتكرر';
+
+  @override
+  String get eventRecurrenceNone => 'لا يتكرر';
+
+  @override
+  String get eventRecurrenceDaily => 'كل يوم';
+
+  @override
+  String get eventRecurrenceWeekly => 'كل أسبوع';
+
+  @override
+  String get eventRecurrenceMonthly => 'كل شهر';
+
+  @override
+  String get eventRecurrenceUntil => 'التكرار حتى (اختياري)';
+
+  @override
+  String get calendarEditSeriesHint =>
+      'تُطبَّق التغييرات على السلسلة المتكررة بالكامل.';
+
+  @override
   String get homeTodaySnapshot => 'لمحة اليوم';
 
   @override

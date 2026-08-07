@@ -82,6 +82,8 @@ class CalendarEvents extends Table {
   DateTimeColumn get startsAt => dateTime()();
   DateTimeColumn get endsAt => dateTime().nullable()();
   BoolColumn get allDay => boolean().withDefault(const Constant(false))();
+  TextColumn get recurrence => text().withDefault(const Constant('none'))();
+  DateTimeColumn get recurrenceUntil => dateTime().nullable()();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -327,7 +329,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -412,6 +414,14 @@ class AppDatabase extends _$AppDatabase {
         await _addColumnIfMissing(m, tasks, tasks.dueAt);
         await _addColumnIfMissing(m, tasks, tasks.cadenceDays);
         await _backfillTaskDueAtAndCadence();
+      }
+      if (from < 15) {
+        await _addColumnIfMissing(m, calendarEvents, calendarEvents.recurrence);
+        await _addColumnIfMissing(
+          m,
+          calendarEvents,
+          calendarEvents.recurrenceUntil,
+        );
       }
     },
   );
