@@ -2468,7 +2468,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get taskEdit => 'تعديل المهمة';
 
   @override
-  String get taskHabitHint => 'تبقى مفتوحة وتُرحّل تسمية الاستحقاق عند الإنجاز';
+  String get taskHabitHint => 'تبقى مفتوحة ويُرحّل تاريخ الاستحقاق عند الإنجاز';
 
   @override
   String get taskAdd => 'إضافة مهمة';
@@ -2526,6 +2526,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get taskRepeats => 'تتكرر';
+
+  @override
+  String get taskPickDate => 'اختر تاريخًا';
+
+  @override
+  String get taskCadenceDaily => 'كل يوم';
+
+  @override
+  String get taskCadenceWeekly => 'كل أسبوع';
+
+  @override
+  String get taskCadenceBiweekly => 'كل أسبوعين';
+
+  @override
+  String get taskCadenceMonthly => 'كل شهر';
+
+  @override
+  String taskCadenceEveryDays(int days) {
+    return 'كل $days أيام';
+  }
+
+  @override
+  String taskRepeatsCadence(String cadence) {
+    return 'تتكرر · $cadence';
+  }
 
   @override
   String get taskOpen => 'مفتوحة';

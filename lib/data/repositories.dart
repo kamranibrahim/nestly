@@ -5,6 +5,7 @@ import 'db/app_database.dart';
 import 'enums.dart';
 import 'home_tips.dart';
 import 'member_roles.dart';
+import 'task_due.dart';
 
 class TaskRepository {
   TaskRepository(this._db);
@@ -35,10 +36,17 @@ class TaskRepository {
     final now = DateTime.now();
 
     if (markingDone && task.recurring) {
-      final nextLabel = nextDueLabel(task.dueLabel);
+      final cadence = effectiveTaskCadenceDays(
+        recurring: task.recurring,
+        cadenceDays: task.cadenceDays,
+      );
+      final base = task.dueAt ?? now;
+      final nextDue = advanceDueAt(base, cadence);
+      final nextLabel = dueLabelForDueAt(nextDue, now: now);
       await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
         TasksCompanion(
           done: const Value(false),
+          dueAt: Value(nextDue),
           dueLabel: Value(nextLabel),
           dirty: const Value(true),
           updatedAt: Value(now),
@@ -67,7 +75,7 @@ class TaskRepository {
     }
   }
 
-  /// Advances recurring chore labels without a full calendar cadence.
+  /// Legacy label cycle — prefer [advanceDueAt] on [Task.dueAt].
   static String nextDueLabel(String current) =>
       TaskDueLabel.parse(current).next.label;
 
@@ -75,11 +83,23 @@ class TaskRepository {
     required String title,
     String assigneeId = '',
     String dueLabel = 'Today',
+    DateTime? dueAt,
     bool recurring = false,
+    int cadenceDays = 0,
     String? nestId,
   }) async {
     final now = DateTime.now();
     final resolvedNest = nestId ?? await _db.getMeta('nestId');
+    final resolvedDue = resolveTaskDueAt(
+      dueAt: dueAt,
+      dueLabel: dueLabel,
+      now: now,
+    );
+    final resolvedCadence = effectiveTaskCadenceDays(
+      recurring: recurring,
+      cadenceDays: cadenceDays,
+    );
+    final resolvedLabel = dueLabelForDueAt(resolvedDue, now: now);
     await _db
         .into(_db.tasks)
         .insert(
@@ -88,7 +108,9 @@ class TaskRepository {
             nestId: Value(resolvedNest),
             title: title.trim(),
             assigneeId: Value(assigneeId),
-            dueLabel: Value(dueLabel),
+            dueLabel: Value(resolvedLabel),
+            dueAt: Value(resolvedDue),
+            cadenceDays: Value(resolvedCadence),
             recurring: Value(recurring),
             dirty: const Value(true),
             createdAt: Value(now),
@@ -102,16 +124,31 @@ class TaskRepository {
     required String title,
     String assigneeId = '',
     String dueLabel = 'Today',
+    DateTime? dueAt,
     bool recurring = false,
+    int cadenceDays = 0,
   }) {
+    final now = DateTime.now();
+    final resolvedDue = resolveTaskDueAt(
+      dueAt: dueAt,
+      dueLabel: dueLabel,
+      now: now,
+    );
+    final resolvedCadence = effectiveTaskCadenceDays(
+      recurring: recurring,
+      cadenceDays: cadenceDays,
+    );
+    final resolvedLabel = dueLabelForDueAt(resolvedDue, now: now);
     return (_db.update(_db.tasks)..where((t) => t.id.equals(id))).write(
       TasksCompanion(
         title: Value(title.trim()),
         assigneeId: Value(assigneeId),
-        dueLabel: Value(dueLabel),
+        dueLabel: Value(resolvedLabel),
+        dueAt: Value(resolvedDue),
+        cadenceDays: Value(resolvedCadence),
         recurring: Value(recurring),
         dirty: const Value(true),
-        updatedAt: Value(DateTime.now()),
+        updatedAt: Value(now),
       ),
     );
   }

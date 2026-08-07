@@ -562,6 +562,27 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     requiredDuringInsert: false,
     defaultValue: const Constant('Today'),
   );
+  static const VerificationMeta _dueAtMeta = const VerificationMeta('dueAt');
+  @override
+  late final GeneratedColumn<DateTime> dueAt = GeneratedColumn<DateTime>(
+    'due_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cadenceDaysMeta = const VerificationMeta(
+    'cadenceDays',
+  );
+  @override
+  late final GeneratedColumn<int> cadenceDays = GeneratedColumn<int>(
+    'cadence_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _doneMeta = const VerificationMeta('done');
   @override
   late final GeneratedColumn<bool> done = GeneratedColumn<bool>(
@@ -649,6 +670,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     title,
     assigneeId,
     dueLabel,
+    dueAt,
+    cadenceDays,
     done,
     recurring,
     dirty,
@@ -697,6 +720,21 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
       context.handle(
         _dueLabelMeta,
         dueLabel.isAcceptableOrUnknown(data['due_label']!, _dueLabelMeta),
+      );
+    }
+    if (data.containsKey('due_at')) {
+      context.handle(
+        _dueAtMeta,
+        dueAt.isAcceptableOrUnknown(data['due_at']!, _dueAtMeta),
+      );
+    }
+    if (data.containsKey('cadence_days')) {
+      context.handle(
+        _cadenceDaysMeta,
+        cadenceDays.isAcceptableOrUnknown(
+          data['cadence_days']!,
+          _cadenceDaysMeta,
+        ),
       );
     }
     if (data.containsKey('done')) {
@@ -764,6 +802,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.string,
         data['${effectivePrefix}due_label'],
       )!,
+      dueAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_at'],
+      ),
+      cadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cadence_days'],
+      )!,
       done: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}done'],
@@ -803,6 +849,8 @@ class Task extends DataClass implements Insertable<Task> {
   final String title;
   final String assigneeId;
   final String dueLabel;
+  final DateTime? dueAt;
+  final int cadenceDays;
   final bool done;
   final bool recurring;
   final bool dirty;
@@ -815,6 +863,8 @@ class Task extends DataClass implements Insertable<Task> {
     required this.title,
     required this.assigneeId,
     required this.dueLabel,
+    this.dueAt,
+    required this.cadenceDays,
     required this.done,
     required this.recurring,
     required this.dirty,
@@ -832,6 +882,10 @@ class Task extends DataClass implements Insertable<Task> {
     map['title'] = Variable<String>(title);
     map['assignee_id'] = Variable<String>(assigneeId);
     map['due_label'] = Variable<String>(dueLabel);
+    if (!nullToAbsent || dueAt != null) {
+      map['due_at'] = Variable<DateTime>(dueAt);
+    }
+    map['cadence_days'] = Variable<int>(cadenceDays);
     map['done'] = Variable<bool>(done);
     map['recurring'] = Variable<bool>(recurring);
     map['dirty'] = Variable<bool>(dirty);
@@ -850,6 +904,10 @@ class Task extends DataClass implements Insertable<Task> {
       title: Value(title),
       assigneeId: Value(assigneeId),
       dueLabel: Value(dueLabel),
+      dueAt: dueAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueAt),
+      cadenceDays: Value(cadenceDays),
       done: Value(done),
       recurring: Value(recurring),
       dirty: Value(dirty),
@@ -870,6 +928,8 @@ class Task extends DataClass implements Insertable<Task> {
       title: serializer.fromJson<String>(json['title']),
       assigneeId: serializer.fromJson<String>(json['assigneeId']),
       dueLabel: serializer.fromJson<String>(json['dueLabel']),
+      dueAt: serializer.fromJson<DateTime?>(json['dueAt']),
+      cadenceDays: serializer.fromJson<int>(json['cadenceDays']),
       done: serializer.fromJson<bool>(json['done']),
       recurring: serializer.fromJson<bool>(json['recurring']),
       dirty: serializer.fromJson<bool>(json['dirty']),
@@ -887,6 +947,8 @@ class Task extends DataClass implements Insertable<Task> {
       'title': serializer.toJson<String>(title),
       'assigneeId': serializer.toJson<String>(assigneeId),
       'dueLabel': serializer.toJson<String>(dueLabel),
+      'dueAt': serializer.toJson<DateTime?>(dueAt),
+      'cadenceDays': serializer.toJson<int>(cadenceDays),
       'done': serializer.toJson<bool>(done),
       'recurring': serializer.toJson<bool>(recurring),
       'dirty': serializer.toJson<bool>(dirty),
@@ -902,6 +964,8 @@ class Task extends DataClass implements Insertable<Task> {
     String? title,
     String? assigneeId,
     String? dueLabel,
+    Value<DateTime?> dueAt = const Value.absent(),
+    int? cadenceDays,
     bool? done,
     bool? recurring,
     bool? dirty,
@@ -914,6 +978,8 @@ class Task extends DataClass implements Insertable<Task> {
     title: title ?? this.title,
     assigneeId: assigneeId ?? this.assigneeId,
     dueLabel: dueLabel ?? this.dueLabel,
+    dueAt: dueAt.present ? dueAt.value : this.dueAt,
+    cadenceDays: cadenceDays ?? this.cadenceDays,
     done: done ?? this.done,
     recurring: recurring ?? this.recurring,
     dirty: dirty ?? this.dirty,
@@ -930,6 +996,10 @@ class Task extends DataClass implements Insertable<Task> {
           ? data.assigneeId.value
           : this.assigneeId,
       dueLabel: data.dueLabel.present ? data.dueLabel.value : this.dueLabel,
+      dueAt: data.dueAt.present ? data.dueAt.value : this.dueAt,
+      cadenceDays: data.cadenceDays.present
+          ? data.cadenceDays.value
+          : this.cadenceDays,
       done: data.done.present ? data.done.value : this.done,
       recurring: data.recurring.present ? data.recurring.value : this.recurring,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
@@ -947,6 +1017,8 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('title: $title, ')
           ..write('assigneeId: $assigneeId, ')
           ..write('dueLabel: $dueLabel, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('done: $done, ')
           ..write('recurring: $recurring, ')
           ..write('dirty: $dirty, ')
@@ -964,6 +1036,8 @@ class Task extends DataClass implements Insertable<Task> {
     title,
     assigneeId,
     dueLabel,
+    dueAt,
+    cadenceDays,
     done,
     recurring,
     dirty,
@@ -980,6 +1054,8 @@ class Task extends DataClass implements Insertable<Task> {
           other.title == this.title &&
           other.assigneeId == this.assigneeId &&
           other.dueLabel == this.dueLabel &&
+          other.dueAt == this.dueAt &&
+          other.cadenceDays == this.cadenceDays &&
           other.done == this.done &&
           other.recurring == this.recurring &&
           other.dirty == this.dirty &&
@@ -994,6 +1070,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> title;
   final Value<String> assigneeId;
   final Value<String> dueLabel;
+  final Value<DateTime?> dueAt;
+  final Value<int> cadenceDays;
   final Value<bool> done;
   final Value<bool> recurring;
   final Value<bool> dirty;
@@ -1007,6 +1085,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.title = const Value.absent(),
     this.assigneeId = const Value.absent(),
     this.dueLabel = const Value.absent(),
+    this.dueAt = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
     this.done = const Value.absent(),
     this.recurring = const Value.absent(),
     this.dirty = const Value.absent(),
@@ -1021,6 +1101,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     required String title,
     this.assigneeId = const Value.absent(),
     this.dueLabel = const Value.absent(),
+    this.dueAt = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
     this.done = const Value.absent(),
     this.recurring = const Value.absent(),
     this.dirty = const Value.absent(),
@@ -1036,6 +1118,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? title,
     Expression<String>? assigneeId,
     Expression<String>? dueLabel,
+    Expression<DateTime>? dueAt,
+    Expression<int>? cadenceDays,
     Expression<bool>? done,
     Expression<bool>? recurring,
     Expression<bool>? dirty,
@@ -1050,6 +1134,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (title != null) 'title': title,
       if (assigneeId != null) 'assignee_id': assigneeId,
       if (dueLabel != null) 'due_label': dueLabel,
+      if (dueAt != null) 'due_at': dueAt,
+      if (cadenceDays != null) 'cadence_days': cadenceDays,
       if (done != null) 'done': done,
       if (recurring != null) 'recurring': recurring,
       if (dirty != null) 'dirty': dirty,
@@ -1066,6 +1152,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String>? title,
     Value<String>? assigneeId,
     Value<String>? dueLabel,
+    Value<DateTime?>? dueAt,
+    Value<int>? cadenceDays,
     Value<bool>? done,
     Value<bool>? recurring,
     Value<bool>? dirty,
@@ -1080,6 +1168,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       title: title ?? this.title,
       assigneeId: assigneeId ?? this.assigneeId,
       dueLabel: dueLabel ?? this.dueLabel,
+      dueAt: dueAt ?? this.dueAt,
+      cadenceDays: cadenceDays ?? this.cadenceDays,
       done: done ?? this.done,
       recurring: recurring ?? this.recurring,
       dirty: dirty ?? this.dirty,
@@ -1107,6 +1197,12 @@ class TasksCompanion extends UpdateCompanion<Task> {
     }
     if (dueLabel.present) {
       map['due_label'] = Variable<String>(dueLabel.value);
+    }
+    if (dueAt.present) {
+      map['due_at'] = Variable<DateTime>(dueAt.value);
+    }
+    if (cadenceDays.present) {
+      map['cadence_days'] = Variable<int>(cadenceDays.value);
     }
     if (done.present) {
       map['done'] = Variable<bool>(done.value);
@@ -1140,6 +1236,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('title: $title, ')
           ..write('assigneeId: $assigneeId, ')
           ..write('dueLabel: $dueLabel, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('done: $done, ')
           ..write('recurring: $recurring, ')
           ..write('dirty: $dirty, ')
@@ -10429,6 +10527,8 @@ typedef $$TasksTableCreateCompanionBuilder =
       required String title,
       Value<String> assigneeId,
       Value<String> dueLabel,
+      Value<DateTime?> dueAt,
+      Value<int> cadenceDays,
       Value<bool> done,
       Value<bool> recurring,
       Value<bool> dirty,
@@ -10444,6 +10544,8 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> assigneeId,
       Value<String> dueLabel,
+      Value<DateTime?> dueAt,
+      Value<int> cadenceDays,
       Value<bool> done,
       Value<bool> recurring,
       Value<bool> dirty,
@@ -10483,6 +10585,16 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<String> get dueLabel => $composableBuilder(
     column: $table.dueLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueAt => $composableBuilder(
+    column: $table.dueAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10551,6 +10663,16 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get dueAt => $composableBuilder(
+    column: $table.dueAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get done => $composableBuilder(
     column: $table.done,
     builder: (column) => ColumnOrderings(column),
@@ -10608,6 +10730,14 @@ class $$TasksTableAnnotationComposer
   GeneratedColumn<String> get dueLabel =>
       $composableBuilder(column: $table.dueLabel, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get dueAt =>
+      $composableBuilder(column: $table.dueAt, builder: (column) => column);
+
+  GeneratedColumn<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get done =>
       $composableBuilder(column: $table.done, builder: (column) => column);
 
@@ -10660,6 +10790,8 @@ class $$TasksTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> assigneeId = const Value.absent(),
                 Value<String> dueLabel = const Value.absent(),
+                Value<DateTime?> dueAt = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
@@ -10673,6 +10805,8 @@ class $$TasksTableTableManager
                 title: title,
                 assigneeId: assigneeId,
                 dueLabel: dueLabel,
+                dueAt: dueAt,
+                cadenceDays: cadenceDays,
                 done: done,
                 recurring: recurring,
                 dirty: dirty,
@@ -10688,6 +10822,8 @@ class $$TasksTableTableManager
                 required String title,
                 Value<String> assigneeId = const Value.absent(),
                 Value<String> dueLabel = const Value.absent(),
+                Value<DateTime?> dueAt = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
@@ -10701,6 +10837,8 @@ class $$TasksTableTableManager
                 title: title,
                 assigneeId: assigneeId,
                 dueLabel: dueLabel,
+                dueAt: dueAt,
+                cadenceDays: cadenceDays,
                 done: done,
                 recurring: recurring,
                 dirty: dirty,

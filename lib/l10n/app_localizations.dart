@@ -4307,7 +4307,7 @@ abstract class AppLocalizations {
   /// No description provided for @taskHabitHint.
   ///
   /// In en, this message translates to:
-  /// **'Stays open and rolls the due label when done'**
+  /// **'Stays open and advances the due date when done'**
   String get taskHabitHint;
 
   /// No description provided for @taskAdd.
@@ -4411,6 +4411,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Repeats'**
   String get taskRepeats;
+
+  /// No description provided for @taskPickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick date'**
+  String get taskPickDate;
+
+  /// No description provided for @taskCadenceDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get taskCadenceDaily;
+
+  /// No description provided for @taskCadenceWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every week'**
+  String get taskCadenceWeekly;
+
+  /// No description provided for @taskCadenceBiweekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 2 weeks'**
+  String get taskCadenceBiweekly;
+
+  /// No description provided for @taskCadenceMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every month'**
+  String get taskCadenceMonthly;
+
+  /// No description provided for @taskCadenceEveryDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {days} days'**
+  String taskCadenceEveryDays(int days);
+
+  /// No description provided for @taskRepeatsCadence.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats · {cadence}'**
+  String taskRepeatsCadence(String cadence);
 
   /// No description provided for @taskOpen.
   ///

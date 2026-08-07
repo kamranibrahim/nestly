@@ -48,10 +48,12 @@ void main() {
   });
 
   test('tasks can be updated for assignee due and recurring', () async {
+    final dueToday = DateTime(2026, 8, 8);
+    final dueTomorrow = DateTime(2026, 8, 9);
     await tasks.addTask(
       title: 'Walk dog',
       assigneeId: 'dad',
-      dueLabel: 'Today',
+      dueAt: dueToday,
       recurring: false,
     );
     final added = (await tasks.watchAll().first)
@@ -61,31 +63,50 @@ void main() {
       id: added.id,
       title: 'Walk the dog',
       assigneeId: 'mom',
-      dueLabel: 'Tomorrow',
+      dueAt: dueTomorrow,
       recurring: true,
+      cadenceDays: 7,
     );
 
     final updated = (await tasks.watchAll().first)
         .firstWhere((t) => t.id == added.id);
     expect(updated.title, 'Walk the dog');
     expect(updated.assigneeId, 'mom');
-    expect(updated.dueLabel, 'Tomorrow');
+    expect(updated.dueAt?.year, 2026);
+    expect(updated.dueAt?.month, 8);
+    expect(updated.dueAt?.day, 9);
+    expect(updated.cadenceDays, 7);
     expect(updated.recurring, isTrue);
   });
 
-  test('recurring task rolls due label and stays open', () async {
+  test('recurring task advances dueAt by cadence and stays open', () async {
+    final dueToday = DateTime(2026, 8, 8);
     await tasks.addTask(
       title: 'Water plants',
-      dueLabel: 'Today',
+      dueAt: dueToday,
       recurring: true,
+      cadenceDays: 7,
     );
     final task = (await tasks.watchAll().first)
         .firstWhere((t) => t.title == 'Water plants');
+    expect(task.dueAt?.day, 8);
     await tasks.toggleDone(task);
     final after =
         (await tasks.watchAll().first).firstWhere((t) => t.id == task.id);
     expect(after.done, isFalse);
-    expect(after.dueLabel, 'Tomorrow');
+    expect(after.dueAt?.day, 15);
+    expect(after.dueAt?.month, 8);
+    expect(after.cadenceDays, 7);
+  });
+
+  test('non-recurring task completes when toggled done', () async {
+    await tasks.addTask(title: 'One-off chore', recurring: false);
+    final task = (await tasks.watchAll().first)
+        .firstWhere((t) => t.title == 'One-off chore');
+    await tasks.toggleDone(task);
+    final after =
+        (await tasks.watchAll().first).firstWhere((t) => t.id == task.id);
+    expect(after.done, isTrue);
   });
 
   test('toggle and add shopping item persist', () async {

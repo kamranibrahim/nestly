@@ -11,6 +11,7 @@ import 'enums.dart';
 import 'invite_code.dart';
 import 'nest_home_widget.dart';
 import 'repositories.dart';
+import 'task_due.dart';
 import 'telemetry.dart';
 
 class NestInfo {
@@ -482,6 +483,10 @@ class SyncService {
           'title': task.title,
           'assigneeId': task.assigneeId,
           'dueLabel': task.dueLabel,
+          'dueAt': task.dueAt != null
+              ? Timestamp.fromDate(task.dueAt!)
+              : null,
+          'cadenceDays': task.cadenceDays,
           'done': task.done,
           'recurring': task.recurring,
           'updatedAt': Timestamp.fromDate(task.updatedAt),
@@ -515,6 +520,20 @@ class SyncService {
           )) {
         continue;
       }
+      final dueLabelRaw = data['dueLabel'] as String? ?? 'Today';
+      final recurring = data['recurring'] as bool? ?? false;
+      final cadenceRaw = data['cadenceDays'] as int? ?? 0;
+      final cadenceDays = effectiveTaskCadenceDays(
+        recurring: recurring,
+        cadenceDays: cadenceRaw,
+      );
+      final dueAtRemote = (data['dueAt'] as Timestamp?)?.toDate();
+      final resolvedDue = resolveTaskDueAt(
+        dueAt: dueAtRemote,
+        dueLabel: dueLabelRaw,
+        now: remoteUpdated,
+      );
+      final dueLabel = dueLabelForDueAt(resolvedDue, now: remoteUpdated);
       await _db
           .into(_db.tasks)
           .insertOnConflictUpdate(
@@ -523,9 +542,11 @@ class SyncService {
               nestId: Value(nestId),
               title: data['title'] as String? ?? '',
               assigneeId: Value(data['assigneeId'] as String? ?? 'dad'),
-              dueLabel: Value(data['dueLabel'] as String? ?? 'Today'),
+              dueLabel: Value(dueLabel),
+              dueAt: Value(resolvedDue),
+              cadenceDays: Value(cadenceDays),
               done: Value(data['done'] as bool? ?? false),
-              recurring: Value(data['recurring'] as bool? ?? false),
+              recurring: Value(recurring),
               dirty: const Value(false),
               deleted: const Value(false),
               createdAt: Value(

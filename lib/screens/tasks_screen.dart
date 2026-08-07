@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/db/app_database.dart';
 import '../data/enums.dart';
 import '../data/member_roles.dart';
+import '../data/task_due.dart';
 import '../providers/providers.dart';
 import '../state/tasks_ui.dart';
 import '../theme/app_colors.dart';
@@ -41,7 +42,8 @@ class TasksScreen extends ConsumerWidget {
             String title,
             String assigneeId,
             bool recurring,
-            String dueLabel,
+            DateTime dueAt,
+            int cadenceDays,
             bool deleteTask,
           })
         >(
@@ -75,7 +77,8 @@ class TasksScreen extends ConsumerWidget {
             title: result.title,
             assigneeId: result.assigneeId,
             recurring: result.recurring,
-            dueLabel: result.dueLabel,
+            dueAt: result.dueAt,
+            cadenceDays: result.cadenceDays,
           );
     } else {
       await ref
@@ -85,7 +88,8 @@ class TasksScreen extends ConsumerWidget {
             title: result.title,
             assigneeId: result.assigneeId,
             recurring: result.recurring,
-            dueLabel: result.dueLabel,
+            dueAt: result.dueAt,
+            cadenceDays: result.cadenceDays,
           );
     }
     await syncAfterWrite(ref, context: context);
@@ -163,13 +167,17 @@ class TasksScreen extends ConsumerWidget {
                   final q = ui.searchQuery.trim().toLowerCase();
                   final filtered = q.isEmpty
                       ? assigneeFiltered
-                      : assigneeFiltered
-                            .where(
-                              (t) =>
-                                  t.title.toLowerCase().contains(q) ||
-                                  t.dueLabel.toLowerCase().contains(q),
-                            )
-                            .toList();
+                      : assigneeFiltered.where((t) {
+                          final now = DateTime.now();
+                          final dueAt = t.dueAt ??
+                              TaskDueLabel.dueDateFor(t.dueLabel, now: now);
+                          final dueText = dueAt == null
+                              ? t.dueLabel
+                              : formatTaskDue(dueAt, context.l10n, now: now);
+                          return t.title.toLowerCase().contains(q) ||
+                              t.dueLabel.toLowerCase().contains(q) ||
+                              dueText.toLowerCase().contains(q);
+                        }).toList();
                   final open = filtered.where((t) => !t.done).toList();
                   final done = filtered.where((t) => t.done).toList();
                   final filterMember = _memberById(
@@ -391,16 +399,28 @@ class _TaskSheetState extends State<_TaskSheet> {
   late final TextEditingController _controller;
   late String _assigneeId;
   late bool _recurring;
-  late String _dueLabel;
+  late DateTime _dueAt;
+  late int _cadenceDays;
+
+  static const _cadenceOptions = [1, 7, 14, 30];
 
   @override
   void initState() {
     super.initState();
     final existing = widget.existing;
+    final now = DateTime.now();
     _controller = TextEditingController(text: existing?.title ?? '');
     _assigneeId = widget.initialAssigneeId;
     _recurring = existing?.recurring ?? false;
-    _dueLabel = existing?.dueLabel ?? TaskDueLabel.today.label;
+    _dueAt = resolveTaskDueAt(
+      dueAt: existing?.dueAt,
+      dueLabel: existing?.dueLabel,
+      now: now,
+    );
+    _cadenceDays = effectiveTaskCadenceDays(
+      recurring: _recurring,
+      cadenceDays: existing?.cadenceDays ?? 0,
+    );
   }
 
   @override
@@ -419,9 +439,38 @@ class _TaskSheetState extends State<_TaskSheet> {
       title: title.isEmpty ? (widget.existing?.title ?? '') : title,
       assigneeId: _assigneeId,
       recurring: _recurring,
-      dueLabel: _dueLabel,
+      dueAt: _dueAt,
+      cadenceDays: effectiveTaskCadenceDays(
+        recurring: _recurring,
+        cadenceDays: _cadenceDays,
+      ),
       deleteTask: deleteTask,
     ));
+  }
+
+  Future<void> _pickDueDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dueAt,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+    );
+    if (picked != null) {
+      setState(() => _dueAt = DateTime(picked.year, picked.month, picked.day));
+    }
+  }
+
+  void _setQuickDue(TaskDueLabel due) {
+    final now = DateTime.now();
+    setState(() => _dueAt = due.dueDate(now: now));
+  }
+
+  bool _matchesQuickDue(TaskDueLabel due) {
+    final now = DateTime.now();
+    final quick = due.dueDate(now: now);
+    return _dueAt.year == quick.year &&
+        _dueAt.month == quick.month &&
+        _dueAt.day == quick.day;
   }
 
   @override
@@ -466,10 +515,28 @@ class _TaskSheetState extends State<_TaskSheet> {
                 for (final due in TaskDueLabel.values)
                   SoftPill(
                     label: due.display(context.l10n),
-                    selected: _dueLabel == due.label,
-                    onTap: () => setState(() => _dueLabel = due.label),
+                    selected: _matchesQuickDue(due),
+                    onTap: () => _setQuickDue(due),
                   ),
+                SoftPill(
+                  label: context.l10n.taskPickDate,
+                  selected: !TaskDueLabel.values.any(_matchesQuickDue),
+                  onTap: _pickDueDate,
+                ),
               ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                context.l10n.dueLabel(
+                  formatTaskDue(_dueAt, context.l10n, now: DateTime.now()),
+                ),
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.inkMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             if (widget.members.isNotEmpty) ...[
               const SizedBox(height: 6),
@@ -499,8 +566,26 @@ class _TaskSheetState extends State<_TaskSheet> {
                 style: const TextStyle(fontSize: 12.5),
               ),
               value: _recurring,
-              onChanged: (v) => setState(() => _recurring = v),
+              onChanged: (v) => setState(() {
+                _recurring = v;
+                if (v && _cadenceDays < 1) _cadenceDays = 7;
+              }),
             ),
+            if (_recurring) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final days in _cadenceOptions)
+                    SoftPill(
+                      label: formatTaskCadence(days, context.l10n),
+                      selected: _cadenceDays == days,
+                      onTap: () => setState(() => _cadenceDays = days),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
             FilledButton(
               onPressed: _submit,
               child: Text(
@@ -550,6 +635,13 @@ class _PastelTaskCard extends StatelessWidget {
       }
     }
     final name = member?.name ?? 'Unassigned';
+    final now = DateTime.now();
+    final dueAt =
+        task.dueAt ?? TaskDueLabel.dueDateFor(task.dueLabel, now: now) ?? now;
+    final dueText = formatTaskDue(dueAt, context.l10n, now: now);
+    final cadenceText = task.recurring
+        ? context.l10n.taskRepeatsCadence(formatTaskCadence(task.cadenceDays >= 1 ? task.cadenceDays : 7, context.l10n))
+        : null;
 
     return NestCard(
       onTap: onEdit,
@@ -587,7 +679,7 @@ class _PastelTaskCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '$name · ${task.dueLabel}${task.recurring ? ' · repeats' : ''}',
+                cadenceText == null ? '$name · $dueText' : '$name · $dueText · $cadenceText',
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: AppColors.inkSecondary,

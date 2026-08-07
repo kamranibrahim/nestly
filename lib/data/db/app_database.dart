@@ -3,6 +3,9 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../enums.dart';
+import '../task_due.dart';
+
 part 'app_database.g.dart';
 
 class NestMembers extends Table {
@@ -25,6 +28,8 @@ class Tasks extends Table {
   TextColumn get title => text()();
   TextColumn get assigneeId => text().withDefault(const Constant('dad'))();
   TextColumn get dueLabel => text().withDefault(const Constant('Today'))();
+  DateTimeColumn get dueAt => dateTime().nullable()();
+  IntColumn get cadenceDays => integer().withDefault(const Constant(0))();
   BoolColumn get done => boolean().withDefault(const Constant(false))();
   BoolColumn get recurring => boolean().withDefault(const Constant(false))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
@@ -322,7 +327,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -403,8 +408,36 @@ class AppDatabase extends _$AppDatabase {
           nestSettings.tomorrowPreviewEnabled,
         );
       }
+      if (from < 14) {
+        await _addColumnIfMissing(m, tasks, tasks.dueAt);
+        await _addColumnIfMissing(m, tasks, tasks.cadenceDays);
+        await _backfillTaskDueAtAndCadence();
+      }
     },
   );
+
+  Future<void> _backfillTaskDueAtAndCadence() async {
+    final now = DateTime.now();
+    final rows = await select(tasks).get();
+    for (final task in rows) {
+      final resolvedDue = task.dueAt ??
+          TaskDueLabel.dueDateFor(task.dueLabel, now: now) ??
+          DateTime(now.year, now.month, now.day);
+      final cadence = task.recurring && task.cadenceDays == 0
+          ? 7
+          : task.cadenceDays;
+      final label = dueLabelForDueAt(resolvedDue, now: now);
+      await (update(tasks)..where((t) => t.id.equals(task.id))).write(
+        TasksCompanion(
+          dueAt: task.dueAt == null ? Value(resolvedDue) : const Value.absent(),
+          cadenceDays: cadence != task.cadenceDays
+              ? Value(cadence)
+              : const Value.absent(),
+          dueLabel: label != task.dueLabel ? Value(label) : const Value.absent(),
+        ),
+      );
+    }
+  }
 
   Future<bool> _tableExists(String tableName) async {
     final row = await customSelect(
@@ -523,12 +556,14 @@ class AppDatabase extends _$AppDatabase {
     await _seedTimeline();
 
     await batch((b) {
+      final today = DateTime(now.year, now.month, now.day);
       b.insertAll(tasks, [
         TasksCompanion.insert(
           id: 'task-1',
           title: 'Buy groceries',
           assigneeId: const Value('dad'),
           dueLabel: const Value('Today'),
+          dueAt: Value(today),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),
@@ -538,6 +573,7 @@ class AppDatabase extends _$AppDatabase {
           title: 'Pack soccer kit',
           assigneeId: const Value('ayaan'),
           dueLabel: const Value('Today'),
+          dueAt: Value(today),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),
@@ -547,8 +583,10 @@ class AppDatabase extends _$AppDatabase {
           title: 'Water plants',
           assigneeId: const Value('noor'),
           dueLabel: const Value('Today'),
+          dueAt: Value(today),
           done: const Value(true),
           recurring: const Value(true),
+          cadenceDays: const Value(7),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),
@@ -558,7 +596,9 @@ class AppDatabase extends _$AppDatabase {
           title: 'Clean kitchen',
           assigneeId: const Value('mom'),
           dueLabel: const Value('Tomorrow'),
+          dueAt: Value(today.add(const Duration(days: 1))),
           recurring: const Value(true),
+          cadenceDays: const Value(7),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),
@@ -568,6 +608,7 @@ class AppDatabase extends _$AppDatabase {
           title: 'Pay internet bill',
           assigneeId: const Value('dad'),
           dueLabel: const Value('Fri'),
+          dueAt: Value(today.add(const Duration(days: 5))),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),

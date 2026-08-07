@@ -2482,7 +2482,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskEdit => 'Edit task';
 
   @override
-  String get taskHabitHint => 'Stays open and rolls the due label when done';
+  String get taskHabitHint => 'Stays open and advances the due date when done';
 
   @override
   String get taskAdd => 'Add task';
@@ -2541,6 +2541,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get taskRepeats => 'Repeats';
+
+  @override
+  String get taskPickDate => 'Pick date';
+
+  @override
+  String get taskCadenceDaily => 'Every day';
+
+  @override
+  String get taskCadenceWeekly => 'Every week';
+
+  @override
+  String get taskCadenceBiweekly => 'Every 2 weeks';
+
+  @override
+  String get taskCadenceMonthly => 'Every month';
+
+  @override
+  String taskCadenceEveryDays(int days) {
+    return 'Every $days days';
+  }
+
+  @override
+  String taskRepeatsCadence(String cadence) {
+    return 'Repeats · $cadence';
+  }
 
   @override
   String get taskOpen => 'Open';

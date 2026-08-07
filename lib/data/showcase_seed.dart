@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
 import 'repositories.dart';
+import 'task_due.dart';
 
 /// Polished App Store showcase content for a real nest.
 /// Writes local Drift rows as dirty so [SyncService.syncAll] pushes to Firestore.
@@ -427,12 +428,20 @@ class ShowcaseSeedService {
     DateTime now, {
     bool done = false,
     bool recurring = false,
+    int cadenceDays = 0,
   }) {
+    final dueAt = resolveTaskDueAt(dueLabel: dueLabel, now: now);
+    final resolvedCadence = effectiveTaskCadenceDays(
+      recurring: recurring,
+      cadenceDays: cadenceDays,
+    );
     return TasksCompanion.insert(
       id: 'task-${_uuid.v4().substring(0, 8)}',
       title: title,
       assigneeId: Value(assigneeId),
-      dueLabel: Value(dueLabel),
+      dueLabel: Value(dueLabelForDueAt(dueAt, now: now)),
+      dueAt: Value(dueAt),
+      cadenceDays: Value(resolvedCadence),
       done: Value(done),
       recurring: Value(recurring),
       dirty: const Value(true),
