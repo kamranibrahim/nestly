@@ -678,16 +678,22 @@ class _PastelTaskCard extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              Text(
-                cadenceText == null ? '$name · $dueText' : '$name · $dueText · $cadenceText',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.inkSecondary,
-                  fontSize: 13,
+              Expanded(
+                child: Text(
+                  cadenceText == null
+                      ? '$name · $dueText'
+                      : '$name · $dueText · $cadenceText',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.inkSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ),
-              const Spacer(),
-              if (!task.done)
+              if (!task.done) ...[
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -707,6 +713,7 @@ class _PastelTaskCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
             ],
           ),
         ],
