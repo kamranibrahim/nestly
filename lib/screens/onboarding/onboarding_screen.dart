@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/app_database.dart';
+import '../../l10n/l10n_ext.dart';
 import '../../state/onboarding_ui.dart';
 import '../../theme/app_motion.dart';
 import '../../widgets/motion.dart';
@@ -20,26 +21,7 @@ Future<void> markOnboardingSeen(WidgetRef ref) async {
   ref.invalidate(onboardingSeenProvider);
 }
 
-const _onboardingPages = [
-  (
-    title: 'Perfectly Organize\nYour Family Life',
-    body:
-        'Manage events, chores, groceries, and daily plans in one simple shared place.',
-    cta: 'Next',
-  ),
-  (
-    title: 'Quiet help when\nyou scan',
-    body:
-        'Nestly’s AI only assists when you scan a receipt or invite — it suggests an event or expense. It doesn’t run your nest for you.',
-    cta: 'Next',
-  ),
-  (
-    title: 'Stay Connected\nTogether',
-    body:
-        'Share plans, assign tasks, and keep your whole family perfectly in sync.',
-    cta: 'Get Started',
-  ),
-];
+const _onboardingPageCount = 3;
 
 Future<void> _finish(WidgetRef ref) async {
   final ctrl = ref.read(onboardingUiProvider.notifier);
@@ -55,7 +37,7 @@ Future<void> _finish(WidgetRef ref) async {
 void _next(WidgetRef ref) {
   final ctrl = ref.read(onboardingUiProvider.notifier);
   final index = ref.read(onboardingUiProvider).index;
-  if (index >= _onboardingPages.length - 1) {
+  if (index >= _onboardingPageCount - 1) {
     _finish(ref);
     return;
   }
@@ -81,7 +63,20 @@ class OnboardingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ui = ref.watch(onboardingUiProvider);
     final ctrl = ref.read(onboardingUiProvider.notifier);
-    final page = _onboardingPages[ui.index];
+    final l10n = context.l10n;
+    final title = switch (ui.index) {
+      0 => l10n.onboardingTitle1,
+      1 => l10n.onboardingTitle2,
+      _ => l10n.onboardingTitle3,
+    };
+    final body = switch (ui.index) {
+      0 => l10n.onboardingBody1,
+      1 => l10n.onboardingBody2,
+      _ => l10n.onboardingBody3,
+    };
+    final cta = ui.index < _onboardingPageCount - 1
+        ? l10n.commonNext
+        : l10n.onboardingGetStarted;
 
     return Scaffold(
       backgroundColor: OnboardColors.cream,
@@ -115,13 +110,12 @@ class OnboardingScreen extends ConsumerWidget {
                     ),
                     Expanded(
                       child: Semantics(
-                        label:
-                            'Page ${ui.index + 1} of ${_onboardingPages.length}',
+                        label: l10n.onboardingPageOf(ui.index + 1, 3),
                         child: Row(
                           children: [
                             for (
                               var i = 0;
-                              i < _onboardingPages.length;
+                              i < _onboardingPageCount;
                               i++
                             ) ...[
                               Expanded(
@@ -138,7 +132,7 @@ class OnboardingScreen extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              if (i != _onboardingPages.length - 1)
+                              if (i != _onboardingPageCount - 1)
                                 const SizedBox(width: 6),
                             ],
                           ],
@@ -147,8 +141,8 @@ class OnboardingScreen extends ConsumerWidget {
                     ),
                     TextButton(
                       onPressed: ui.finishing ? null : () => _finish(ref),
-                      child: const Text(
-                        'Skip',
+                      child: Text(
+                        l10n.commonSkip,
                         style: TextStyle(
                           color: OnboardColors.inkSoft,
                           fontWeight: FontWeight.w700,
@@ -185,7 +179,7 @@ class OnboardingScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       Text(
-                        page.title,
+                        title,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 28,
@@ -197,7 +191,7 @@ class OnboardingScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        page.body,
+                        body,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 15.5,
@@ -214,7 +208,7 @@ class OnboardingScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
                 child: Pressable(
                   onTap: ui.finishing ? null : () => _next(ref),
-                  semanticLabel: page.cta,
+                  semanticLabel: cta,
                   child: AnimatedContainer(
                     duration: AppMotion.fast,
                     width: double.infinity,
@@ -244,7 +238,7 @@ class OnboardingScreen extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                page.cta,
+                                cta,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,

@@ -1,4 +1,4 @@
-/// Shared Nestly enums — storage labels stay stable for Drift / Firestore.
+/// Shared Casaio enums — storage labels stay stable for Drift / Firestore.
 library;
 
 // ---------------------------------------------------------------------------
@@ -348,14 +348,14 @@ enum NotificationDestination {
   }
 }
 
-enum NestlyDeepLink {
+enum CasaioDeepLink {
   home,
   calendar,
   tasks,
   meals,
   shopping;
 
-  static NestlyDeepLink parse(String raw) {
+  static CasaioDeepLink parse(String raw) {
     switch (raw.trim().toLowerCase()) {
       case 'calendar':
         return calendar;

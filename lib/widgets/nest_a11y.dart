@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Shared accessibility helpers for Nestly UI.
+/// Shared accessibility helpers for Casaio UI.
 abstract final class NestA11y {
   /// True when the user prefers reduced motion (or animations are disabled).
   static bool reduceMotion(BuildContext context) {

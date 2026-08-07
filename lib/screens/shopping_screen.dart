@@ -10,8 +10,16 @@ import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/first_run_empty_card.dart';
 import '../widgets/shimmer.dart';
+import '../l10n/l10n_ext.dart';
 
 const _qtyPresets = ['1', '2', '3', '6', '12', '1 kg', '2 L'];
+
+String _shoppingCategoryLabel(AppLocalizations l10n, String category) {
+  for (final cat in ShoppingCategory.listValues) {
+    if (cat.label == category) return cat.display(l10n);
+  }
+  return category;
+}
 
 class ShoppingScreen extends ConsumerWidget {
   const ShoppingScreen({super.key});
@@ -35,18 +43,16 @@ class ShoppingScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear bought items?'),
-        content: const Text(
-          'Removes checked-off groceries from this list. You can still restock habits later.',
-        ),
+        title: Text(context.l10n.clearBoughtTitle),
+        content: Text(context.l10n.shopClearBoughtBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Clear'),
+            child: Text(context.l10n.clearBoughtAction),
           ),
         ],
       ),
@@ -59,8 +65,8 @@ class ShoppingScreen extends ConsumerWidget {
       SnackBar(
         content: Text(
           cleared == 0
-              ? 'Nothing to clear'
-              : 'Cleared $cleared bought item${cleared == 1 ? '' : 's'}',
+              ? context.l10n.shopNothingToClear
+              : context.l10n.shopClearedBought(cleared),
         ),
       ),
     );
@@ -108,7 +114,7 @@ class ShoppingScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Groceries',
+                      context.l10n.screenShopping,
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -117,7 +123,7 @@ class ShoppingScreen extends ConsumerWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Clear bought',
+                    tooltip: context.l10n.clearBought,
                     onPressed: () => _clearBought(context, ref),
                     icon: const Icon(Icons.cleaning_services_outlined),
                   ),
@@ -127,8 +133,8 @@ class ShoppingScreen extends ConsumerWidget {
             Expanded(
               child: itemsAsync.when(
                 loading: () => const NestLoadingSkeleton(itemCount: 4),
-                error: (error, _) => const Center(
-                  child: Text('Could not load list. Try again later.'),
+                error: (error, _) => Center(
+                  child: Text(context.l10n.loadFailedShopping),
                 ),
                 data: (items) {
                   final filtered = _filtered(items, ui);
@@ -160,9 +166,9 @@ class ShoppingScreen extends ConsumerWidget {
                         child: Row(
                           children: [
                             if (members.isEmpty)
-                              const Text(
-                                'Shared list',
-                                style: TextStyle(
+                              Text(
+                                context.l10n.shopSharedList,
+                                style: const TextStyle(
                                   color: AppColors.ink,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -181,10 +187,15 @@ class ShoppingScreen extends ConsumerWidget {
                                     ),
                                   ),
                             const Spacer(),
-                            SoftPill(label: '$left left', selected: true),
+                            SoftPill(
+                              label: context.l10n.shopLeftCount(left),
+                              selected: true,
+                            ),
                             if (boughtCount > 0) ...[
                               const SizedBox(width: 6),
-                              SoftPill(label: '$boughtCount bought'),
+                              SoftPill(
+                                label: context.l10n.shopBoughtCount(boughtCount),
+                              ),
                             ],
                           ],
                         ),
@@ -214,7 +225,7 @@ class ShoppingScreen extends ConsumerWidget {
                                 ui.addCategory.label,
                               ),
                               decoration: InputDecoration(
-                                hintText: 'Add an item',
+                                hintText: context.l10n.hintAddItem,
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
@@ -225,7 +236,7 @@ class ShoppingScreen extends ConsumerWidget {
                                 isDense: true,
                                 prefixIcon: const Icon(Icons.add_rounded),
                                 suffixIcon: IconButton(
-                                  tooltip: 'Add to list',
+                                  tooltip: context.l10n.addToList,
                                   onPressed: () => _addItem(
                                     context,
                                     ref,
@@ -236,23 +247,19 @@ class ShoppingScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-                              child: Row(
-                                children: [
-                                  for (final cat
-                                      in ShoppingCategory.listValues) ...[
-                                    SoftPill(
-                                      label: cat.label,
-                                      selected: ui.addCategory == cat,
-                                      onTap: () =>
-                                          controller.setAddCategory(cat),
-                                    ),
-                                    const SizedBox(width: 6),
-                                  ],
-                                ],
-                              ),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                for (final cat
+                                in ShoppingCategory.listValues)
+                                  SoftPill(
+                                    label: cat.display(context.l10n),
+                                    selected: ui.addCategory == cat,
+                                    onTap: () =>
+                                        controller.setAddCategory(cat),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
@@ -263,10 +270,10 @@ class ShoppingScreen extends ConsumerWidget {
                         child: TextField(
                           controller: controller.searchController,
                           onChanged: controller.setSearchQuery,
-                          decoration: const InputDecoration(
-                            hintText: 'Search list',
+                          decoration: InputDecoration(
+                            hintText: context.l10n.searchList,
                             border: InputBorder.none,
-                            prefixIcon: Icon(Icons.search_rounded),
+                            prefixIcon: const Icon(Icons.search_rounded),
                           ),
                         ),
                       ),
@@ -276,7 +283,7 @@ class ShoppingScreen extends ConsumerWidget {
                         child: Row(
                           children: [
                             SoftPill(
-                              label: ShoppingListFilter.all.label,
+                              label: ShoppingListFilter.all.display(context.l10n),
                               selected: ui.filterCategory.isAll,
                               onTap: () => controller.setFilterCategory(
                                 ShoppingListFilter.all,
@@ -285,7 +292,7 @@ class ShoppingScreen extends ConsumerWidget {
                             const SizedBox(width: 6),
                             for (final cat in ShoppingCategory.listValues) ...[
                               SoftPill(
-                                label: cat.label,
+                                label: cat.display(context.l10n),
                                 selected: ui.filterCategory ==
                                     ShoppingListFilter.fromCategory(cat),
                                 onTap: () => controller.setFilterCategory(
@@ -302,17 +309,16 @@ class ShoppingScreen extends ConsumerWidget {
                         FirstRunEmptyCard(
                           icon: Icons.shopping_bag_outlined,
                           color: AppColors.tileOrange,
-                          title: 'Start the grocery list',
-                          body:
-                              'Add milk, eggs, or anything else — pick a category in the field, then add.',
-                          actionLabel: 'Add an item',
+                          title: context.l10n.emptyShoppingTitle,
+                          body: context.l10n.emptyShoppingBody,
+                          actionLabel: context.l10n.emptyShoppingAction,
                           onAction: () => controller.addFocus.requestFocus(),
                         )
                       else if (openItems.isEmpty && boughtItems.isEmpty)
-                        const NestCard(
+                        NestCard(
                           child: Text(
-                            'No items match this search or filter.',
-                            style: TextStyle(
+                            context.l10n.shopNoMatch,
+                            style: const TextStyle(
                               color: AppColors.inkMuted,
                               fontWeight: FontWeight.w600,
                             ),
@@ -327,7 +333,7 @@ class ShoppingScreen extends ConsumerWidget {
                               top: 4,
                             ),
                             child: Text(
-                              category,
+                              _shoppingCategoryLabel(context.l10n, category),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.inkSecondary,
@@ -402,7 +408,7 @@ class ShoppingScreen extends ConsumerWidget {
                                 ),
                                 TextButton(
                                   onPressed: () => _clearBought(context, ref),
-                                  child: const Text('Clear'),
+                                  child: Text(context.l10n.commonClear),
                                 ),
                               ],
                             ),
@@ -564,9 +570,9 @@ class _ItemSheetState extends State<_ItemSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Edit item',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          Text(
+            context.l10n.shopEditItem,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           TextField(
@@ -574,13 +580,13 @@ class _ItemSheetState extends State<_ItemSheet> {
             autofocus: true,
             textCapitalization: TextCapitalization.sentences,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(hintText: 'Item name'),
+            decoration: InputDecoration(hintText: context.l10n.hintItemName),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _qty,
             textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(hintText: 'Qty (e.g. 2, 1 kg)'),
+            decoration: InputDecoration(hintText: context.l10n.hintQty),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 8),
@@ -597,7 +603,7 @@ class _ItemSheetState extends State<_ItemSheet> {
             ],
           ),
           const SizedBox(height: 12),
-          const Text('Category', style: TextStyle(fontWeight: FontWeight.w700)),
+          Text(context.l10n.commonCategory, style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -605,19 +611,19 @@ class _ItemSheetState extends State<_ItemSheet> {
             children: [
               for (final cat in cats)
                 SoftPill(
-                  label: cat,
+                  label: _shoppingCategoryLabel(context.l10n, cat),
                   selected: _category == cat,
                   onTap: () => setState(() => _category = cat),
                 ),
             ],
           ),
           const SizedBox(height: 14),
-          FilledButton(onPressed: _submit, child: const Text('Save')),
+          FilledButton(onPressed: _submit, child: Text(context.l10n.commonSave)),
           TextButton(
             onPressed: () => _submit(deleteItem: true),
-            child: const Text(
-              'Delete item',
-              style: TextStyle(color: AppColors.danger),
+            child: Text(
+              context.l10n.shopDeleteItem,
+              style: const TextStyle(color: AppColors.danger),
             ),
           ),
         ],
@@ -739,9 +745,9 @@ class _SuggestionsStrip extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 2),
-          const Text(
-            'Based on what you usually buy',
-            style: TextStyle(
+          Text(
+            context.l10n.shopBasedOnUsual,
+            style: const TextStyle(
               color: AppColors.inkSecondary,
               fontSize: 12.5,
               fontWeight: FontWeight.w600,

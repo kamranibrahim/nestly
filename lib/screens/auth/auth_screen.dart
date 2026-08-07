@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/auth_errors.dart';
+import '../../l10n/l10n_ext.dart';
 import '../../providers/providers.dart';
 import '../../state/auth_ui.dart';
 import '../../theme/app_colors.dart';
@@ -18,6 +19,7 @@ class AuthScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ui = ref.watch(authUiProvider);
     final ctrl = ref.read(authUiProvider.notifier);
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -30,12 +32,12 @@ class AuthScreen extends ConsumerWidget {
               curve: AppMotion.springy,
               child: Center(
                 child: Semantics(
-                  label: 'Nestly',
+                  label: l10n.appName,
                   image: true,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: Image.asset(
-                      'assets/brand/logos/nestly-logo-lettermark.png',
+                      'assets/brand/logos/casaio-logo-mark-plain.png',
                       width: 72,
                       height: 72,
                       fit: BoxFit.cover,
@@ -47,7 +49,7 @@ class AuthScreen extends ConsumerWidget {
             Appear(
               delay: const Duration(milliseconds: 60),
               child: Text(
-                'nestly',
+                l10n.appName,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.w800,
@@ -60,7 +62,7 @@ class AuthScreen extends ConsumerWidget {
             Appear(
               delay: const Duration(milliseconds: 100),
               child: Text(
-                ui.signUp ? 'Create your family account' : 'Welcome back',
+                ui.signUp ? l10n.authCreateAccount : l10n.authWelcomeBack,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
@@ -82,7 +84,7 @@ class AuthScreen extends ConsumerWidget {
                         autofillHints: const [AutofillHints.name],
                         textInputAction: TextInputAction.next,
                         decoration:
-                            const InputDecoration(labelText: 'Your name'),
+                            InputDecoration(labelText: l10n.authNameHint),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -92,7 +94,7 @@ class AuthScreen extends ConsumerWidget {
                       autocorrect: false,
                       autofillHints: const [AutofillHints.email],
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(labelText: 'Email'),
+                      decoration: InputDecoration(labelText: l10n.authEmailHint),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -104,11 +106,11 @@ class AuthScreen extends ConsumerWidget {
                             : AutofillHints.password,
                       ],
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: l10n.authPasswordHint,
                         suffixIcon: IconButton(
                           tooltip: ui.obscure
-                              ? 'Show password'
-                              : 'Hide password',
+                              ? l10n.authShowPassword
+                              : l10n.authHidePassword,
                           onPressed: ctrl.toggleObscure,
                           icon: Icon(
                             ui.obscure
@@ -126,7 +128,7 @@ class AuthScreen extends ConsumerWidget {
                           onPressed: ui.busy
                               ? null
                               : () => _openResetPassword(context, ref),
-                          child: const Text('Forgot password?'),
+                          child: Text(l10n.authForgotPassword),
                         ),
                       ),
                     if (ui.error != null) ...[
@@ -148,22 +150,22 @@ class AuthScreen extends ConsumerWidget {
                       ),
                       child: ui.busy
                           ? Semantics(
-                              label: 'Working',
+                              label: l10n.authWorking,
                               child: const SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: NestShimmerCircle(size: 22),
                               ),
                             )
-                          : Text(ui.signUp ? 'Sign up' : 'Log in'),
+                          : Text(ui.signUp ? l10n.authSignUpShort : l10n.authLogIn),
                     ),
                     const SizedBox(height: 12),
                     TextButton(
                       onPressed: ui.busy ? null : ctrl.toggleSignUp,
                       child: Text(
                         ui.signUp
-                            ? 'Already have an account? Log in'
-                            : 'Need an account? Sign up',
+                            ? l10n.authHaveAccountLogin
+                            : l10n.authNeedAccountSignup,
                       ),
                     ),
                   ],
@@ -183,7 +185,7 @@ Future<void> _submit(BuildContext context, WidgetRef ref) async {
     ctrl.emailController.text = 'devtime3@gmail.com';
     ctrl.passwordController.text = '12345678';
   }
-  final validation = ctrl.validate();
+  final validation = ctrl.validate(context.l10n);
   if (validation != null) {
     ctrl.setError(validation);
     return;
@@ -208,7 +210,11 @@ Future<void> _submit(BuildContext context, WidgetRef ref) async {
       );
     }
   } catch (e) {
-    ctrl.setError(friendlyAuthError(e));
+    if (context.mounted) {
+      ctrl.setError(friendlyAuthError(e, context.l10n));
+    } else {
+      ctrl.setError(friendlyAuthError(e));
+    }
   } finally {
     ctrl.setBusy(false);
   }

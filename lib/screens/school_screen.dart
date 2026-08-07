@@ -13,6 +13,7 @@ import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 
 class SchoolScreen extends ConsumerWidget {
   const SchoolScreen({super.key});
@@ -29,7 +30,7 @@ class SchoolScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('School & activities'),
+        title: Text(context.l10n.screenSchool),
         actions: [
           IconButton(
             onPressed: () => _showSheet(context, ref),
@@ -40,7 +41,7 @@ class SchoolScreen extends ConsumerWidget {
       body: itemsAsync.when(
         loading: () => const NestLoadingSkeleton(itemCount: 3, hasTitle: true),
         error: (_, _) =>
-            const Center(child: Text('Could not load activities.')),
+            Center(child: Text(context.l10n.loadFailedSchool)),
         data: (all) {
           final items = ui.filter.isAll
               ? all
@@ -53,10 +54,10 @@ class SchoolScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
             children: [
-              const NestCard(
+              NestCard(
                 child: Text(
-                  'School runs, sports, clubs, and pickups. Add one activity to get started — mark done to roll the next date, or create a same-day pickup task.',
-                  style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
+                  context.l10n.schoolIntro,
+                  style: const TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
               const SizedBox(height: 8),
@@ -66,7 +67,7 @@ class SchoolScreen extends ConsumerWidget {
                   children: [
                     for (final kind in SchoolKind.values) ...[
                       SoftPill(
-                        label: kind.label,
+                        label: kind.display(context.l10n),
                         selected: ui.filter == kind,
                         onTap: () => uiCtrl.setFilter(kind),
                       ),
@@ -81,17 +82,21 @@ class SchoolScreen extends ConsumerWidget {
                   icon: Icons.school_outlined,
                   color: all.isEmpty ? AppColors.accent : null,
                   title: all.isEmpty
-                      ? 'Add your first school run'
-                      : 'Nothing in ${ui.filter.label}',
+                      ? context.l10n.emptySchoolTitle
+                      : context.l10n.schoolEmptyFilter(
+                          ui.filter.display(context.l10n),
+                        ),
                   body: all.isEmpty
-                      ? 'Pickups, sports, and clubs — mark done to roll the next date, or turn one into a same-day pickup task.'
-                      : 'Try another filter, or add a ${ui.filter.label} activity.',
-                  actionLabel: 'Add activity',
+                      ? context.l10n.emptySchoolBody
+                      : context.l10n.schoolEmptyFilterHint(
+                          ui.filter.display(context.l10n),
+                        ),
+                  actionLabel: context.l10n.schoolAddItem,
                   onAction: () => _showSheet(context, ref),
                 )
               else ...[
                 if (due.isNotEmpty) ...[
-                  const SectionLabel('Due today'),
+                  SectionLabel(context.l10n.schoolDueToday),
                   NestCard(
                     padding: EdgeInsets.zero,
                     child: Column(
@@ -194,7 +199,7 @@ Future<void> _pickup(
       ? 'today'
       : 'for ${assignee.split(' ').first}';
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Pickup task added $who')),
+    SnackBar(content: Text(context.l10n.snackPickupAdded(who))),
   );
 }
 
@@ -209,7 +214,7 @@ Future<void> _toCalendar(
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(
-        'Calendar event added · ${DateFormat.MMMd().format(item.nextAt)}',
+        context.l10n.snackCalendarAdded(DateFormat.MMMd().format(item.nextAt)),
       ),
     ),
   );
@@ -227,7 +232,7 @@ Future<void> _snooze(
   } catch (_) {}
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Snoozed ${item.title} by 1 day')),
+    SnackBar(content: Text(context.l10n.snackSnoozed(item.title))),
   );
 }
 
@@ -243,7 +248,7 @@ Future<void> _skip(
   } catch (_) {}
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Skipped ${item.title} this cycle')),
+    SnackBar(content: Text(context.l10n.snackSkipped(item.title))),
   );
 }
 
@@ -309,7 +314,9 @@ Future<void> _showSheet(
                   sheetHandle(),
                   const SizedBox(height: 6),
                   Text(
-                    existing == null ? 'New activity' : 'Edit activity',
+                    existing == null
+                        ? context.l10n.schoolNewActivity
+                        : context.l10n.schoolEditActivity,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -320,16 +327,16 @@ Future<void> _showSheet(
                     controller: c[0],
                     autofocus: existing == null,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. Soccer practice',
+                    decoration: InputDecoration(
+                      hintText: context.l10n.hintSchoolTitle,
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: c[1],
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'Location (optional)',
+                    decoration: InputDecoration(
+                      hintText: context.l10n.hintLocationOptional,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -338,8 +345,8 @@ Future<void> _showSheet(
                     minLines: 2,
                     maxLines: 3,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'Notes (optional)',
+                    decoration: InputDecoration(
+                      hintText: context.l10n.hintNotesOptional,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -348,7 +355,7 @@ Future<void> _showSheet(
                     children: [
                       for (final k in SchoolKind.stored)
                         ChoiceChip(
-                          label: Text(k.label),
+                          label: Text(k.display(context.l10n)),
                           selected: kind == k,
                           showCheckmark: false,
                           selectedColor: AppColors.primary,
@@ -364,9 +371,9 @@ Future<void> _showSheet(
                   ),
                   if (members.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    const Text(
-                      'Who is this for?',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    Text(
+                      context.l10n.schoolWhoFor,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -436,7 +443,9 @@ Future<void> _showSheet(
                       ));
                     },
                     child: Text(
-                      existing == null ? 'Add' : 'Save changes',
+                      existing == null
+                          ? context.l10n.commonAdd
+                          : context.l10n.commonSaveChanges,
                     ),
                   ),
                   if (existing != null) ...[
@@ -452,7 +461,7 @@ Future<void> _showSheet(
                         nextAt: existing.nextAt,
                         deleteItem: true,
                       )),
-                      child: const Text('Delete activity'),
+                      child: Text(context.l10n.deleteActivity),
                     ),
                   ],
                 ],
@@ -569,7 +578,7 @@ class _SchoolRow extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            tooltip: 'Add pickup task',
+            tooltip: context.l10n.addPickupTask,
             onPressed: onPickup,
             icon: const Icon(
               Icons.directions_car_outlined,
@@ -600,22 +609,22 @@ class _SchoolRow extends StatelessWidget {
                   onDelete();
               }
             },
-            itemBuilder: (context) => const [
+            itemBuilder: (context) => [
               PopupMenuItem(
                 value: SchoolItemAction.calendar,
-                child: Text('Create calendar event'),
+                child: Text(context.l10n.createCalendarEvent),
               ),
               PopupMenuItem(
                 value: SchoolItemAction.snooze,
-                child: Text('Snooze 1 day'),
+                child: Text(context.l10n.snooze1Day),
               ),
               PopupMenuItem(
                 value: SchoolItemAction.skip,
-                child: Text('Skip this cycle'),
+                child: Text(context.l10n.skipCycle),
               ),
               PopupMenuItem(
                 value: SchoolItemAction.delete,
-                child: Text('Delete'),
+                child: Text(context.l10n.commonDelete),
               ),
             ],
           ),

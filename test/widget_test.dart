@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
+import 'package:nestly/l10n/test_app.dart';
 import 'package:nestly/screens/app_shell.dart';
 
 Future<void> _pumpUntilHome(WidgetTester tester) async {
@@ -18,14 +19,14 @@ Future<void> _pumpUntilHome(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('Nestly home shows family hub and feature tiles', (tester) async {
+  testWidgets('Casaio home shows family hub and feature tiles', (tester) async {
     final database = AppDatabase(NativeDatabase.memory());
     await database.ensureSeeded();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [databaseProvider.overrideWithValue(database)],
-        child: const MaterialApp(home: AppShell()),
+        child: const CasaioTestApp(home: AppShell()),
       ),
     );
     await _pumpUntilHome(tester);

@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="nestly_widget_description">Open tasks, next event, and tonight’s dinner — no vault data.</string>
-    <string name="nestly_widget_name">Nestly Today</string>
+    <string name="nestly_widget_name">Casaio Today</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_welcome">Welcome</string>
+    <string name="widget_tasks">Tasks</string>
+    <string name="widget_next">Next</string>
+    <string name="widget_dinner">Dinner</string>
+    <string name="widget_all_clear">All clear</string>
+    <string name="widget_nothing_scheduled">Nothing scheduled</string>
+    <string name="widget_not_planned">Not planned</string>
+    <string name="widget_join_nest">Open Casaio to join a nest</string>
+    <string name="widget_quiet_day">Quiet day · enjoy it</string>
+    <string name="widget_open_one">1 open</string>
+    <string name="widget_open_many">%d open</string>
+    <string name="widget_open_task_one">1 open task</string>
+    <string name="widget_open_task_many">%d open tasks</string>
+    <string name="widget_just_now">just now</string>
+    <string name="widget_minutes_ago">%dm ago</string>
+    <string name="widget_hours_ago">%dh ago</string>
+    <string name="widget_days_ago">%dd ago</string>
+    <string name="widget_earlier">earlier</string>
+    <string name="widget_updated">Updated %s</string>
 </resources>

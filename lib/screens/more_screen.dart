@@ -10,7 +10,9 @@ import '../data/member_roles.dart';
 import '../data/showcase_seed.dart';
 import '../data/sync_controller.dart';
 import '../data/telemetry.dart';
+import '../l10n/l10n_ext.dart';
 import '../providers/providers.dart';
+import '../state/locale_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import '../widgets/invite_family_sheet.dart';
@@ -35,19 +37,16 @@ class MoreScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Load showcase data?'),
-        content: const Text(
-          'Replaces nest content with polished App Store sample data '
-          '(family, calendar, tasks, shopping, vault, and more), then syncs.',
-        ),
+        title: Text(context.l10n.showcaseConfirmTitle),
+        content: Text(context.l10n.showcaseConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Load'),
+            child: Text(context.l10n.commonLoad),
           ),
         ],
       ),
@@ -56,7 +55,7 @@ class MoreScreen extends ConsumerWidget {
 
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
-      const SnackBar(content: Text('Loading showcase data…')),
+      SnackBar(content: Text(context.l10n.showcaseLoading)),
     );
 
     try {
@@ -68,13 +67,11 @@ class MoreScreen extends ConsumerWidget {
       ref.invalidate(nestInfoProvider);
       if (!context.mounted) return;
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Showcase data ready — open Home to review'),
-        ),
+        SnackBar(content: Text(context.l10n.showcaseReady)),
       );
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Could not load showcase: $e')),
+        SnackBar(content: Text(context.l10n.showcaseFailed('$e'))),
       );
     }
   }
@@ -94,6 +91,7 @@ class MoreScreen extends ConsumerWidget {
       builder: (context) {
         final current = MemberRoles.normalize(member.role);
         final bottom = MediaQuery.viewPaddingOf(context).bottom;
+        final l10n = context.l10n;
         return Padding(
           padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
           child: Column(
@@ -112,22 +110,22 @@ class MoreScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Role for ${member.name}',
+                l10n.roleForMember(member.name),
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Used for assignees, school activities, and family context.',
-                style: TextStyle(color: AppColors.inkSecondary),
+              Text(
+                l10n.rolePickerHint,
+                style: const TextStyle(color: AppColors.inkSecondary),
               ),
               const SizedBox(height: 12),
               for (final role in MemberRoles.all)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    role,
+                    localizedMemberRole(role, l10n),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   trailing: role == current
@@ -150,8 +148,16 @@ class MoreScreen extends ConsumerWidget {
     if (!context.mounted) return;
     await syncAfterWrite(ref, context: context);
     if (context.mounted) {
+      final l10n = context.l10n;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${member.name} is now $selected')),
+        SnackBar(
+          content: Text(
+            l10n.roleUpdated(
+              member.name,
+              localizedMemberRole(selected, l10n),
+            ),
+          ),
+        ),
       );
     }
   }
@@ -163,6 +169,7 @@ class MoreScreen extends ConsumerWidget {
     final sync = ref.watch(syncControllerProvider);
     final tomorrowPreviewEnabled =
         ref.watch(tomorrowPreviewEnabledProvider).valueOrNull ?? false;
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -181,7 +188,7 @@ class MoreScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Nest',
+                            l10n.tabNest,
                             style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.w800,
@@ -191,13 +198,18 @@ class MoreScreen extends ConsumerWidget {
                           const SizedBox(height: 2),
                           Text(
                             sync.isSyncing
-                                ? 'Syncing…'
+                                ? l10n.syncing
                                 : sync.hasError
-                                ? 'Sync needed · Retry'
+                                ? l10n.syncNeededRetry
                                 : (sync.lastNote != null &&
                                       sync.lastNote!.isNotEmpty)
                                 ? sync.lastNote!
-                                : 'Last synced · ${formatLastSynced(sync.lastSyncAt)}',
+                                : l10n.lastSyncedLabel(
+                                    formatLastSynced(
+                                      sync.lastSyncAt,
+                                      l10n: l10n,
+                                    ),
+                                  ),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -236,10 +248,10 @@ class MoreScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     if (members.isEmpty)
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Invite family with your code below',
-                          style: TextStyle(color: AppColors.inkMuted),
+                          l10n.inviteWithCodeBelow,
+                          style: const TextStyle(color: AppColors.inkMuted),
                         ),
                       )
                     else
@@ -258,12 +270,12 @@ class MoreScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          nest?.name ?? 'Your nest',
+                          nest?.name ?? l10n.yourNest,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         Text(
                           members.isEmpty
-                              ? 'No members yet'
+                              ? l10n.noMembersYet
                               : '${members.length} member${members.length == 1 ? '' : 's'}',
                           style: const TextStyle(
                             color: AppColors.inkMuted,
@@ -278,7 +290,7 @@ class MoreScreen extends ConsumerWidget {
             ),
             if (members.isNotEmpty) ...[
               const SizedBox(height: 12),
-              const SectionLabel('Family roles'),
+              SectionLabel(l10n.familyRoles),
               Appear(
                 delay: const Duration(milliseconds: 55),
                 child: NestCard(
@@ -298,7 +310,10 @@ class MoreScreen extends ConsumerWidget {
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                           subtitle: Text(
-                            MemberRoles.normalize(members[i].role),
+                            localizedMemberRole(
+                              MemberRoles.normalize(members[i].role),
+                              l10n,
+                            ),
                             style: const TextStyle(
                               color: AppColors.inkMuted,
                               fontSize: 12.5,
@@ -339,9 +354,9 @@ class MoreScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Invite code',
-                              style: TextStyle(
+                            Text(
+                              l10n.nestSetupInviteCode,
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.inkMuted,
                                 fontWeight: FontWeight.w600,
@@ -358,9 +373,9 @@ class MoreScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const Text(
-                        'Share',
-                        style: TextStyle(
+                      Text(
+                        l10n.commonShare,
+                        style: const TextStyle(
                           color: AppColors.accentDeep,
                           fontWeight: FontWeight.w700,
                         ),
@@ -371,7 +386,49 @@ class MoreScreen extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: 12),
-            const SectionLabel('Settings'),
+            SectionLabel(context.l10n.commonSettings),
+            Appear(
+              delay: const Duration(milliseconds: 90),
+              child: NestCard(
+                onTap: () => _pickLanguage(context, ref),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.language_rounded,
+                      color: AppColors.accentDeep,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.l10n.languageTitle,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _languageLabel(
+                              context.l10n,
+                              ref.watch(localePreferenceProvider),
+                            ),
+                            style: const TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.inkMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
             Appear(
               delay: const Duration(milliseconds: 100),
               child: NestCard(
@@ -379,22 +436,22 @@ class MoreScreen extends ConsumerWidget {
                   context,
                   TimelineScreen(onOpenTab: onOpenTab),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.history_rounded, color: AppColors.accentDeep),
-                    SizedBox(width: 12),
+                    const Icon(Icons.history_rounded, color: AppColors.accentDeep),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Timeline',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                            context.l10n.settingsTimeline,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Recent nest activity across the family',
-                            style: TextStyle(
+                            context.l10n.settingsTimelineSubtitle,
+                            style: const TextStyle(
                               color: AppColors.inkMuted,
                               fontSize: 12.5,
                             ),
@@ -415,25 +472,25 @@ class MoreScreen extends ConsumerWidget {
               delay: const Duration(milliseconds: 105),
               child: NestCard(
                 onTap: () => nestPush(context, const LocatorScreen()),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.location_on_outlined,
                       color: AppColors.accentDeep,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Locator',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                            context.l10n.settingsLocator,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Live nest map · opt-in last-known pins',
-                            style: TextStyle(
+                            context.l10n.settingsLocatorSubtitle,
+                            style: const TextStyle(
                               color: AppColors.inkMuted,
                               fontSize: 12.5,
                             ),
@@ -454,22 +511,22 @@ class MoreScreen extends ConsumerWidget {
               delay: const Duration(milliseconds: 90),
               child: NestCard(
                 onTap: () => showChangePasswordSheet(context, ref),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.lock_reset_rounded, color: AppColors.accentDeep),
-                    SizedBox(width: 12),
+                    const Icon(Icons.lock_reset_rounded, color: AppColors.accentDeep),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Change password',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                            context.l10n.settingsPassword,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Still signed in? Update it here',
-                            style: TextStyle(
+                            context.l10n.settingsPasswordSubtitle,
+                            style: const TextStyle(
                               color: AppColors.inkMuted,
                               fontSize: 12.5,
                             ),
@@ -496,18 +553,18 @@ class MoreScreen extends ConsumerWidget {
                       color: AppColors.accentDeep,
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Tomorrow preview',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                            context.l10n.settingsTomorrowPreview,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Quiet evening reminder for tomorrow’s bills, care, and school',
-                            style: TextStyle(
+                            context.l10n.settingsTomorrowPreviewSubtitle,
+                            style: const TextStyle(
                               color: AppColors.inkMuted,
                               fontSize: 12.5,
                             ),
@@ -536,17 +593,17 @@ class MoreScreen extends ConsumerWidget {
               delay: const Duration(milliseconds: 110),
               child: NestCard(
                 onTap: () => nestPush(context, const PrivacyScreen()),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.privacy_tip_outlined,
                       color: AppColors.accentDeep,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Privacy & data',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        context.l10n.settingsPrivacy,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                     Icon(
@@ -562,17 +619,17 @@ class MoreScreen extends ConsumerWidget {
               delay: const Duration(milliseconds: 130),
               child: NestCard(
                 onTap: () => nestPush(context, const AboutScreen()),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.info_outline_rounded,
                       color: AppColors.accentDeep,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'About Nestly',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        context.l10n.settingsAbout,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                     Icon(
@@ -589,25 +646,25 @@ class MoreScreen extends ConsumerWidget {
                 delay: const Duration(milliseconds: 150),
                 child: NestCard(
                   onTap: () => _loadShowcase(context, ref),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.auto_awesome_rounded,
                         color: AppColors.accentDeep,
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Load App Store showcase',
-                              style: TextStyle(fontWeight: FontWeight.w600),
+                              l10n.settingsShowcase,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
-                              'Debug/profile only — not in App Store builds',
-                              style: TextStyle(
+                              l10n.settingsShowcaseSubtitle,
+                              style: const TextStyle(
                                 color: AppColors.inkMuted,
                                 fontSize: 12.5,
                               ),
@@ -615,7 +672,7 @@ class MoreScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      Icon(
+                      const Icon(
                         Icons.chevron_right_rounded,
                         color: AppColors.inkMuted,
                       ),
@@ -629,25 +686,27 @@ class MoreScreen extends ConsumerWidget {
                   delay: const Duration(milliseconds: 160),
                   child: NestCard(
                     onTap: () => FirebaseCrashlytics.instance.crash(),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.bug_report_outlined,
                           color: AppColors.danger,
                         ),
-                        SizedBox(width: 12),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Force test crash',
-                                style: TextStyle(fontWeight: FontWeight.w600),
+                                l10n.settingsCrash,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'Verify Crashlytics in Firebase console',
-                                style: TextStyle(
+                                l10n.settingsCrashSubtitle,
+                                style: const TextStyle(
                                   color: AppColors.inkMuted,
                                   fontSize: 12.5,
                                 ),
@@ -655,7 +714,7 @@ class MoreScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        Icon(
+                        const Icon(
                           Icons.chevron_right_rounded,
                           color: AppColors.inkMuted,
                         ),
@@ -667,9 +726,9 @@ class MoreScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 6),
             Text(
-              'Nestly is free for families — no paywall.',
+              l10n.nestFreeNote,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.inkMuted,
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5,
@@ -683,9 +742,9 @@ class MoreScreen extends ConsumerWidget {
                   Icons.door_front_door_outlined,
                   color: AppColors.danger,
                 ),
-                label: const Text(
-                  'Leave nest',
-                  style: TextStyle(color: AppColors.danger),
+                label: Text(
+                  l10n.leaveNest,
+                  style: const TextStyle(color: AppColors.danger),
                 ),
               ),
             ],
@@ -696,7 +755,7 @@ class MoreScreen extends ConsumerWidget {
                 ref.invalidate(nestInfoProvider);
               },
               icon: const Icon(Icons.logout_rounded),
-              label: const Text('Sign out'),
+              label: Text(l10n.commonSignOut),
             ),
             TextButton.icon(
               onPressed: () => confirmAndDeleteAccount(context, ref),
@@ -704,9 +763,9 @@ class MoreScreen extends ConsumerWidget {
                 Icons.delete_forever_rounded,
                 color: AppColors.danger,
               ),
-              label: const Text(
-                'Delete account',
-                style: TextStyle(color: AppColors.danger),
+              label: Text(
+                l10n.deleteAccountTitle.replaceAll('?', ''),
+                style: const TextStyle(color: AppColors.danger),
               ),
             ),
           ],
@@ -720,24 +779,21 @@ class MoreScreen extends ConsumerWidget {
     WidgetRef ref,
     String nestName,
   ) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Leave this nest?'),
-        content: Text(
-          'You’ll lose access to “$nestName” on this account. '
-          'Other members keep the nest and all shared data. '
-          'Your Nestly login stays — you can create or join another nest.',
-        ),
+        title: Text(l10n.leaveNestTitle),
+        content: Text(l10n.leaveNestBody(nestName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Leave nest'),
+            child: Text(l10n.leaveNest),
           ),
         ],
       ),
@@ -749,13 +805,78 @@ class MoreScreen extends ConsumerWidget {
       ref.invalidate(membersProvider);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Left nest — create or join another')),
+        SnackBar(content: Text(l10n.leftNest)),
       );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Couldn’t leave nest: $e')),
+        SnackBar(content: Text(l10n.leaveNestFailed('$e'))),
       );
     }
+  }
+
+  static String _languageLabel(AppLocalizations l10n, LocalePreference pref) {
+    return switch (pref) {
+      LocalePreference.system => l10n.languageSystem,
+      LocalePreference.english => l10n.languageEnglish,
+      LocalePreference.arabic => l10n.languageArabic,
+    };
+  }
+
+  Future<void> _pickLanguage(BuildContext context, WidgetRef ref) async {
+    final current = ref.read(localePreferenceProvider);
+    final selected = await showModalBottomSheet<LocalePreference>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        final l10n = context.l10n;
+        final bottom = MediaQuery.viewPaddingOf(context).bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.languageTitle,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n.languageSubtitle,
+                style: const TextStyle(color: AppColors.inkMuted),
+              ),
+              const SizedBox(height: 12),
+              for (final pref in LocalePreference.values)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(_languageLabel(l10n, pref)),
+                  trailing: pref == current
+                      ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                      : null,
+                  onTap: () => Navigator.pop(context, pref),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected == null || selected == current) return;
+    await ref.read(localePreferenceProvider.notifier).setPreference(selected);
   }
 }

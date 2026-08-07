@@ -10,7 +10,7 @@ import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 
 /**
- * Nestly Today home-screen widget — privacy-safe snapshot from Flutter.
+ * Casaio Today home-screen widget — privacy-safe snapshot from Flutter.
  * Reads the same SharedPreferences keys written by [NestHomeWidget] in Dart.
  */
 class NestlyHomeWidget : HomeWidgetProvider() {
@@ -48,25 +48,34 @@ class NestlyHomeWidget : HomeWidgetProvider() {
 
   private fun buildSmall(context: Context, data: SharedPreferences): RemoteViews {
     val hasNest = data.getBoolean("has_nest", false)
-    val nestName = data.getString("nest_name", null).orEmpty().ifEmpty { "Nestly" }
+    val nestName = data.getString("nest_name", null).orEmpty().ifEmpty { "Casaio" }
     val heroTitle =
         data.getString("hero_title", null).orEmpty().ifEmpty {
-          if (!hasNest) "Open Nestly to join a nest" else "Quiet day · enjoy it"
+          if (!hasNest) {
+            context.getString(R.string.widget_join_nest)
+          } else {
+            context.getString(R.string.widget_quiet_day)
+          }
         }
     val accent = data.getString("accent", null).orEmpty().ifEmpty { "mint" }
     val whisper =
         when {
-          !hasNest -> "Welcome"
+          !hasNest -> context.getString(R.string.widget_welcome)
           data.getString("hero_kind", "") == "tasks" -> {
             val event = data.getString("event_label", null).orEmpty()
-            if (event.isNotEmpty() && event != "Nothing scheduled") event else "Today"
+            if (event.isNotEmpty() &&
+                event != context.getString(R.string.widget_nothing_scheduled)) {
+              event
+            } else {
+              context.getString(R.string.widget_today)
+            }
           }
-          else -> "Today"
+          else -> context.getString(R.string.widget_today)
         }
 
     return RemoteViews(context.packageName, R.layout.nestly_widget_small).apply {
       setInt(R.id.widget_root, "setBackgroundResource", backgroundForAccent(accent))
-      setTextViewText(R.id.widget_nest_name, if (hasNest) nestName else "Nestly")
+      setTextViewText(R.id.widget_nest_name, if (hasNest) nestName else "Casaio")
       setTextViewText(R.id.widget_hero, heroTitle)
       setTextViewText(R.id.widget_whisper, whisper)
       setInt(R.id.widget_accent_dot, "setBackgroundResource", dotForAccent(accent))
@@ -75,7 +84,7 @@ class NestlyHomeWidget : HomeWidgetProvider() {
           HomeWidgetLaunchIntent.getActivity(
               context,
               MainActivity::class.java,
-              Uri.parse("nestly://home"),
+              Uri.parse("casaio://home"),
           )
       setOnClickPendingIntent(R.id.widget_root, home)
     }
@@ -83,38 +92,53 @@ class NestlyHomeWidget : HomeWidgetProvider() {
 
   private fun buildMedium(context: Context, data: SharedPreferences): RemoteViews {
     val hasNest = data.getBoolean("has_nest", false)
-    val nestName = data.getString("nest_name", null).orEmpty().ifEmpty { "Nestly" }
+    val nestName = data.getString("nest_name", null).orEmpty().ifEmpty { "Casaio" }
     val accent = data.getString("accent", null).orEmpty().ifEmpty { "mint" }
     val tasks =
         data.getString("tasks_label", null).orEmpty().ifEmpty {
           val n = data.getInt("open_tasks", 0)
-          if (n <= 0) "All clear" else if (n == 1) "1 open" else "$n open"
+          when {
+            n <= 0 -> context.getString(R.string.widget_all_clear)
+            n == 1 -> context.getString(R.string.widget_open_one)
+            else -> context.getString(R.string.widget_open_many, n)
+          }
         }
     val event =
         data.getString("event_label", null).orEmpty().ifEmpty {
-          data.getString("next_event", null).orEmpty().ifEmpty { "Nothing scheduled" }
+          data.getString("next_event", null).orEmpty().ifEmpty {
+            context.getString(R.string.widget_nothing_scheduled)
+          }
         }
     val dinner =
         data.getString("dinner_label", null).orEmpty().ifEmpty {
-          data.getString("dinner", null).orEmpty().ifEmpty { "Not planned" }
+          data.getString("dinner", null).orEmpty().ifEmpty {
+            context.getString(R.string.widget_not_planned)
+          }
         }
     val updatedRaw = data.getString("updated_at", null).orEmpty()
 
     return RemoteViews(context.packageName, R.layout.nestly_widget_medium).apply {
       setInt(R.id.widget_root, "setBackgroundResource", backgroundForAccent(accent))
-      setTextViewText(R.id.widget_nest_name, if (hasNest) nestName else "Nestly")
-      setTextViewText(R.id.widget_today_label, if (hasNest) "Today" else "Welcome")
+      setTextViewText(R.id.widget_nest_name, if (hasNest) nestName else "Casaio")
+      setTextViewText(
+          R.id.widget_today_label,
+          if (hasNest) {
+            context.getString(R.string.widget_today)
+          } else {
+            context.getString(R.string.widget_welcome)
+          },
+      )
 
       if (!hasNest) {
         setViewVisibility(R.id.widget_empty, View.VISIBLE)
         setViewVisibility(R.id.widget_rows, View.GONE)
         setViewVisibility(R.id.widget_updated, View.GONE)
-        setTextViewText(R.id.widget_empty, "Open Nestly to join a nest")
+        setTextViewText(R.id.widget_empty, context.getString(R.string.widget_join_nest))
         val home =
             HomeWidgetLaunchIntent.getActivity(
                 context,
                 MainActivity::class.java,
-                Uri.parse("nestly://home"),
+                Uri.parse("casaio://home"),
             )
         setOnClickPendingIntent(R.id.widget_root, home)
       } else {
@@ -126,7 +150,10 @@ class NestlyHomeWidget : HomeWidgetProvider() {
 
         if (updatedRaw.isNotEmpty()) {
           setViewVisibility(R.id.widget_updated, View.VISIBLE)
-          setTextViewText(R.id.widget_updated, "Updated ${relativeAge(updatedRaw)}")
+          setTextViewText(
+              R.id.widget_updated,
+              context.getString(R.string.widget_updated, relativeAge(context, updatedRaw)),
+          )
         } else {
           setViewVisibility(R.id.widget_updated, View.GONE)
         }
@@ -136,7 +163,7 @@ class NestlyHomeWidget : HomeWidgetProvider() {
             HomeWidgetLaunchIntent.getActivity(
                 context,
                 MainActivity::class.java,
-                Uri.parse("nestly://tasks"),
+                Uri.parse("casaio://tasks"),
             ),
         )
         setOnClickPendingIntent(
@@ -144,7 +171,7 @@ class NestlyHomeWidget : HomeWidgetProvider() {
             HomeWidgetLaunchIntent.getActivity(
                 context,
                 MainActivity::class.java,
-                Uri.parse("nestly://calendar"),
+                Uri.parse("casaio://calendar"),
             ),
         )
         setOnClickPendingIntent(
@@ -152,7 +179,7 @@ class NestlyHomeWidget : HomeWidgetProvider() {
             HomeWidgetLaunchIntent.getActivity(
                 context,
                 MainActivity::class.java,
-                Uri.parse("nestly://meals"),
+                Uri.parse("casaio://meals"),
             ),
         )
       }
@@ -175,32 +202,32 @@ class NestlyHomeWidget : HomeWidgetProvider() {
         else -> R.drawable.nestly_dot_mint
       }
 
-  private fun relativeAge(iso: String): String {
+  private fun relativeAge(context: Context, iso: String): String {
     return try {
-      val instant = parseUpdatedAt(iso) ?: return "earlier"
+      val instant = parseUpdatedAt(iso) ?: return context.getString(R.string.widget_earlier)
       val seconds =
           java.time.Duration.between(instant, java.time.Instant.now()).seconds.coerceAtLeast(0)
       when {
-        seconds < 45 -> "just now"
+        seconds < 45 -> context.getString(R.string.widget_just_now)
         seconds < 3600 -> {
           val m = (seconds / 60).toInt()
-          if (m == 1) "1m ago" else "${m}m ago"
+          context.getString(R.string.widget_minutes_ago, m)
         }
         seconds < 86400 -> {
           val h = (seconds / 3600).toInt()
-          if (h == 1) "1h ago" else "${h}h ago"
+          context.getString(R.string.widget_hours_ago, h)
         }
         else -> {
           val d = (seconds / 86400).toInt()
-          when {
-            d < 7 && d == 1 -> "1d ago"
-            d < 7 -> "${d}d ago"
-            else -> "earlier"
+          if (d < 7) {
+            context.getString(R.string.widget_days_ago, d)
+          } else {
+            context.getString(R.string.widget_earlier)
           }
         }
       }
     } catch (_: Exception) {
-      "earlier"
+      context.getString(R.string.widget_earlier)
     }
   }
 

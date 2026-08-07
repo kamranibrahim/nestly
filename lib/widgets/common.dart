@@ -201,6 +201,7 @@ class MemberAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fill = AppColors.avatarFill(color);
+    final onFill = AppColors.onAvatarFill(fill);
     return AnimatedContainer(
       duration: AppMotion.fast,
       curve: AppMotion.standard,
@@ -214,7 +215,7 @@ class MemberAvatar extends StatelessWidget {
       child: Text(
         initials,
         style: TextStyle(
-          color: AppColors.ink,
+          color: onFill,
           fontWeight: FontWeight.w800,
           fontSize: size * 0.34,
         ),

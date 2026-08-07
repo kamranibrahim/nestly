@@ -55,26 +55,26 @@ void main() {
     expect(intent?.destination, NotificationDestination.care);
   });
 
-  group('openNestlyUri', () {
+  group('openCasaioUri', () {
     tearDown(() {
       nestlyShellTabRequest.value = null;
     });
 
     test('routes hosts to shell tabs', () {
-      openNestlyUri(Uri.parse('nestly://home'));
-      expect(nestlyShellTabRequest.value, NestlyShellTab.home);
+      openCasaioUri(Uri.parse('casaio://home'));
+      expect(nestlyShellTabRequest.value, CasaioShellTab.home);
 
-      openNestlyUri(Uri.parse('nestly://calendar'));
-      expect(nestlyShellTabRequest.value, NestlyShellTab.calendar);
+      openCasaioUri(Uri.parse('casaio://calendar'));
+      expect(nestlyShellTabRequest.value, CasaioShellTab.calendar);
 
-      openNestlyUri(Uri.parse('nestly://tasks'));
-      expect(nestlyShellTabRequest.value, NestlyShellTab.tasks);
+      openCasaioUri(Uri.parse('casaio://tasks'));
+      expect(nestlyShellTabRequest.value, CasaioShellTab.tasks);
     });
 
     test('ignores non-nestly schemes', () {
-      nestlyShellTabRequest.value = NestlyShellTab.home;
-      openNestlyUri(Uri.parse('https://example.com'));
-      expect(nestlyShellTabRequest.value, NestlyShellTab.home);
+      nestlyShellTabRequest.value = CasaioShellTab.home;
+      openCasaioUri(Uri.parse('https://example.com'));
+      expect(nestlyShellTabRequest.value, CasaioShellTab.home);
     });
   });
 }

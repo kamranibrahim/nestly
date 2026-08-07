@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../l10n/app_localizations.dart';
 import 'db/app_database.dart';
 import 'repositories.dart';
 import 'vault_upload_status.dart';
@@ -151,7 +152,10 @@ class VaultService {
   }
 
   /// Share multiple docs as a pack (skips files that can't be resolved).
-  Future<int> shareDocuments(List<VaultDocument> docs) async {
+  Future<int> shareDocuments(
+    List<VaultDocument> docs, {
+    AppLocalizations? l10n,
+  }) async {
     final files = <XFile>[];
     for (final doc in docs) {
       final file = await resolveFile(doc);
@@ -160,13 +164,14 @@ class VaultService {
       }
     }
     if (files.isEmpty) {
-      throw StateError('No files available to share yet.');
+      throw StateError(l10n?.vaultNoFilesShare ?? 'No files available to share yet.');
     }
     await SharePlus.instance.share(
       ShareParams(
         files: files,
-        subject: 'Nestly vault pack (${files.length})',
-        text: 'Shared from Nestly vault',
+        subject: l10n?.vaultPackSubject(files.length) ??
+            'Casaio vault pack (${files.length})',
+        text: l10n?.vaultPackText ?? 'Shared from Casaio vault',
       ),
     );
     return files.length;

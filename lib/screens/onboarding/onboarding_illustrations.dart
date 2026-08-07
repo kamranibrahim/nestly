@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n_ext.dart';
 import '../../widgets/nest_a11y.dart';
 
 import '../../theme/app_colors.dart';
@@ -221,10 +222,10 @@ class OnboardHeroAi extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Scan suggestion',
-                          style: TextStyle(
+                          context.l10n.onboardingScanSuggestion,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 15,
                             color: OnboardColors.cocoa,
@@ -252,9 +253,9 @@ class OnboardHeroAi extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'Grocery run · \$42.50',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.onboardingGroceryRun,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 17,
                       color: OnboardColors.cocoa,
@@ -262,9 +263,9 @@ class OnboardHeroAi extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Suggested expense from your receipt',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.onboardingSuggestedExpense,
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: OnboardColors.inkSoft,
@@ -281,9 +282,9 @@ class OnboardHeroAi extends StatelessWidget {
                             color: OnboardColors.cocoa,
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Text(
-                            'Save expense',
-                            style: TextStyle(
+                          child: Text(
+                            context.l10n.onboardingSaveExpense,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
@@ -305,9 +306,9 @@ class OnboardHeroAi extends StatelessWidget {
                               ),
                             ),
                           ),
-                          child: const Text(
-                            'Edit first',
-                            style: TextStyle(
+                          child: Text(
+                            context.l10n.onboardingEditFirst,
+                            style: const TextStyle(
                               color: OnboardColors.cocoa,
                               fontWeight: FontWeight.w700,
                               fontSize: 13,

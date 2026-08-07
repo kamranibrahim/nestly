@@ -12,6 +12,7 @@ import '../widgets/common.dart';
 import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
+import '../l10n/l10n_ext.dart';
 
 export '../data/enums.dart' show MealsEntry;
 
@@ -37,16 +38,16 @@ class MealsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Meals'),
+        title: Text(context.l10n.screenMeals),
         actions: [
           IconButton(
-            tooltip: 'Shop this week',
+            tooltip: context.l10n.shopThisWeek,
             onPressed: () =>
                 _shopWeek(context, ref, mealsAsync.valueOrNull ?? const []),
             icon: const Icon(Icons.shopping_cart_outlined),
           ),
           IconButton(
-            tooltip: 'Plan dinner week',
+            tooltip: context.l10n.planDinnerWeek,
             onPressed: () => _showPlanWeek(
               context,
               ref,
@@ -63,15 +64,15 @@ class MealsScreen extends ConsumerWidget {
       ),
       body: mealsAsync.when(
         loading: () => const NestLoadingSkeleton(itemCount: 5),
-        error: (_, _) => const Center(child: Text('Could not load meals.')),
+        error: (_, _) => Center(child: Text(context.l10n.loadFailedMeals)),
         data: (meals) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
             children: [
-              const NestCard(
+              NestCard(
                 child: Text(
-                  'Plan dinners for the week, then push ingredients to the shared grocery list.',
-                  style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
+                  context.l10n.mealsIntro,
+                  style: const TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
               if (meals.isEmpty) ...[
@@ -79,10 +80,9 @@ class MealsScreen extends ConsumerWidget {
                 FirstRunEmptyCard(
                   icon: Icons.restaurant_rounded,
                   color: AppColors.tileTeal,
-                  title: 'Plan this week’s dinners',
-                  body:
-                      'Add tonight’s meal or sketch the week — then push ingredients to Shopping in one tap.',
-                  actionLabel: 'Plan dinner week',
+                  title: context.l10n.emptyMealsTitle,
+                  body: context.l10n.emptyMealsBody,
+                  actionLabel: context.l10n.emptyMealsAction,
                   onAction: () => _showPlanWeek(context, ref, meals),
                 ),
               ],
@@ -111,7 +111,7 @@ class MealsScreen extends ConsumerWidget {
               ),
               ..._dayCards(context, ref, ui.focusWeekday, meals),
               const SizedBox(height: 10),
-              const SectionLabel('Rest of week'),
+              SectionLabel(context.l10n.mealsRestOfWeek),
               for (final day in MealRepository.weekdays)
                 if (day.$1 != ui.focusWeekday) ...[
                   NestCard(
@@ -200,9 +200,9 @@ List<Widget> _dayCards(
           weekday: weekday,
           initialMealType: 'Dinner',
         ),
-        child: const Text(
-          'No meal planned — tap to add dinner',
-          style: TextStyle(color: AppColors.inkMuted),
+        child: Text(
+          context.l10n.mealsNonePlanned,
+          style: const TextStyle(color: AppColors.inkMuted),
         ),
       ),
     ];
@@ -250,7 +250,7 @@ List<Widget> _dayCards(
                 ),
               ),
               IconButton(
-                tooltip: 'Add ingredients to list',
+                tooltip: context.l10n.addIngredients,
                 onPressed: () => _confirmAddIngredients(
                   context,
                   ref,
@@ -263,7 +263,7 @@ List<Widget> _dayCards(
                 ),
               ),
               IconButton(
-                tooltip: 'Remove',
+                tooltip: context.l10n.commonRemove,
                 onPressed: () async {
                   await ref.read(mealRepositoryProvider).delete(meal.id);
                   await syncAfterWrite(ref, context: context);
@@ -347,7 +347,9 @@ Future<void> _showMealSheet(
                   sheetHandle(),
                   const SizedBox(height: 6),
                   Text(
-                    existing == null ? 'Plan a meal' : 'Edit meal',
+                    existing == null
+                        ? context.l10n.mealsPlanAMeal
+                        : context.l10n.mealsEditMeal,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -383,8 +385,8 @@ Future<void> _showMealSheet(
                     controller: c[0],
                     autofocus: true,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'Dish name',
+                    decoration: InputDecoration(
+                      hintText: context.l10n.hintDishName,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -393,8 +395,8 @@ Future<void> _showMealSheet(
                     minLines: 2,
                     maxLines: 4,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'Ingredients (comma or new line)',
+                    decoration: InputDecoration(
+                      hintText: context.l10n.hintIngredients,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -413,7 +415,9 @@ Future<void> _showMealSheet(
                       ));
                     },
                     child: Text(
-                      existing == null ? 'Save meal' : 'Save changes',
+                      existing == null
+                          ? context.l10n.mealsSaveMeal
+                          : context.l10n.commonSaveChanges,
                     ),
                   ),
                   if (existing != null) ...[
@@ -425,7 +429,7 @@ Future<void> _showMealSheet(
                         ingredients: existing.ingredients,
                         deleteMeal: true,
                       )),
-                      child: const Text('Delete meal'),
+                      child: Text(context.l10n.deleteMeal),
                     ),
                   ],
                 ],
@@ -474,7 +478,7 @@ Future<void> _showPlanWeek(
   if (!context.mounted) return;
   ScaffoldMessenger.of(
     context,
-  ).showSnackBar(const SnackBar(content: Text('Dinner week updated')));
+  ).showSnackBar(SnackBar(content: Text(context.l10n.mealsUpdated)));
 }
 
 Future<void> _shopWeek(
@@ -516,7 +520,7 @@ Future<int> _confirmAddIngredients(
   if (preview.isEmpty) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('No new ingredients to add')));
+    ).showSnackBar(SnackBar(content: Text(context.l10n.mealsNoNewIngredients)));
     return 0;
   }
 
@@ -547,12 +551,12 @@ Future<int> _confirmAddIngredients(
             ),
             const SizedBox(height: 12),
             Text(
-              'Add ${preview.length} ingredient${preview.length == 1 ? '' : 's'}?',
+              sheetContext.l10n.mealsAddIngredientsTitle(preview.length),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
             Text(
-              'From $label — already-on-list items are skipped.',
+              sheetContext.l10n.mealsAddIngredientsBody(label),
               style: const TextStyle(
                 color: AppColors.inkSecondary,
                 fontWeight: FontWeight.w600,
@@ -577,7 +581,7 @@ Future<int> _confirmAddIngredients(
                       preview[index],
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    subtitle: const Text('Meals'),
+                    subtitle: Text(context.l10n.screenMeals),
                   );
                 },
               ),
@@ -585,11 +589,11 @@ Future<int> _confirmAddIngredients(
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () => Navigator.pop(sheetContext, true),
-              child: Text('Add ${preview.length} to groceries'),
+              child: Text(context.l10n.mealsAddToGroceries(preview.length)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(sheetContext, false),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.commonCancel),
             ),
           ],
         ),
@@ -605,7 +609,7 @@ Future<int> _confirmAddIngredients(
   if (!context.mounted) return added;
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content: Text('Added $added item${added == 1 ? '' : 's'} to groceries'),
+      content: Text(context.l10n.mealsAddedToGroceries(added)),
     ),
   );
   return added;
@@ -658,14 +662,14 @@ class _PlanDinnerWeekSheetState extends State<_PlanDinnerWeekSheet> {
       children: [
         sheetHandle(),
         const SizedBox(height: 6),
-        const Text(
-          'Plan dinner week',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        Text(
+          context.l10n.planDinnerWeek,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Fill the nights you care about. Blank days stay empty.',
-          style: TextStyle(color: AppColors.inkSecondary),
+        Text(
+          context.l10n.mealsPlanWeekBody,
+          style: const TextStyle(color: AppColors.inkSecondary),
         ),
         const SizedBox(height: 12),
         for (final day in MealRepository.weekdays) ...[
@@ -680,7 +684,9 @@ class _PlanDinnerWeekSheetState extends State<_PlanDinnerWeekSheet> {
           TextField(
             controller: _controllers[day.$1],
             textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(hintText: 'Dinner for ${day.$2}'),
+            decoration: InputDecoration(
+              hintText: context.l10n.hintDinnerFor(day.$2),
+            ),
           ),
           const SizedBox(height: 10),
         ],
@@ -691,7 +697,7 @@ class _PlanDinnerWeekSheetState extends State<_PlanDinnerWeekSheet> {
                 day.$1: _controllers[day.$1]!.text.trim(),
             });
           },
-          child: const Text('Save week'),
+          child: Text(context.l10n.saveWeek),
         ),
       ],
     );

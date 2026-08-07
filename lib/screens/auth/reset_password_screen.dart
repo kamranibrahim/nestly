@@ -4,18 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/auth_errors.dart';
+import '../../l10n/l10n_ext.dart';
 import '../../providers/providers.dart';
 import '../../state/reset_password_ui.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/shimmer.dart';
 
-const _supportEmail = 'support@nestly.app';
+const _supportEmail = 'support@casaio.app';
 
-Future<void> _send(WidgetRef ref, {bool isResend = false}) async {
+Future<void> _send(
+  WidgetRef ref,
+  AppLocalizations l10n, {
+  bool isResend = false,
+}) async {
   final ctrl = ref.read(resetPasswordUiProvider.notifier);
   final email = ctrl.emailController.text.trim();
   if (email.isEmpty) {
-    ctrl.setError('Enter the email for your Nestly account.');
+    ctrl.setError(l10n.resetEnterEmail);
     return;
   }
   if (isResend && !ref.read(resetPasswordUiProvider).canResend) return;
@@ -27,7 +32,7 @@ Future<void> _send(WidgetRef ref, {bool isResend = false}) async {
     ctrl.setSent(true);
     ctrl.startCooldown();
   } catch (e) {
-    ctrl.setError(friendlyAuthError(e));
+    ctrl.setError(friendlyAuthError(e, l10n));
   } finally {
     ctrl.setBusy(false);
   }
@@ -39,14 +44,14 @@ Future<void> _emailSupport(BuildContext context, WidgetRef ref) async {
     scheme: 'mailto',
     path: _supportEmail,
     queryParameters: {
-      'subject': 'Nestly password reset help',
-      if (email.isNotEmpty) 'body': 'Account email: $email\n\n',
+      'subject': context.l10n.resetMailSubject,
+      if (email.isNotEmpty) 'body': context.l10n.resetMailBody(email),
     },
   );
   final ok = await launchUrl(uri);
   if (!ok && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Email support@nestly.app')),
+      SnackBar(content: Text(context.l10n.resetEmailSupport)),
     );
   }
 }
@@ -61,6 +66,7 @@ class ResetPasswordScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ui = ref.watch(resetPasswordUiProvider);
     final ctrl = ref.read(resetPasswordUiProvider.notifier);
+    final l10n = context.l10n;
     if (initialEmail.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ctrl.applyInitialEmail(initialEmail);
@@ -70,13 +76,13 @@ class ResetPasswordScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Reset password')),
+      appBar: AppBar(title: Text(l10n.resetPasswordTitle)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          const Text(
-            'We’ll email you a secure link to choose a new password.',
-            style: TextStyle(
+          Text(
+            l10n.resetPasswordIntro,
+            style: const TextStyle(
               color: AppColors.inkSecondary,
               height: 1.45,
               fontWeight: FontWeight.w600,
@@ -86,21 +92,14 @@ class ResetPasswordScreen extends ConsumerWidget {
           if (ui.sent) ...[
             NestStatusCard(
               icon: Icons.mark_email_read_outlined,
-              title: 'Check your inbox',
-              body:
-                  'If an account exists for ${ctrl.emailController.text.trim()}, you’ll get a '
-                  'reset link shortly. Open it on this device or any browser, '
-                  'then log in with your new password.',
+              title: l10n.resetCheckInbox,
+              body: l10n.resetCheckInboxBody(ctrl.emailController.text.trim()),
             ),
             const SizedBox(height: 12),
             NestStatusCard(
               icon: Icons.markunread_mailbox_outlined,
-              title: 'Don’t see it?',
-              body:
-                  'Check Spam and Promotions (Gmail often files Firebase emails '
-                  'there). Search for “Nestly” or “password”. Still signed in on '
-                  'another device? Change your password from Nest → Change password '
-                  'instead.',
+              title: l10n.resetDontSee,
+              body: l10n.resetDontSeeBody,
             ),
             if (ui.error != null) ...[
               const SizedBox(height: 10),
@@ -112,23 +111,23 @@ class ResetPasswordScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Back to log in'),
+              child: Text(l10n.resetBackToLogin),
             ),
             TextButton(
               onPressed:
-                  ui.canResend ? () => _send(ref, isResend: true) : null,
+                  ui.canResend ? () => _send(ref, l10n, isResend: true) : null,
               child: Text(
-                wait > 0 ? 'Resend link in ${wait}s' : 'Resend link',
+                wait > 0 ? l10n.resetResendIn(wait) : l10n.resetResend,
               ),
             ),
             TextButton(
               onPressed: ui.busy ? null : ctrl.useAnotherEmail,
-              child: const Text('Use a different email'),
+              child: Text(l10n.resetUseOtherEmail),
             ),
             TextButton.icon(
               onPressed: () => _emailSupport(context, ref),
               icon: const Icon(Icons.mail_outline_rounded, size: 18),
-              label: const Text('Email support'),
+              label: Text(l10n.resetEmailSupport),
             ),
           ] else ...[
             TextField(
@@ -137,8 +136,8 @@ class ResetPasswordScreen extends ConsumerWidget {
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
               textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _send(ref),
-              decoration: const InputDecoration(labelText: 'Email'),
+              onSubmitted: (_) => _send(ref, l10n),
+              decoration: InputDecoration(labelText: l10n.authEmailHint),
             ),
             if (ui.error != null) ...[
               const SizedBox(height: 10),
@@ -149,22 +148,22 @@ class ResetPasswordScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: ui.busy ? null : () => _send(ref),
+              onPressed: ui.busy ? null : () => _send(ref, l10n),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
               ),
               child: ui.busy
                   ? Semantics(
-                      label: 'Sending',
+                      label: l10n.authWorking,
                       child: const NestShimmerCircle(size: 22),
                     )
-                  : const Text('Send reset link'),
+                  : Text(l10n.resetSendLink),
             ),
             const SizedBox(height: 8),
             TextButton.icon(
               onPressed: () => _emailSupport(context, ref),
               icon: const Icon(Icons.mail_outline_rounded, size: 18),
-              label: const Text('Email support'),
+              label: Text(l10n.resetEmailSupport),
             ),
           ],
         ],
@@ -189,7 +188,7 @@ Future<void> showChangePasswordSheet(
   );
   if (result == true && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password updated')),
+      SnackBar(content: Text(context.l10n.resetPasswordUpdated)),
     );
   }
 }
@@ -200,15 +199,15 @@ Future<void> _saveChangedPassword(BuildContext context, WidgetRef ref) async {
   final next = ctrl.nextController.text;
   final confirm = ctrl.confirmController.text;
   if (current.isEmpty || next.isEmpty) {
-    ctrl.setError('Fill in your current and new password.');
+    ctrl.setError(context.l10n.resetFillBoth);
     return;
   }
   if (next != confirm) {
-    ctrl.setError('New passwords don’t match.');
+    ctrl.setError(context.l10n.resetMismatch);
     return;
   }
   if (next.trim().length < 6) {
-    ctrl.setError('Use a password with at least 6 characters.');
+    ctrl.setError(context.l10n.authPasswordTooShort);
     return;
   }
 
@@ -222,7 +221,9 @@ Future<void> _saveChangedPassword(BuildContext context, WidgetRef ref) async {
     if (!context.mounted) return;
     Navigator.pop(context, true);
   } catch (e) {
-    ctrl.setError(friendlyAuthError(e));
+    ctrl.setError(
+      friendlyAuthError(e, context.mounted ? context.l10n : null),
+    );
   } finally {
     ctrl.setBusy(false);
   }
@@ -235,8 +236,9 @@ class _ChangePasswordSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ui = ref.watch(changePasswordUiProvider);
     final ctrl = ref.read(changePasswordUiProvider.notifier);
+    final l10n = context.l10n;
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
-    final email = FirebaseAuth.instance.currentUser?.email ?? 'your account';
+    final email = FirebaseAuth.instance.currentUser?.email ?? l10n.yourAccount;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + bottom),
@@ -255,9 +257,9 @@ class _ChangePasswordSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Change password',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          Text(
+            l10n.settingsPassword,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
@@ -273,13 +275,13 @@ class _ChangePasswordSheet extends ConsumerWidget {
             controller: ctrl.currentController,
             obscureText: ui.obscure,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Current password'),
+            decoration: InputDecoration(labelText: l10n.authPasswordHint),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: ctrl.nextController,
             obscureText: ui.obscure,
-            decoration: const InputDecoration(labelText: 'New password'),
+            decoration: InputDecoration(labelText: l10n.authPasswordHint),
           ),
           const SizedBox(height: 10),
           TextField(
@@ -288,9 +290,12 @@ class _ChangePasswordSheet extends ConsumerWidget {
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _saveChangedPassword(context, ref),
             decoration: InputDecoration(
-              labelText: 'Confirm new password',
+              labelText: l10n.authPasswordHint,
               suffixIcon: IconButton(
                 onPressed: ctrl.toggleObscure,
+                tooltip: ui.obscure
+                    ? l10n.authShowPassword
+                    : l10n.authHidePassword,
                 icon: Icon(
                   ui.obscure
                       ? Icons.visibility_outlined
@@ -311,10 +316,10 @@ class _ChangePasswordSheet extends ConsumerWidget {
             onPressed: ui.busy ? null : () => _saveChangedPassword(context, ref),
             child: ui.busy
                 ? Semantics(
-                    label: 'Working',
+                    label: l10n.authWorking,
                     child: const NestShimmerCircle(size: 22),
                   )
-                : const Text('Update password'),
+                : Text(l10n.commonSave),
           ),
         ],
       ),

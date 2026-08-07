@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../l10n/app_localizations.dart';
 import 'auth_repository.dart';
 import 'db/app_database.dart';
 import 'locator_models.dart';
@@ -71,7 +72,7 @@ class NestPrivacyService {
 
     return {
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
-      'app': 'nestly',
+      'app': 'casaio',
       'version': '1.0.0',
       'account': {'uid': user?.uid, 'email': user?.email},
       'nest': nest == null
@@ -104,14 +105,14 @@ class NestPrivacyService {
       },
       'notes': [
         'Vault file binaries are not included — only document titles, folders, and metadata.',
-        'To re-download vault files, open Nestly while signed in and use Vault.',
+        'To re-download vault files, open Casaio while signed in and use Vault.',
         'Budget and nest preference settings are included under settings.',
         'Locator last-known pins are nest-scoped and opt-in; binaries and live GPS streams are not exported.',
       ],
     };
   }
 
-  Future<void> shareExport() async {
+  Future<void> shareExport({AppLocalizations? l10n}) async {
     final payload = await buildExportPayload();
     final json = const JsonEncoder.withIndent('  ').convert(payload);
     final bytes = utf8.encode(json);
@@ -125,14 +126,14 @@ class NestPrivacyService {
             name: 'nestly-export-$stamp.json',
           ),
         ],
-        subject: 'Nestly data export',
-        text:
-            'Your Nestly nest export (JSON). Vault file binaries are not included.',
+        subject: l10n?.privacyExportSubject ?? 'Casaio data export',
+        text: l10n?.privacyExportShareText ??
+            'Your Casaio nest export (JSON). Vault file binaries are not included.',
       ),
     );
   }
 
-  /// Leaves the current nest but keeps the Nestly account signed in.
+  /// Leaves the current nest but keeps the Casaio account signed in.
   ///
   /// Removes this user from the nest member list and clears local household
   /// data. If this was the last member, wipes the nest (Firestore + Storage).
@@ -172,7 +173,7 @@ class NestPrivacyService {
   /// Leaves the nest (wiping it if last member), deletes Auth user + profile,
   /// then wipes local DB.
   ///
-  /// Pass [password] so Nestly can reauthenticate when Firebase requires a
+  /// Pass [password] so Casaio can reauthenticate when Firebase requires a
   /// recent login (common for account deletion).
   Future<void> deleteAccount({required String password}) async {
     final user = FirebaseAuth.instance.currentUser;

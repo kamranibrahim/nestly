@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
+import 'package:nestly/l10n/test_app.dart';
 import 'package:nestly/screens/onboarding/onboarding_screen.dart';
 
 Future<void> _settleFrames(WidgetTester tester) async {
@@ -18,7 +19,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [databaseProvider.overrideWithValue(database)],
-        child: const MaterialApp(home: OnboardingScreen()),
+        child: const CasaioTestApp(home: OnboardingScreen()),
       ),
     );
     await _settleFrames(tester);
@@ -45,7 +46,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [databaseProvider.overrideWithValue(database)],
-        child: const MaterialApp(home: OnboardingScreen()),
+        child: const CasaioTestApp(home: OnboardingScreen()),
       ),
     );
     await _settleFrames(tester);

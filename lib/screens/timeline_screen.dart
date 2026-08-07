@@ -15,6 +15,7 @@ import 'expenses_screen.dart';
 import 'meals_screen.dart';
 import 'school_screen.dart';
 import 'vault_screen.dart';
+import '../l10n/l10n_ext.dart';
 
 final timelineFullProvider = StreamProvider<List<TimelineEvent>>((ref) {
   return ref.watch(timelineRepositoryProvider).watchRecent(limit: 120);
@@ -41,7 +42,7 @@ class TimelineScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Timeline')),
+      appBar: AppBar(title: Text(context.l10n.screenTimeline)),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -53,7 +54,7 @@ class TimelineScreen extends ConsumerWidget {
               children: [
                 for (final module in TimelineModule.values) ...[
                   SoftPill(
-                    label: module.label,
+                    label: module.display(context.l10n),
                     selected: ui.filter == module,
                     onTap: () => uiCtrl.setFilter(module),
                   ),
@@ -72,14 +73,14 @@ class TimelineScreen extends ConsumerWidget {
                           icon: Icons.history_rounded,
                           color: AppColors.tileTeal,
                           title: events.isEmpty
-                              ? 'Your nest timeline starts here'
-                              : 'Nothing in this filter',
+                              ? context.l10n.emptyTimelineTitle
+                              : context.l10n.emptyTimelineFilter,
                           body: events.isEmpty
-                              ? 'As the family checks off tasks, shops, and plans meals, activity shows up here.'
-                              : 'Try another module filter, or clear back to All.',
+                              ? context.l10n.emptyTimelineBody
+                              : context.l10n.emptyTimelineFilterHint,
                           actionLabel: events.isEmpty
-                              ? 'Back to Home'
-                              : 'Show all',
+                              ? context.l10n.timelineBackHome
+                              : context.l10n.timelineShowAll,
                           onAction: () {
                             if (events.isEmpty) {
                               Navigator.of(context).pop();
@@ -125,7 +126,7 @@ class TimelineScreen extends ConsumerWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '${event.memberName} · ${_relative(event.createdAt)} · ${module.label}',
+                                        '${event.memberName} · ${_relative(event.createdAt, context.l10n)} · ${module.display(context.l10n)}',
                                         style: const TextStyle(
                                           color: AppColors.inkMuted,
                                           fontSize: 12,
@@ -193,12 +194,12 @@ void _openTabOrStay(
   onOpenTab(tab);
 }
 
-String _relative(DateTime dt) {
+String _relative(DateTime dt, AppLocalizations l10n) {
   final diff = DateTime.now().difference(dt);
-  if (diff.inMinutes < 1) return 'Just now';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-  if (diff.inHours < 24) return '${diff.inHours}h ago';
-  if (diff.inDays < 7) return '${diff.inDays}d ago';
+  if (diff.inMinutes < 1) return l10n.syncJustNow;
+  if (diff.inMinutes < 60) return l10n.syncMinutesAgo(diff.inMinutes);
+  if (diff.inHours < 24) return l10n.syncHoursAgo(diff.inHours);
+  if (diff.inDays < 7) return l10n.syncDaysAgo(diff.inDays);
   return DateFormat.MMMd().format(dt);
 }
 

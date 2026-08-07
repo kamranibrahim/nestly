@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// Ephemeral Auth screen UI. Owns the [TextEditingController]s so
 /// [AuthScreen] can stay a plain `ConsumerWidget`.
 class AuthUiState {
@@ -58,17 +60,17 @@ class AuthUiController extends StateNotifier<AuthUiState> {
   }
 
   /// Returns a validation message, or `null` when the form is ready to submit.
-  String? validate() {
+  String? validate(AppLocalizations l10n) {
     final email = emailController.text.trim();
     final password = passwordController.text;
     if (email.isEmpty || !email.contains('@')) {
-      return 'Enter a valid email address.';
+      return l10n.authInvalidEmail;
     }
     if (password.length < 6) {
-      return 'Password must be at least 6 characters.';
+      return l10n.authPasswordTooShort;
     }
     if (state.signUp && nameController.text.trim().isEmpty) {
-      return 'Enter your name.';
+      return l10n.authEnterName;
     }
     return null;
   }

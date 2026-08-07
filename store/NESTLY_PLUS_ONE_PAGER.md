@@ -1,15 +1,15 @@
-# Nestly Plus — product one-pager (draft)
+# Casaio Plus — product one-pager (draft)
 
 **Status:** Draft only for next-quarter planning. **No paywall ships in the free soft-launch cycle.**
 
 ## Problem
-Families that already run Nestly as their weekly OS want optional depth — without forcing a paywall on the core nest.
+Families that already run Casaio as their weekly OS want optional depth — without forcing a paywall on the core nest.
 
 ## Who
-Multi-member nests (2+) that use Nestly ≥3 days/week for tasks, calendar, shopping, and care/school.
+Multi-member nests (2+) that use Casaio ≥3 days/week for tasks, calendar, shopping, and care/school.
 
 ## Positioning
-Nestly stays free for the family OS. **Plus** is an optional upgrade for households that want richer automation and history — never a lock on invite, sync, or today’s essentials.
+Casaio stays free for the family OS. **Plus** is an optional upgrade for households that want richer automation and history — never a lock on invite, sync, or today’s essentials.
 
 ## Candidate Plus value (prioritize later)
 1. **Longer history & exports** — deeper timeline retention; richer CSV/PDF exports  
@@ -36,4 +36,4 @@ Explicitly **not** Plus (remain free): create/join nest, sync, core modules, inv
 - Unpause web companion under Plus or free?
 
 ## Decision
-File this draft. Revisit after free soft launch metrics (Week 16 retro). Do **not** add IAP, paywall screens, or feature flags that hide core Nestly.
+File this draft. Revisit after free soft launch metrics (Week 16 retro). Do **not** add IAP, paywall screens, or feature flags that hide core Casaio.

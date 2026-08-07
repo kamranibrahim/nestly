@@ -24,7 +24,7 @@
             android:textColor="@color/nestly_ink"
             android:textSize="13sp"
             android:textStyle="bold"
-            tools:text="The Nestly Family" />
+            tools:text="The Casaio Family" />
 
         <View
             android:id="@+id/widget_accent_dot"

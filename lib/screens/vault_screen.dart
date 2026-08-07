@@ -12,6 +12,7 @@ import '../widgets/common.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 import 'scan_document_flow.dart';
+import '../l10n/l10n_ext.dart';
 
 (IconData, Color) _folderStyle(VaultFolder folder) {
   return switch (folder) {
@@ -67,20 +68,20 @@ class VaultScreen extends ConsumerWidget {
         appBar: AppBar(
           title: Text(
             ui.selecting
-                ? '${ui.selectedIds.length} selected'
+                ? context.l10n.nSelected(ui.selectedIds.length)
                 : VaultFolder.isAll(ui.category)
-                    ? 'Documents'
-                    : ui.category,
+                    ? context.l10n.screenVault
+                    : VaultFolder.parse(ui.category).display(context.l10n),
           ),
           leading: ui.selecting
               ? IconButton(
-                  tooltip: 'Cancel',
+                  tooltip: context.l10n.commonCancel,
                   onPressed: uiCtrl.cancelSelecting,
                   icon: const Icon(Icons.close_rounded),
                 )
               : !VaultFolder.isAll(ui.category)
                   ? IconButton(
-                      tooltip: 'All folders',
+                      tooltip: context.l10n.vaultAllFolders,
                       onPressed: uiCtrl.showAllFolders,
                       icon: const Icon(Icons.arrow_back_rounded),
                     )
@@ -88,23 +89,23 @@ class VaultScreen extends ConsumerWidget {
           actions: [
             if (ui.selecting) ...[
               IconButton(
-                tooltip: 'Share pack',
+                tooltip: context.l10n.vaultSharePack,
                 onPressed:
                     ui.selectedIds.isEmpty ? null : () => _sharePack(context, ref),
                 icon: const Icon(Icons.ios_share_rounded),
               ),
             ] else ...[
               IconButton(
-                tooltip: 'Select to share',
+                tooltip: context.l10n.vaultSelectShare,
                 onPressed: uiCtrl.startSelecting,
                 icon: const Icon(Icons.checklist_rounded),
               ),
               IconButton(
-                tooltip: 'Scan to calendar',
+                tooltip: context.l10n.vaultScanCalendar,
                 onPressed: () => startDocumentScanFlow(
                   context,
                   ref,
-                  hint: 'This may be a family document or invitation',
+                  hint: context.l10n.vaultScanHint,
                 ),
                 icon: const Icon(Icons.document_scanner_rounded),
               ),
@@ -123,9 +124,9 @@ class VaultScreen extends ConsumerWidget {
             TextField(
               onChanged: uiCtrl.setQuery,
               textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-                hintText: 'Search by title, notes, or folder',
-                prefixIcon: Icon(Icons.search_rounded),
+              decoration: InputDecoration(
+                hintText: context.l10n.searchVault,
+                prefixIcon: const Icon(Icons.search_rounded),
                 isDense: true,
               ),
             ),
@@ -154,7 +155,7 @@ class VaultScreen extends ConsumerWidget {
                     TextButton(
                       onPressed:
                           ui.retrying ? null : () => _retryAll(context, ref),
-                      child: Text(ui.retrying ? '…' : 'Retry all'),
+                      child: Text(ui.retrying ? '…' : context.l10n.vaultRetryAll),
                     ),
                   ],
                 ),
@@ -165,7 +166,7 @@ class VaultScreen extends ConsumerWidget {
               if (expiring.isNotEmpty &&
                   ui.query.isEmpty &&
                   !ui.selecting) ...[
-                const SectionLabel('Expiring soon'),
+                SectionLabel(context.l10n.vaultExpiringSoon),
                 NestCard(
                   padding: EdgeInsets.zero,
                   child: Column(
@@ -181,7 +182,9 @@ class VaultScreen extends ConsumerWidget {
                             expiring[i].title,
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                          subtitle: Text(_expiryLabel(expiring[i].expiresAt)),
+                          subtitle: Text(
+                            _expiryLabel(context.l10n, expiring[i].expiresAt),
+                          ),
                           trailing: SoftPill(
                             label: _expiryBadge(expiring[i].expiresAt),
                             selected: true,
@@ -255,7 +258,7 @@ class VaultScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              folder.label,
+                              folder.display(context.l10n),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
@@ -276,11 +279,13 @@ class VaultScreen extends ConsumerWidget {
                 ),
               if (ui.query.isEmpty) ...[
                 const SizedBox(height: 6),
-                const SectionLabel('Recent files'),
+                SectionLabel(context.l10n.vaultRecentFiles),
               ] else
-                const SectionLabel('Search results'),
+                SectionLabel(context.l10n.vaultSearchResults),
             ] else
-              SectionLabel(ui.category),
+              SectionLabel(
+                VaultFolder.parse(ui.category).display(context.l10n),
+              ),
             docsAsync.when(
               loading: () => const NestLoadingSkeleton(itemCount: 3),
               error: (e, _) => NestCard(child: Text('$e')),
@@ -290,7 +295,7 @@ class VaultScreen extends ConsumerWidget {
                     ? Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          _emptyCopy(ui),
+                          _emptyCopy(context.l10n, ui),
                           style: const TextStyle(color: AppColors.inkMuted),
                           textAlign: TextAlign.center,
                         ),
@@ -332,13 +337,13 @@ class VaultScreen extends ConsumerWidget {
                               ),
                               subtitle: Text(
                                 '${filtered[i].category} · ${_relative(filtered[i].updatedAt)}'
-                                '${filtered[i].expiresAt == null ? '' : ' · ${_expiryLabel(filtered[i].expiresAt)}'}'
-                                ' · ${VaultUploadStatus.label(filtered[i].uploadStatus)}',
+                                '${filtered[i].expiresAt == null ? '' : ' · ${_expiryLabel(context.l10n, filtered[i].expiresAt)}'}'
+                                ' · ${_uploadStatusLabel(context.l10n, filtered[i].uploadStatus)}',
                               ),
                               trailing: filtered[i].uploadStatus ==
                                       VaultUploadStatus.failed.storage
                                   ? IconButton(
-                                      tooltip: 'Retry upload',
+                                      tooltip: context.l10n.vaultRetryUpload,
                                       onPressed: () =>
                                           _retryOne(context, ref, filtered[i]),
                                       icon: const Icon(
@@ -381,7 +386,7 @@ Future<void> _upload(BuildContext context, WidgetRef ref) async {
       final msg = status == VaultUploadStatus.synced.storage
           ? 'Saved & synced ${doc.title}'
           : status == VaultUploadStatus.failed.storage
-              ? 'Saved on device — will upload when online'
+              ? context.l10n.vaultSavedOffline
               : 'Saved ${doc.title}';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       await syncAfterWrite(ref, context: context);
@@ -389,7 +394,7 @@ Future<void> _upload(BuildContext context, WidgetRef ref) async {
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Could not add file: $e')),
+      SnackBar(content: Text(context.l10n.vaultAddFailed('$e'))),
     );
   }
 }
@@ -405,7 +410,7 @@ Future<void> _retryAll(BuildContext context, WidgetRef ref) async {
       SnackBar(
         content: Text(
           n == 0
-              ? 'Still offline — files stay on this device'
+              ? context.l10n.vaultStillOffline
               : 'Uploaded $n file${n == 1 ? '' : 's'}',
         ),
       ),
@@ -426,7 +431,9 @@ Future<void> _retryOne(
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(
-        ok ? 'Uploaded ${doc.title}' : 'Upload failed — try again later',
+        ok
+            ? context.l10n.vaultUploaded(doc.title)
+            : context.l10n.vaultUploadFailedSnack,
       ),
     ),
   );
@@ -440,11 +447,14 @@ Future<void> _sharePack(BuildContext context, WidgetRef ref) async {
   final docs = all.where((d) => selected.contains(d.id)).toList();
   if (docs.isEmpty) return;
   try {
-    final n = await ref.read(vaultServiceProvider).shareDocuments(docs);
+    final n = await ref.read(vaultServiceProvider).shareDocuments(
+          docs,
+          l10n: context.l10n,
+        );
     if (!context.mounted) return;
     ref.read(vaultUiProvider.notifier).cancelSelecting();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Shared $n file${n == 1 ? '' : 's'}')),
+      SnackBar(content: Text(context.l10n.vaultSharedFiles(n))),
     );
   } catch (e) {
     if (!context.mounted) return;
@@ -507,14 +517,33 @@ Map<String, int> _expiryCounts(List<VaultDocument> expiring) {
   return map;
 }
 
-String _emptyCopy(VaultUiState ui) {
+String _uploadStatusLabel(AppLocalizations l10n, String status) {
+  return switch (VaultUploadStatus.parse(status)) {
+    VaultUploadStatus.local => l10n.uploadLocal,
+    VaultUploadStatus.uploading => l10n.uploadUploading,
+    VaultUploadStatus.synced => l10n.uploadSynced,
+    VaultUploadStatus.failed => l10n.uploadFailed,
+  };
+}
+
+String _emptyCopy(AppLocalizations l10n, VaultUiState ui) {
   if (ui.query.isNotEmpty) {
-    return 'No documents match “${ui.query}”. Try a title, note, or folder name.';
+    return l10n.vaultNoSearchMatch(ui.query);
   }
   if (VaultFolder.isAll(ui.category)) {
-    return 'No documents yet. Tap + to add IDs, insurance, or house papers.';
+    return l10n.vaultEmptyBody;
   }
-  return 'Nothing in ${ui.category} yet. Tap + to add a file here.';
+  final folder = _folderDisplay(l10n, ui.category);
+  return l10n.vaultEmptyFolder(folder);
+}
+
+String _folderDisplay(AppLocalizations l10n, String category) {
+  for (final folder in VaultFolder.values) {
+    if (folder.label == category) {
+      return folder.display(l10n);
+    }
+  }
+  return category;
 }
 
 IconData _iconFor(VaultDocument doc) {
@@ -537,16 +566,16 @@ String _relative(DateTime dt) {
   return DateFormat.MMMd().format(dt);
 }
 
-String _expiryLabel(DateTime? expiresAt) {
+String _expiryLabel(AppLocalizations l10n, DateTime? expiresAt) {
   if (expiresAt == null) return '';
   final today = DateTime.now();
   final day = DateTime(expiresAt.year, expiresAt.month, expiresAt.day);
   final now = DateTime(today.year, today.month, today.day);
   final days = day.difference(now).inDays;
   if (days < 0) return 'Expired ${DateFormat.MMMd().format(expiresAt)}';
-  if (days == 0) return 'Expires today';
-  if (days == 1) return 'Expires tomorrow';
-  if (days <= 14) return 'Expires in $days days';
+  if (days == 0) return l10n.expiresToday;
+  if (days == 1) return l10n.expiresTomorrow;
+  if (days <= 14) return l10n.expiresInDays(days);
   return 'Expires ${DateFormat.MMMd().format(expiresAt)}';
 }
 
@@ -619,7 +648,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
           DateTime.now().add(const Duration(days: 365)),
       firstDate: DateTime(2000),
       lastDate: DateTime(2045),
-      helpText: 'When does this expire?',
+      helpText: context.l10n.vaultExpiryHelp,
     );
     if (picked == null) return;
     await ref.read(vaultRepositoryProvider).updateMeta(
@@ -646,7 +675,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
     await syncAfterWrite(ref, context: context);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Expiry reminder cleared')),
+      SnackBar(content: Text(context.l10n.vaultExpiryCleared)),
     );
     Navigator.pop(context);
   }
@@ -663,7 +692,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
     await syncAfterWrite(ref, context: context);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Document updated')),
+      SnackBar(content: Text(context.l10n.vaultUpdated)),
     );
     Navigator.pop(context);
   }
@@ -672,16 +701,16 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove document?'),
-        content: Text('Remove “${widget.doc.title}” from the nest vault.'),
+        title: Text(context.l10n.deleteDocumentTitle),
+        content: Text(context.l10n.vaultRemoveBody(widget.doc.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
+            child: Text(context.l10n.commonRemove),
           ),
         ],
       ),
@@ -703,9 +732,9 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
       children: [
         sheetHandle(),
         const SizedBox(height: 6),
-        const Text(
-          'Document details',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        Text(
+          context.l10n.vaultDetails,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 4),
         Text(
@@ -714,7 +743,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Status · ${VaultUploadStatus.label(status)}',
+          context.l10n.vaultStatusLabel(_uploadStatusLabel(context.l10n, status)),
           style: TextStyle(
             fontWeight: FontWeight.w700,
             color: status == VaultUploadStatus.failed.storage
@@ -738,14 +767,14 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
         TextField(
           controller: _title,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Title',
+          decoration: InputDecoration(
+            labelText: context.l10n.commonTitle,
           ),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Folder',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        Text(
+          context.l10n.vaultFolder,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -754,7 +783,7 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
           children: [
             for (final folder in widget.folders)
               SoftPill(
-                label: folder,
+                label: VaultFolder.parse(folder).display(context.l10n),
                 selected: _category == folder,
                 onTap: () => setState(() => _category = folder),
               ),
@@ -766,9 +795,9 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
           minLines: 2,
           maxLines: 4,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Notes',
-            hintText: 'Renewal tips, last-4, who holds the original…',
+          decoration: InputDecoration(
+            labelText: context.l10n.commonNotes,
+            hintText: context.l10n.vaultNotesHint,
           ),
         ),
         const SizedBox(height: 10),
@@ -779,41 +808,45 @@ class _VaultDocSheetState extends ConsumerState<_VaultDocSheet> {
               widget.onRetryUpload();
             },
             icon: const Icon(Icons.cloud_upload_outlined),
-            label: const Text('Retry upload'),
+            label: Text(context.l10n.vaultRetryUpload),
           ),
           const SizedBox(height: 8),
         ],
         FilledButton.icon(
           onPressed: _busy ? null : _share,
           icon: const Icon(Icons.ios_share_rounded),
-          label: Text(_busy ? 'Preparing…' : 'Share / open'),
+          label: Text(
+            _busy ? context.l10n.vaultPreparing : context.l10n.vaultShareOpen,
+          ),
         ),
         const SizedBox(height: 8),
         FilledButton(
           onPressed: _saveDetails,
-          child: const Text('Save details'),
+          child: Text(context.l10n.saveDetails),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: _setExpiry,
           icon: const Icon(Icons.event_rounded),
           label: Text(
-            expiry == null ? 'Set expiry reminder' : 'Change expiry date',
+            expiry == null
+                ? context.l10n.vaultSetExpiry
+                : context.l10n.vaultChangeExpiry,
           ),
         ),
         if (expiry != null) ...[
           const SizedBox(height: 8),
           OutlinedButton(
             onPressed: _clearExpiry,
-            child: const Text('Clear expiry reminder'),
+            child: Text(context.l10n.vaultClearExpiry),
           ),
         ],
         const SizedBox(height: 8),
         TextButton(
           onPressed: _delete,
-          child: const Text(
-            'Remove from vault',
-            style: TextStyle(color: AppColors.danger),
+          child: Text(
+            context.l10n.vaultRemoveFrom,
+            style: const TextStyle(color: AppColors.danger),
           ),
         ),
       ],

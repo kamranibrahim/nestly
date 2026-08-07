@@ -1,4 +1,4 @@
-# Nestly
+# Casaio
 
 The operating system for modern families.
 
@@ -61,9 +61,9 @@ Next 16 weeks: see [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md) (web paused; no do
 - [x] Forgot password + friendlier auth errors
 - [x] Center FAB opens real add flows; About screen
 - [x] Four-month execution (Home→widget→a11y→Nest hub→tests); see `FOUR_MONTH_PLAN.md`
-- [x] Nestly Plus one-pager only (`store/NESTLY_PLUS_ONE_PAGER.md`) — **no paywall code**
+- [x] Casaio Plus one-pager only (`store/NESTLY_PLUS_ONE_PAGER.md`) — **no paywall code**
 - [ ] Store public listing / TestFlight external (manual — see `STORE_CHECKLIST.md`)
-- [ ] Nestly Plus paywall (deferred; one-pager only)
+- [ ] Casaio Plus paywall (deferred; one-pager only)
 
 ## Year 2 status
 
@@ -80,7 +80,9 @@ Next 16 weeks: see [`FOUR_MONTH_PLAN.md`](FOUR_MONTH_PLAN.md) (web paused; no do
 
 ## Website
 
-Static Netlify site for Privacy / Support (and later a JS web app). Flutter web is not part of this repo anymore.
+Marketing, privacy, and support live at **https://casaio.app** (`~/Projects/nestly-website`, Cloudflare Pages).
+
+This repo’s Netlify site is only for `/api/parse-document` (and temporary redirects to casaio.app).
 
 ```bash
 ./node_modules/.bin/netlify deploy --dir=web --prod --functions=netlify/functions

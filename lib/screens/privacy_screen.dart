@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/auth_errors.dart';
 import '../data/db/app_database.dart';
 import '../data/nest_privacy_service.dart';
+import '../l10n/l10n_ext.dart';
 import '../state/privacy_ui.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -22,7 +23,7 @@ Future<void> confirmAndDeleteAccount(
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('You need to be signed in.')),
+      SnackBar(content: Text(context.l10n.privacyNeedSignIn)),
     );
     return;
   }
@@ -35,7 +36,7 @@ Future<void> confirmAndDeleteAccount(
 
   final messenger = ScaffoldMessenger.of(context);
   messenger.showSnackBar(
-    const SnackBar(content: Text('Deleting account…')),
+    SnackBar(content: Text(context.l10n.privacyDeleting)),
   );
 
   try {
@@ -45,7 +46,7 @@ Future<void> confirmAndDeleteAccount(
     messenger.hideCurrentSnackBar();
     if (!context.mounted) return;
     messenger.showSnackBar(
-      SnackBar(content: Text(friendlyAuthError(e))),
+      SnackBar(content: Text(friendlyAuthError(e, context.l10n))),
     );
   }
 }
@@ -69,20 +70,18 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final email = FirebaseAuth.instance.currentUser?.email ?? 'your account';
 
     return AlertDialog(
-      title: const Text('Delete account?'),
+      title: Text(l10n.deleteAccountTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This removes $email from Nestly and clears data on this device. '
-              'If you are the last member, the nest (including vault files) is '
-              'deleted. Otherwise other family members keep the nest. '
-              'This cannot be undone.',
+              l10n.privacyDeleteBody(email),
               style: const TextStyle(height: 1.4),
             ),
             const SizedBox(height: 16),
@@ -93,7 +92,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _confirm(),
               decoration: InputDecoration(
-                labelText: 'Confirm with password',
+                labelText: l10n.privacyConfirmPassword,
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => _obscure = !_obscure),
                   icon: Icon(
@@ -110,12 +109,12 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           onPressed: _confirm,
           style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-          child: const Text('Delete forever'),
+          child: Text(l10n.privacyDeleteForever),
         ),
       ],
     );
@@ -132,15 +131,15 @@ Future<void> _export(BuildContext context, WidgetRef ref) async {
   final ctrl = ref.read(privacyUiProvider.notifier);
   ctrl.setBusy(true);
   try {
-    await ref.read(nestPrivacyServiceProvider).shareExport();
+    await ref.read(nestPrivacyServiceProvider).shareExport(l10n: context.l10n);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Export ready to share')),
+      SnackBar(content: Text(context.l10n.privacyExportReady)),
     );
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Export failed: $e')),
+      SnackBar(content: Text(context.l10n.privacyExportFailed('$e'))),
     );
   } finally {
     ctrl.setBusy(false);
@@ -164,153 +163,135 @@ class PrivacyScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final busy = ref.watch(privacyUiProvider).busy;
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Privacy')),
+      appBar: AppBar(title: Text(l10n.screenPrivacyShort)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(10, 4, 10, 36),
         children: [
-          const NestCard(
-            padding: EdgeInsets.all(16),
+          NestCard(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Nestly keeps household data private by default.',
-                  style: TextStyle(
+                  l10n.privacyIntro,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text(
-                  'What we store',
-                  style: TextStyle(
+                  l10n.privacyStoreTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'Account email, nest membership, tasks, lists, calendar, '
-                  'expenses, bills, emergency notes, vault file metadata, '
-                  'family timeline events, and — if you opt in — a last-known '
-                  'Locator pin. Vault files upload to Firebase Storage '
-                  'under your nest when you are online. Locator never tracks '
-                  'you in the background; you share only when you tap Share now.',
-                  style: TextStyle(
+                  l10n.privacyStoreBody,
+                  style: const TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,
                   ),
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 14),
                 Text(
-                  'How it syncs',
-                  style: TextStyle(
+                  l10n.privacySyncTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'Nestly is offline-first. Data lives on your device in SQLite '
-                  '(Drift) and syncs to Firebase when signed in and connected. '
-                  'Only nest members can read or write nest data.',
-                  style: TextStyle(
+                  l10n.privacySyncBody,
+                  style: const TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,
                   ),
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 14),
                 Text(
-                  'Quiet AI (optional)',
-                  style: TextStyle(
+                  l10n.privacyAiTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'Document scan sends the photo or PDF you choose to Google’s '
-                  'Gemini models through Firebase AI Logic (Vertex AI) so Nestly '
-                  'can draft an event, expense, bill, or task. You review before '
-                  'anything is saved. Nestly stays free — there is no paywall '
-                  'for core family features.',
-                  style: TextStyle(
+                  l10n.privacyAiBody,
+                  style: const TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,
                   ),
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 14),
                 Text(
-                  'Diagnostics',
-                  style: TextStyle(
+                  l10n.privacyDiagTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'Nestly uses Firebase Crashlytics and Analytics to improve '
-                  'stability. Crash reports and anonymous event names (for '
-                  'example sign-up, sync success/fail) do not include nest '
-                  'content, emails, or passwords.',
-                  style: TextStyle(
+                  l10n.privacyDiagBody,
+                  style: const TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,
                   ),
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 14),
                 Text(
-                  'Password reset',
-                  style: TextStyle(
+                  l10n.privacyResetTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'Forgot-password emails are sent by Firebase Authentication. '
-                  'If you don’t see one, check Spam and Promotions. While signed '
-                  'in, you can change your password from Nest without email. '
-                  'Need help? support@nestly.app.',
-                  style: TextStyle(
+                  l10n.privacyResetBody,
+                  style: const TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,
                   ),
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 14),
                 Text(
-                  'Notifications',
-                  style: TextStyle(
+                  l10n.privacyNotifTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'We may register a push token for reminders (for example bills). '
-                  'You can revoke notification permission in system settings.',
-                  style: TextStyle(
+                  l10n.privacyNotifBody,
+                  style: const TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,
                   ),
                 ),
-                SizedBox(height: 14),
+                const SizedBox(height: 14),
                 Text(
-                  'Contact',
-                  style: TextStyle(
+                  l10n.privacyContactTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'Questions: privacy@nestly.app — or open '
-                  'https://glowing-strudel-442ff8.netlify.app/privacy',
-                  style: TextStyle(
+                  l10n.privacyContactBody,
+                  style: const TextStyle(
                     color: AppColors.inkSecondary,
                     height: 1.45,
                   ),
@@ -319,25 +300,25 @@ class PrivacyScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 10),
-          const SectionLabel('Your controls'),
+          SectionLabel(l10n.privacyControls),
           NestCard(
             onTap: busy ? null : () => _export(context, ref),
             child: Row(
               children: [
                 const Icon(Icons.download_rounded, color: AppColors.accentDeep),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Export nest data',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        l10n.privacyExport,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'JSON includes budget settings. Vault files are metadata only — binaries stay in Vault.',
-                        style: TextStyle(
+                        l10n.privacyExportBody,
+                        style: const TextStyle(
                           color: AppColors.inkMuted,
                           fontSize: 12.5,
                           height: 1.3,
@@ -363,25 +344,25 @@ class PrivacyScreen extends ConsumerWidget {
           const SizedBox(height: 6),
           NestCard(
             onTap: busy ? null : () => _deleteAccount(context, ref),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.delete_forever_rounded, color: AppColors.danger),
-                SizedBox(width: 12),
+                const Icon(Icons.delete_forever_rounded, color: AppColors.danger),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Delete account',
-                        style: TextStyle(
+                        l10n.deleteAccountTitle.replaceAll('?', ''),
+                        style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           color: AppColors.danger,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'Requires your password. Cannot be undone.',
-                        style: TextStyle(
+                        l10n.privacyDeleteHint,
+                        style: const TextStyle(
                           fontSize: 12.5,
                           color: AppColors.inkMuted,
                           fontWeight: FontWeight.w600,

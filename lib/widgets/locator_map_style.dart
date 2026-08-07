@@ -1,4 +1,4 @@
-/// Modern Nestly map style — soft pastels with places/POIs visible.
+/// Modern Casaio map style — soft pastels with places/POIs visible.
 const String locatorMapStyleJson = r'''
 [
   {

@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-/// Draft extracted from a receipt, invitation, or PDF via Nestly AI.
+/// Draft extracted from a receipt, invitation, or PDF via Casaio AI.
 class DocumentDraft {
   const DocumentDraft({
     required this.kind,

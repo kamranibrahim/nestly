@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nestly_widget_description">المهام المفتوحة والحدث التالي وعشاء الليلة — دون بيانات الخزنة.</string>
+    <string name="nestly_widget_name">Casaio اليوم</string>
+    <string name="widget_today">اليوم</string>
+    <string name="widget_welcome">مرحبًا</string>
+    <string name="widget_tasks">المهام</string>
+    <string name="widget_next">التالي</string>
+    <string name="widget_dinner">العشاء</string>
+    <string name="widget_all_clear">لا شيء معلّق</string>
+    <string name="widget_nothing_scheduled">لا مواعيد</string>
+    <string name="widget_not_planned">غير مخطط</string>
+    <string name="widget_join_nest">افتح Casaio للانضمام إلى عش</string>
+    <string name="widget_quiet_day">يوم هادئ · استمتع به</string>
+    <string name="widget_open_one">١ مفتوحة</string>
+    <string name="widget_open_many">%d مفتوحة</string>
+    <string name="widget_open_task_one">مهمة واحدة مفتوحة</string>
+    <string name="widget_open_task_many">%d مهام مفتوحة</string>
+    <string name="widget_just_now">الآن</string>
+    <string name="widget_minutes_ago">منذ %d د</string>
+    <string name="widget_hours_ago">منذ %d س</string>
+    <string name="widget_days_ago">منذ %d ي</string>
+    <string name="widget_earlier">سابقًا</string>
+    <string name="widget_updated">حُدّث %s</string>
+</resources>

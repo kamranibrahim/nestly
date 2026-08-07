@@ -14,6 +14,7 @@ import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 
 class ExpensesScreen extends ConsumerWidget {
   const ExpensesScreen({super.key});
@@ -45,11 +46,11 @@ class ExpensesScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Budget'),
+        title: Text(context.l10n.screenBudget),
         actions: [
           TextButton(
             onPressed: () => showBudgetSheet(context, ref, current: safeBudget),
-            child: const Text('Edit'),
+            child: Text(context.l10n.commonEdit),
           ),
         ],
       ),
@@ -70,17 +71,17 @@ class ExpensesScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'This month',
-                        style: TextStyle(
+                        context.l10n.homeThisMonth,
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
                     Text(
-                      'Tap to edit budget',
+                      context.l10n.expensesTapEditBudget,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.65),
                         fontSize: 11,
@@ -122,7 +123,7 @@ class ExpensesScreen extends ConsumerWidget {
           ),
           if (categoryTotals.isNotEmpty) ...[
             const SizedBox(height: 6),
-            const SectionLabel('By category'),
+            SectionLabel(context.l10n.expensesByCategory),
             NestCard(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               child: Wrap(
@@ -131,7 +132,8 @@ class ExpensesScreen extends ConsumerWidget {
                 children: [
                   for (final row in categoryTotals.take(6))
                     SoftPill(
-                      label: '${row.category} · ${currency.format(row.total)}',
+                      label:
+                          '${ExpenseCategory.parse(row.category).display(context.l10n)} · ${currency.format(row.total)}',
                       selected: false,
                       background: AppColors.surfaceMuted,
                     ),
@@ -144,17 +146,16 @@ class ExpensesScreen extends ConsumerWidget {
             FirstRunEmptyCard(
               icon: Icons.account_balance_wallet_rounded,
               color: AppColors.tileYellow,
-              title: 'Set up your nest budget',
-              body:
-                  'Pick a monthly spending target, log a few expenses, and track bills so nothing slips.',
-              actionLabel: 'Set month budget',
+              title: context.l10n.emptyExpensesTitle,
+              body: context.l10n.emptyExpensesBody,
+              actionLabel: context.l10n.emptyExpensesAction,
               onAction: () =>
                   showBudgetSheet(context, ref, current: safeBudget),
             ),
             const SizedBox(height: 6),
             OutlinedButton(
               onPressed: () => showBillSheet(context, ref),
-              child: const Text('Add a bill'),
+              child: Text(context.l10n.addBill),
             ),
           ],
           const SizedBox(height: 6),
@@ -163,10 +164,10 @@ class ExpensesScreen extends ConsumerWidget {
             child: TextField(
               controller: controller.searchController,
               onChanged: controller.setSearchQuery,
-              decoration: const InputDecoration(
-                hintText: 'Search expenses & bills',
+              decoration: InputDecoration(
+                hintText: context.l10n.searchExpenses,
                 border: InputBorder.none,
-                prefixIcon: Icon(Icons.search_rounded),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
             ),
           ),
@@ -191,9 +192,9 @@ class ExpensesScreen extends ConsumerWidget {
                   child: Text(
                     items.isEmpty
                         ? (emptyNest
-                              ? 'No expenses yet — tap + when you spend.'
-                              : 'No expenses this nest yet. Tap + to add one.')
-                        : 'No expenses match this search.',
+                              ? context.l10n.emptyExpensesNone
+                              : context.l10n.emptyExpensesNoneNest)
+                        : context.l10n.emptyExpensesSearch,
                     style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 );
@@ -222,7 +223,7 @@ class ExpensesScreen extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: Text(
-                          '${filtered[i].category}'
+                          '${ExpenseCategory.parse(filtered[i].category).display(context.l10n)}'
                           '${filtered[i].paidBy.isEmpty ? '' : ' · ${filtered[i].paidBy}'}',
                         ),
                         trailing: Text(
@@ -244,7 +245,7 @@ class ExpensesScreen extends ConsumerWidget {
               const Expanded(child: SectionLabel('Bills')),
               TextButton(
                 onPressed: () => showBillSheet(context, ref),
-                child: const Text('Add bill'),
+                child: Text(context.l10n.addBillShort),
               ),
             ],
           ),
@@ -262,9 +263,9 @@ class ExpensesScreen extends ConsumerWidget {
                   child: Text(
                     billsList.isEmpty
                         ? (emptyNest
-                              ? 'Track rent, utilities, and subscriptions here.'
-                              : 'No bills tracked yet.')
-                        : 'No bills match this search.',
+                              ? context.l10n.emptyBillsHint
+                              : context.l10n.emptyBillsNone)
+                        : context.l10n.emptyBillsSearch,
                     style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 );
@@ -303,8 +304,8 @@ class ExpensesScreen extends ConsumerWidget {
     return due.isBefore(today);
   }
 
-  static String _dueLabel(Bill bill) {
-    if (bill.paid) return 'Paid';
+  static String _dueLabel(Bill bill, AppLocalizations l10n) {
+    if (bill.paid) return l10n.commonPaid;
     final now = DateTime.now();
     final due = DateTime(bill.dueAt.year, bill.dueAt.month, bill.dueAt.day);
     final today = DateTime(now.year, now.month, now.day);
@@ -315,9 +316,9 @@ class ExpensesScreen extends ConsumerWidget {
           ? 'Overdue · 1 day · ${DateFormat.MMMd().format(bill.dueAt)}'
           : 'Overdue · $n days · ${DateFormat.MMMd().format(bill.dueAt)}';
     }
-    if (days == 0) return 'Due today';
-    if (days == 1) return 'Due tomorrow';
-    return 'Due in $days days · ${DateFormat.MMMd().format(bill.dueAt)}';
+    if (days == 0) return l10n.dueToday;
+    if (days == 1) return l10n.dueTomorrow;
+    return l10n.dueInDays(days, DateFormat.MMMd().format(bill.dueAt));
   }
 
   static Future<void> _toggleBillPaid(
@@ -336,7 +337,9 @@ class ExpensesScreen extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          markingPaid ? 'Marked “${bill.title}” paid' : 'Marked unpaid',
+          markingPaid
+              ? context.l10n.snackMarkedPaid(bill.title)
+              : context.l10n.snackMarkedUnpaid,
         ),
         action: SnackBarAction(
           label: 'Undo',
@@ -381,14 +384,14 @@ class ExpensesScreen extends ConsumerWidget {
           children: [
             sheetHandle(),
             const SizedBox(height: 6),
-            const Text(
-              'Month budget',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            Text(
+              context.l10n.monthBudgetTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Your family’s spending target for this calendar month.',
-              style: TextStyle(color: AppColors.inkMuted),
+            Text(
+              context.l10n.monthBudgetBody,
+              style: const TextStyle(color: AppColors.inkMuted),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -397,8 +400,8 @@ class ExpensesScreen extends ConsumerWidget {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Amount',
+              decoration: InputDecoration(
+                labelText: context.l10n.commonAmount,
                 prefixText: '\$ ',
               ),
               onSubmitted: (value) {
@@ -434,7 +437,7 @@ class ExpensesScreen extends ConsumerWidget {
                 if (parsed == null || parsed <= 0) return;
                 Navigator.pop(context, parsed);
               },
-              child: const Text('Save budget'),
+              child: Text(context.l10n.saveBudget),
             ),
           ],
         );
@@ -448,7 +451,9 @@ class ExpensesScreen extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Month budget set to ${NumberFormat.simpleCurrency().format(result)}',
+          context.l10n.snackBudgetSet(
+            NumberFormat.simpleCurrency().format(result),
+          ),
         ),
       ),
     );
@@ -587,7 +592,7 @@ class _BillTile extends StatelessWidget {
     return ListTile(
       onTap: onOpen,
       leading: IconButton(
-        tooltip: bill.paid ? 'Mark unpaid' : 'Mark paid',
+        tooltip: bill.paid ? context.l10n.markUnpaid : context.l10n.markPaid,
         onPressed: onToggle,
         icon: Icon(
           bill.paid ? Icons.check_circle_rounded : Icons.schedule_rounded,
@@ -606,7 +611,7 @@ class _BillTile extends StatelessWidget {
         ),
       ),
       subtitle: Text(
-        ExpensesScreen._dueLabel(bill),
+        ExpensesScreen._dueLabel(bill, context.l10n),
         style: TextStyle(
           fontWeight: overdue ? FontWeight.w700 : FontWeight.w500,
           color: overdue ? AppColors.danger : AppColors.inkMuted,
@@ -692,7 +697,7 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
         sheetHandle(),
         const SizedBox(height: 6),
         Text(
-          existing == null ? 'Add expense' : 'Edit expense',
+          existing == null ? context.l10n.addExpense : context.l10n.editExpense,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
@@ -700,17 +705,17 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
           controller: _title,
           autofocus: existing == null,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Title'),
+          decoration: InputDecoration(labelText: context.l10n.commonTitle),
         ),
         const SizedBox(height: 6),
         TextField(
           controller: _amount,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'Amount'),
+          decoration: InputDecoration(labelText: context.l10n.commonAmount),
           onSubmitted: (_) => _submit(),
         ),
         const SizedBox(height: 10),
-        const Text('Category', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text(context.l10n.commonCategory, style: const TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -718,7 +723,7 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
           children: [
             for (final cat in cats)
               SoftPill(
-                label: cat,
+                label: ExpenseCategory.parse(cat).display(context.l10n),
                 selected: _category == cat,
                 onTap: () => setState(() => _category = cat),
               ),
@@ -726,14 +731,14 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
         ),
         if (widget.members.isNotEmpty) ...[
           const SizedBox(height: 12),
-          const Text('Paid by', style: TextStyle(fontWeight: FontWeight.w700)),
+          Text(context.l10n.paidBy, style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 6,
             children: [
               SoftPill(
-                label: 'Anyone',
+                label: context.l10n.paidByAnyone,
                 selected: _paidBy.isEmpty,
                 onTap: () => setState(() => _paidBy = ''),
               ),
@@ -749,14 +754,18 @@ class _ExpenseSheetState extends State<_ExpenseSheet> {
         const SizedBox(height: 14),
         FilledButton(
           onPressed: _submit,
-          child: Text(existing == null ? 'Save' : 'Save changes'),
+          child: Text(
+            existing == null
+                ? context.l10n.commonSave
+                : context.l10n.commonSaveChanges,
+          ),
         ),
         if (existing != null)
           TextButton(
             onPressed: () => _submit(deleteExpense: true),
-            child: const Text(
-              'Delete expense',
-              style: TextStyle(color: AppColors.danger),
+            child: Text(
+              context.l10n.deleteExpense,
+              style: const TextStyle(color: AppColors.danger),
             ),
           ),
       ],
@@ -839,7 +848,7 @@ class _BillSheetState extends State<_BillSheet> {
         sheetHandle(),
         const SizedBox(height: 6),
         Text(
-          existing == null ? 'Add bill' : 'Edit bill',
+          existing == null ? context.l10n.addBillShort : context.l10n.editBill,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
@@ -847,18 +856,18 @@ class _BillSheetState extends State<_BillSheet> {
           controller: _title,
           autofocus: existing == null,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Title'),
+          decoration: InputDecoration(labelText: context.l10n.commonTitle),
         ),
         const SizedBox(height: 6),
         TextField(
           controller: _amount,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'Amount'),
+          decoration: InputDecoration(labelText: context.l10n.commonAmount),
           onSubmitted: (_) => _submit(),
         ),
         const SizedBox(height: 10),
         SoftPill(
-          label: 'Due · ${DateFormat('EEE, MMM d').format(_dueAt)}',
+          label: context.l10n.dueLabel(DateFormat('EEE, MMM d').format(_dueAt)),
           selected: true,
           onTap: _pickDue,
         ),
@@ -886,14 +895,18 @@ class _BillSheetState extends State<_BillSheet> {
         const SizedBox(height: 14),
         FilledButton(
           onPressed: _submit,
-          child: Text(existing == null ? 'Save' : 'Save changes'),
+          child: Text(
+            existing == null
+                ? context.l10n.commonSave
+                : context.l10n.commonSaveChanges,
+          ),
         ),
         if (existing != null)
           TextButton(
             onPressed: () => _submit(deleteBill: true),
-            child: const Text(
-              'Delete bill',
-              style: TextStyle(color: AppColors.danger),
+            child: Text(
+              context.l10n.deleteBill,
+              style: const TextStyle(color: AppColors.danger),
             ),
           ),
       ],

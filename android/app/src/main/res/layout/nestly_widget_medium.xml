@@ -24,7 +24,7 @@
             android:textColor="@color/nestly_ink"
             android:textSize="15sp"
             android:textStyle="bold"
-            tools:text="The Nestly Family" />
+            tools:text="The Casaio Family" />
 
         <TextView
             android:id="@+id/widget_today_label"
@@ -45,7 +45,7 @@
         android:textSize="14sp"
         android:textStyle="bold"
         android:visibility="gone"
-        tools:text="Open Nestly to join a nest"
+        tools:text="Open Casaio to join a nest"
         tools:visibility="visible" />
 
     <LinearLayout
@@ -74,7 +74,7 @@
                 android:layout_width="52dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="Tasks"
+                android:text="@string/widget_tasks"
                 android:textColor="@color/nestly_ink_muted"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -110,7 +110,7 @@
                 android:layout_width="52dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="Next"
+                android:text="@string/widget_next"
                 android:textColor="@color/nestly_ink_muted"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -146,7 +146,7 @@
                 android:layout_width="52dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="Dinner"
+                android:text="@string/widget_dinner"
                 android:textColor="@color/nestly_ink_muted"
                 android:textSize="12sp"
                 android:textStyle="bold" />

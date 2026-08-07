@@ -21,6 +21,7 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		CE6FE6003A6C1A0A4CC3E212 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 73558B6C508DA5DE0B57051B /* Assets.xcassets */; };
+		A11C0CA11C0CA11C0CA11C01 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = A11C0CA11C0CA11C0CA11C04 /* Localizable.strings */; };
 		D9C490D6A34AB046F9C5E33B /* NestlyHomeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B6C88DEC99D43E4A80FE5ED9 /* NestlyHomeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F4EDEADAF2B716E6B28AE5CE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 202C9ED328059BD593134577 /* SwiftUI.framework */; };
 /* End PBXBuildFile section */
@@ -96,6 +97,8 @@
 		9E9DEE096D2FE9DF54573AEF /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A8017048301B33CE0026B2E3 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		A89FBF89A1C30767733BD04F /* NestlyHomeWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NestlyHomeWidget.swift; sourceTree = "<group>"; };
+		A11C0CA11C0CA11C0CA11C02 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		A11C0CA11C0CA11C0CA11C03 /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
 		B6C88DEC99D43E4A80FE5ED9 /* NestlyHomeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; name = NestlyHomeWidget.appex; path = NestlyHomeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BF01F463E26103523FD5B3DB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 		D46A3A7B54382D2CD5CEFC48 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -149,6 +152,7 @@
 				73558B6C508DA5DE0B57051B /* Assets.xcassets */,
 				E0B1721011E24ECBE63A1824 /* Info.plist */,
 				90D8879FA4F6E09FCAB02490 /* NestlyHomeWidget.entitlements */,
+				A11C0CA11C0CA11C0CA11C04 /* Localizable.strings */,
 			);
 			name = NestlyHomeWidget;
 			path = NestlyHomeWidget;
@@ -328,6 +332,7 @@
 			knownRegions = (
 				en,
 				Base,
+				ar,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
@@ -347,6 +352,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CE6FE6003A6C1A0A4CC3E212 /* Assets.xcassets in Resources */,
+				A11C0CA11C0CA11C0CA11C01 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -562,6 +568,15 @@
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
+		A11C0CA11C0CA11C0CA11C04 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A11C0CA11C0CA11C0CA11C02 /* en */,
+				A11C0CA11C0CA11C0CA11C03 /* ar */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
@@ -698,8 +713,8 @@
 		6132C9C88C15D0D2C9A9009D /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = NestlyHomeWidget/NestlyHomeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -728,8 +743,8 @@
 		710A16C2DA13ADDD4612274B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = NestlyHomeWidget/NestlyHomeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -925,8 +940,8 @@
 		B22D8CD38165A737D357764D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = NestlyHomeWidget/NestlyHomeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;

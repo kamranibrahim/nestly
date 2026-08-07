@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:nestly/l10n/test_app.dart';
 import 'package:nestly/widgets/invite_family_sheet.dart';
 
 void main() {
@@ -24,7 +25,7 @@ void main() {
       expect(text, contains('Smith Nest'));
       expect(text, contains('ABC123'));
       expect(text, contains('Have an invite code'));
-      expect(text, contains(nestlyInviteMarketingUrl));
+      expect(text, contains(casaioInviteMarketingUrl));
     });
 
     test('falls back when nest name blank', () {
@@ -36,7 +37,7 @@ void main() {
 
   testWidgets('invite sheet shows code and share actions', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      CasaioTestApp(
         home: Scaffold(
           body: Builder(
             builder: (context) {
@@ -59,13 +60,13 @@ void main() {
 
     expect(find.text('Invite family'), findsOneWidget);
     expect(find.text('ABCDEF'), findsOneWidget);
-    expect(find.text('Share invite'), findsOneWidget);
+    expect(find.text('Share'), findsOneWidget);
     expect(find.text('Copy code'), findsOneWidget);
   });
 
   testWidgets('post-create invite sheet offers skip', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      CasaioTestApp(
         home: Scaffold(
           body: Builder(
             builder: (context) {

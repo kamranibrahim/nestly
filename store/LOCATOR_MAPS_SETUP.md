@@ -1,6 +1,6 @@
 # Google Maps setup for Nest Locator
 
-Nestly’s in-app Locator map uses the **Maps SDK for Android/iOS**.
+Casaio’s in-app Locator map uses the **Maps SDK for Android/iOS**.
 
 ## 1. Create keys (local only)
 

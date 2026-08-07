@@ -16,24 +16,28 @@ class CalendarUiState {
     this.memberFilter = CalendarMemberFilter.all,
     this.mode = CalendarBrowseMode.month,
     this.searchQuery = '',
+    this.searchOpen = false,
   }) : selected = calendarDateOnly(selected ?? DateTime.now());
 
   final DateTime selected;
   final CalendarMemberFilter memberFilter;
   final CalendarBrowseMode mode;
   final String searchQuery;
+  final bool searchOpen;
 
   CalendarUiState copyWith({
     DateTime? selected,
     CalendarMemberFilter? memberFilter,
     CalendarBrowseMode? mode,
     String? searchQuery,
+    bool? searchOpen,
   }) {
     return CalendarUiState(
       selected: selected ?? this.selected,
       memberFilter: memberFilter ?? this.memberFilter,
       mode: mode ?? this.mode,
       searchQuery: searchQuery ?? this.searchQuery,
+      searchOpen: searchOpen ?? this.searchOpen,
     );
   }
 }
@@ -42,6 +46,7 @@ class CalendarUiController extends StateNotifier<CalendarUiState> {
   CalendarUiController() : super(CalendarUiState());
 
   final searchController = TextEditingController();
+  final searchFocus = FocusNode();
 
   bool _focusDrainScheduled = false;
 
@@ -73,6 +78,23 @@ class CalendarUiController extends StateNotifier<CalendarUiState> {
     state = state.copyWith(searchQuery: query);
   }
 
+  void openSearch() {
+    if (state.searchOpen) {
+      searchFocus.requestFocus();
+      return;
+    }
+    state = state.copyWith(searchOpen: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!searchFocus.hasFocus) searchFocus.requestFocus();
+    });
+  }
+
+  void closeSearch() {
+    searchFocus.unfocus();
+    searchController.clear();
+    state = state.copyWith(searchOpen: false, searchQuery: '');
+  }
+
   void clearSearch() {
     searchController.clear();
     setSearchQuery('');
@@ -101,6 +123,7 @@ class CalendarUiController extends StateNotifier<CalendarUiState> {
   @override
   void dispose() {
     searchController.dispose();
+    searchFocus.dispose();
     super.dispose();
   }
 }

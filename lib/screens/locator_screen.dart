@@ -15,6 +15,7 @@ import '../widgets/first_run_empty_card.dart';
 import '../widgets/locator_map.dart';
 import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
+import '../l10n/l10n_ext.dart';
 
 class LocatorScreen extends ConsumerStatefulWidget {
   const LocatorScreen({super.key});
@@ -84,14 +85,14 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Locator'),
+        title: Text(context.l10n.screenLocator),
         actions: [
           if (sharing)
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Center(
                 child: SoftPill(
-                  label: 'Sharing on',
+                  label: context.l10n.locatorSharingOn,
                   selected: true,
                   background: AppColors.mint,
                   foreground: AppColors.ink,
@@ -156,9 +157,9 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Your nest pulse',
-                                          style: TextStyle(
+                                        Text(
+                                          context.l10n.locatorPulse,
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 15,
                                           ),
@@ -206,7 +207,9 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                                         )
                                       : const Icon(Icons.my_location_rounded),
                                   label: Text(
-                                    ui.busy ? 'Pinning…' : 'Share now',
+                                    ui.busy
+                                        ? context.l10n.locatorPinning
+                                        : context.l10n.locatorShareNow,
                                   ),
                                 ),
                               ),
@@ -256,23 +259,23 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          const Expanded(
-                            child: SectionLabel('Nest locations'),
+                          Expanded(
+                            child: SectionLabel(context.l10n.locatorLocations),
                           ),
                           SoftPill(
-                            label: 'All',
+                            label: LocatorFilter.all.display(context.l10n),
                             selected: ui.filter == LocatorFilter.all,
                             onTap: () => uiCtrl.setFilter(LocatorFilter.all),
                           ),
                           const SizedBox(width: 6),
                           SoftPill(
-                            label: 'Live',
+                            label: LocatorFilter.fresh.display(context.l10n),
                             selected: ui.filter == LocatorFilter.fresh,
                             onTap: () => uiCtrl.setFilter(LocatorFilter.fresh),
                           ),
                           const SizedBox(width: 6),
                           SoftPill(
-                            label: 'Stale',
+                            label: LocatorFilter.stale.display(context.l10n),
                             selected: ui.filter == LocatorFilter.stale,
                             onTap: () => uiCtrl.setFilter(LocatorFilter.stale),
                           ),
@@ -284,11 +287,11 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                           padding: EdgeInsets.only(top: 12),
                           child: Center(child: CircularProgressIndicator()),
                         ),
-                        error: (e, _) => const Padding(
-                          padding: EdgeInsets.only(top: 8),
+                        error: (e, _) => Padding(
+                          padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            'Could not load nest locations.',
-                            style: TextStyle(color: AppColors.inkSecondary),
+                            context.l10n.locatorLoadFailed,
+                            style: const TextStyle(color: AppColors.inkSecondary),
                           ),
                         ),
                         data: (locs) {
@@ -296,12 +299,11 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                             return FirstRunEmptyCard(
                               icon: Icons.location_on_outlined,
                               color: AppColors.tileTeal,
-                              title: 'No one is sharing yet',
-                              body:
-                                  'When a nest member opts in and taps Share now, their '
-                                  'last-known pin shows up on the map.',
-                              actionLabel:
-                                  sharing ? 'Share now' : 'Turn on sharing',
+                              title: context.l10n.locatorEmptyTitle,
+                              body: context.l10n.locatorEmptyBody,
+                              actionLabel: sharing
+                                  ? context.l10n.locatorShareNow
+                                  : context.l10n.locatorTurnOnSharing,
                               onAction: () {
                                 if (ui.busy) return;
                                 if (sharing) {
@@ -320,8 +322,8 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                               bordered: false,
                               child: Text(
                                 ui.filter == LocatorFilter.fresh
-                                    ? 'No live pins right now — try All or Share now.'
-                                    : 'No stale pins — everyone’s fresh.',
+                                    ? context.l10n.locatorNoFreshPins
+                                    : context.l10n.locatorNoStalePins,
                                 style: const TextStyle(
                                   color: AppColors.inkSecondary,
                                   fontWeight: FontWeight.w600,
@@ -378,12 +380,10 @@ class _LocatorScreenState extends ConsumerState<LocatorScreen> {
                               color: AppColors.inkMuted,
                             ),
                             const SizedBox(width: 10),
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'Locator never tracks in the background. Pins expire '
-                                'visually after 24 hours so the nest doesn’t rely on '
-                                'outdated places.',
-                                style: TextStyle(
+                                context.l10n.locatorPrivacyNote,
+                                style: const TextStyle(
                                   color: AppColors.inkSecondary,
                                   fontSize: 12.5,
                                   height: 1.4,
@@ -429,16 +429,22 @@ Future<void> _shareNow(BuildContext context, WidgetRef ref) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          (loc.label ?? '').trim().isEmpty
-              ? 'Shared your location with the nest'
-              : 'Shared · ${loc.label!.trim()}',
+          displayLocatorLabel(loc.label, context.l10n).isEmpty
+              ? context.l10n.locatorSharedSnack
+              : context.l10n.locatorShared(
+                  displayLocatorLabel(loc.label, context.l10n),
+                ),
         ),
       ),
     );
   } on LocatorException catch (e) {
-    ctrl.setError(e.message);
+    if (context.mounted) {
+      ctrl.setError(_locatorExceptionMessage(e, context.l10n));
+    }
   } catch (e) {
-    ctrl.setError('Could not get your location. Try again.');
+    if (context.mounted) {
+      ctrl.setError(context.l10n.locatorGetFailed);
+    }
     debugPrint('Locator shareNow: $e');
   } finally {
     ctrl.setBusy(false);
@@ -459,9 +465,13 @@ Future<void> _setSharing(BuildContext context, WidgetRef ref, bool enabled) asyn
     }
     ref.invalidate(locatorSharingProvider);
   } on LocatorException catch (e) {
-    ctrl.setError(e.message);
+    if (context.mounted) {
+      ctrl.setError(_locatorExceptionMessage(e, context.l10n));
+    }
   } catch (e) {
-    ctrl.setError('Could not update sharing.');
+    if (context.mounted) {
+      ctrl.setError(context.l10n.locatorUpdateFailed);
+    }
     debugPrint('Locator setSharing: $e');
   } finally {
     ctrl.setBusy(false);
@@ -492,7 +502,7 @@ Future<void> _copyPin(BuildContext context, NestLocation loc) async {
   await Clipboard.setData(ClipboardData(text: text));
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Coordinates copied')),
+    SnackBar(content: Text(context.l10n.locatorCoordsCopied)),
   );
 }
 
@@ -612,16 +622,18 @@ class _LocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final stale = location.isStale();
-    final name = member?.name ?? 'Family member';
-    final age = formatLocatorAge(location.updatedAt);
-    final label = (location.label ?? '').trim();
+    final name = member?.name ?? l10n.familyMember;
+    final age = formatLocatorAge(location.updatedAt, l10n: l10n);
+    final label = displayLocatorLabel(location.label, l10n);
     final accuracy = formatLocatorAccuracy(location.accuracyM);
     final meta = <String>[
       if (label.isNotEmpty) label,
-      stale ? 'Last seen $age' : 'Updated $age',
+      stale ? l10n.locatorLastSeen(age) : l10n.locatorUpdatedAge(age),
       if (accuracy.isNotEmpty) accuracy,
-      if ((distanceLabel ?? '').isNotEmpty) '$distanceLabel away',
+      if ((distanceLabel ?? '').isNotEmpty)
+        l10n.locatorAway(distanceLabel!),
     ].join(' · ');
 
     return NestCard(
@@ -695,19 +707,19 @@ class _LocationCard extends StatelessWidget {
             children: [
               _ActionChip(
                 icon: Icons.directions_rounded,
-                label: 'Directions',
+                label: context.l10n.locatorDirections,
                 onTap: onDirections,
               ),
               const SizedBox(width: 8),
               _ActionChip(
                 icon: Icons.map_outlined,
-                label: 'Open map',
+                label: context.l10n.locatorOpenMap,
                 onTap: onOpenMaps,
               ),
               const SizedBox(width: 8),
               _ActionChip(
                 icon: Icons.copy_rounded,
-                label: 'Copy',
+                label: context.l10n.commonCopy,
                 onTap: onCopy,
               ),
             ],
@@ -732,7 +744,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        stale ? 'Stale' : 'Live',
+        stale ? context.l10n.locatorStale : context.l10n.locatorLive,
         style: TextStyle(
           fontWeight: FontWeight.w800,
           fontSize: 11,
@@ -781,5 +793,20 @@ class _ActionChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _locatorExceptionMessage(LocatorException error, AppLocalizations l10n) {
+  switch (error.message) {
+    case 'Sign in to share your location.':
+      return l10n.locatorSignIn;
+    case 'Join a nest before sharing location.':
+      return l10n.locatorJoinNest;
+    case 'Location permission is needed to share where you are.':
+      return l10n.locatorNeedPermission;
+    case 'Turn on Location Services to share.':
+      return l10n.locatorNeedServices;
+    default:
+      return error.message;
   }
 }

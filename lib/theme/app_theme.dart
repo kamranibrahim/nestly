@@ -6,7 +6,7 @@ import 'app_colors.dart';
 import '../widgets/motion.dart';
 
 abstract final class AppTheme {
-  static ThemeData light() {
+  static ThemeData light({bool arabic = false}) {
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -30,10 +30,25 @@ abstract final class AppTheme {
       ),
     );
 
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
+    final textTheme = (arabic
+            ? GoogleFonts.notoSansArabicTextTheme(base.textTheme)
+            : GoogleFonts.plusJakartaSansTextTheme(base.textTheme))
+        .apply(
       bodyColor: AppColors.ink,
       displayColor: AppColors.ink,
     );
+
+    TextStyle buttonStyle({required FontWeight weight, double? size}) {
+      return arabic
+          ? GoogleFonts.notoSansArabic(
+              fontWeight: weight,
+              fontSize: size,
+            )
+          : GoogleFonts.plusJakartaSans(
+              fontWeight: weight,
+              fontSize: size,
+            );
+    }
 
     return base.copyWith(
       textTheme: textTheme.copyWith(
@@ -64,11 +79,9 @@ abstract final class AppTheme {
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.ink,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
-        titleTextStyle: GoogleFonts.plusJakartaSans(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
+        titleTextStyle: buttonStyle(weight: FontWeight.w800, size: 20).copyWith(
           color: AppColors.ink,
-          letterSpacing: -0.3,
+          letterSpacing: arabic ? 0 : -0.3,
         ),
         iconTheme: const IconThemeData(color: AppColors.ink),
       ),
@@ -101,16 +114,13 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
-          textStyle: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-          ),
+          textStyle: buttonStyle(weight: FontWeight.w700, size: 15),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.ink,
-          textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+          textStyle: buttonStyle(weight: FontWeight.w700),
         ),
       ),
       chipTheme: ChipThemeData(
@@ -119,14 +129,11 @@ abstract final class AppTheme {
         // Selected bg is near-black; keep check/avatar icons white.
         checkmarkColor: AppColors.onDark,
         secondarySelectedColor: AppColors.primary,
-        labelStyle: GoogleFonts.plusJakartaSans(
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
+        labelStyle: buttonStyle(weight: FontWeight.w600, size: 13).copyWith(
           color: AppColors.ink,
         ),
-        secondaryLabelStyle: GoogleFonts.plusJakartaSans(
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
+        secondaryLabelStyle:
+            buttonStyle(weight: FontWeight.w600, size: 13).copyWith(
           color: AppColors.onDark,
         ),
         iconTheme: const IconThemeData(color: AppColors.ink, size: 18),

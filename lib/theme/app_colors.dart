@@ -57,12 +57,46 @@ abstract final class AppColors {
     Color(0xFFC5E8E0),
   ];
 
-  /// Punchier fill for [MemberAvatar] — stored member colors stay soft for cards.
+  /// Slightly richer fill for [MemberAvatar] — stored member colors stay soft for cards.
   static Color avatarFill(Color pastel) {
     final hsl = HSLColor.fromColor(pastel);
-    return hsl
-        .withSaturation((hsl.saturation * 1.4 + 0.1).clamp(0.48, 0.82))
-        .withLightness((hsl.lightness - 0.16).clamp(0.44, 0.64))
+    var fill = hsl
+        .withSaturation((hsl.saturation * 1.2 + 0.05).clamp(0.42, 0.72))
+        .withLightness((hsl.lightness - 0.14).clamp(0.42, 0.66))
         .toColor();
+
+    // Purple/pink midtones need a deeper fill so white initials clear ~3:1.
+    if (fill.computeLuminance() < 0.40 &&
+        _contrastRatio(fill, onDark) < 3.0) {
+      final deeper = HSLColor.fromColor(fill);
+      fill = deeper
+          .withLightness((deeper.lightness - 0.08).clamp(0.32, 0.55))
+          .toColor();
+    }
+    return fill;
+  }
+
+  /// Initials / icon color on [avatarFill].
+  ///
+  /// Uses relative luminance (not raw HSL lightness): purple/pink midtones get
+  /// white even when charcoal still “wins” a pure contrast shootout.
+  static Color onAvatarFill(Color fill) {
+    final lum = fill.computeLuminance();
+    if (lum < 0.40) return onDark;
+    if (lum > 0.55) return ink;
+
+    // Mid band: pick the stronger contrast, prefer white when close.
+    final contrastWhite = _contrastRatio(fill, onDark);
+    final contrastInk = _contrastRatio(fill, ink);
+    if (contrastWhite >= 3.0 && contrastWhite >= contrastInk * 0.85) {
+      return onDark;
+    }
+    return contrastInk >= contrastWhite ? ink : onDark;
+  }
+
+  static double _contrastRatio(Color background, Color foreground) {
+    final a = background.computeLuminance() + 0.05;
+    final b = foreground.computeLuminance() + 0.05;
+    return a > b ? a / b : b / a;
   }
 }

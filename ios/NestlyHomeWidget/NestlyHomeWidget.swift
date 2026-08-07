@@ -3,8 +3,8 @@ import WidgetKit
 
 private let widgetGroupId = "group.app.nestly.family"
 
-// Nestly pastel tokens (match lib/theme/app_colors.dart)
-private enum NestlyColor {
+// Casaio pastel tokens (match lib/theme/app_colors.dart)
+private enum CasaioColor {
   static let ink = Color(red: 0.110, green: 0.110, blue: 0.118)
   static let inkSecondary = Color(red: 0.388, green: 0.388, blue: 0.400)
   static let inkMuted = Color(red: 0.557, green: 0.557, blue: 0.576)
@@ -16,7 +16,7 @@ private enum NestlyColor {
   static let surfaceMuted = Color(red: 0.969, green: 0.969, blue: 0.973)
 }
 
-struct NestlyEntry: TimelineEntry {
+struct CasaioEntry: TimelineEntry {
   let date: Date
   let nestName: String
   let openTasks: Int
@@ -33,10 +33,10 @@ struct NestlyEntry: TimelineEntry {
 }
 
 struct Provider: TimelineProvider {
-  func placeholder(in context: Context) -> NestlyEntry {
-    NestlyEntry(
+  func placeholder(in context: Context) -> CasaioEntry {
+    CasaioEntry(
       date: Date(),
-      nestName: "The Nestly Family",
+      nestName: "The Casaio Family",
       openTasks: 3,
       nextEvent: "Soccer · Tue · 4:00 PM",
       dinner: "Pasta night",
@@ -51,7 +51,7 @@ struct Provider: TimelineProvider {
     )
   }
 
-  func getSnapshot(in context: Context, completion: @escaping (NestlyEntry) -> Void) {
+  func getSnapshot(in context: Context, completion: @escaping (CasaioEntry) -> Void) {
     completion(loadEntry())
   }
 
@@ -61,13 +61,13 @@ struct Provider: TimelineProvider {
     completion(Timeline(entries: [entry], policy: .after(next)))
   }
 
-  private func loadEntry() -> NestlyEntry {
+  private func loadEntry() -> CasaioEntry {
     let defaults = UserDefaults(suiteName: widgetGroupId)
     let hasNest = defaults?.bool(forKey: "has_nest") ?? false
     let openTasks = defaults?.integer(forKey: "open_tasks") ?? 0
     let nextEvent = defaults?.string(forKey: "next_event") ?? ""
     let dinner = defaults?.string(forKey: "dinner") ?? ""
-    let nestName = defaults?.string(forKey: "nest_name") ?? "Nestly"
+    let nestName = defaults?.string(forKey: "nest_name") ?? "Casaio"
     let updatedRaw = defaults?.string(forKey: "updated_at") ?? ""
     let heroKind = defaults?.string(forKey: "hero_kind") ?? ""
     let heroTitle = defaults?.string(forKey: "hero_title") ?? ""
@@ -86,9 +86,9 @@ struct Provider: TimelineProvider {
       hasNest: hasNest
     )
 
-    return NestlyEntry(
+    return CasaioEntry(
       date: Date(),
-      nestName: nestName.isEmpty ? "Nestly" : nestName,
+      nestName: nestName.isEmpty ? "Casaio" : nestName,
       openTasks: openTasks,
       nextEvent: nextEvent,
       dinner: dinner,
@@ -97,13 +97,15 @@ struct Provider: TimelineProvider {
       heroKind: resolvedHero.kind,
       heroTitle: resolvedHero.title,
       tasksLabel: tasksLabel.isEmpty
-        ? (openTasks <= 0 ? "All clear" : "\(openTasks) open")
+        ? (openTasks <= 0
+          ? NSLocalizedString("All clear", comment: "")
+          : String(format: NSLocalizedString("%d open", comment: ""), openTasks))
         : tasksLabel,
       eventLabel: eventLabel.isEmpty
-        ? (nextEvent.isEmpty ? "Nothing scheduled" : nextEvent)
+        ? (nextEvent.isEmpty ? NSLocalizedString("Nothing scheduled", comment: "") : nextEvent)
         : eventLabel,
       dinnerLabel: dinnerLabel.isEmpty
-        ? (dinner.isEmpty ? "Not planned" : dinner)
+        ? (dinner.isEmpty ? NSLocalizedString("Not planned", comment: "") : dinner)
         : dinnerLabel,
       accent: resolvedHero.accent
     )
@@ -137,7 +139,9 @@ private func resolveHero(
   if !hasNest {
     return ResolvedHero(
       kind: "quiet",
-      title: title.isEmpty ? "Open Nestly to join a nest" : title,
+      title: title.isEmpty
+        ? NSLocalizedString("Open Casaio to join a nest", comment: "")
+        : title,
       accent: "mint"
     )
   }
@@ -150,7 +154,9 @@ private func resolveHero(
   }
   // Fallback for older App Group payloads
   if openTasks > 0 {
-    let label = openTasks == 1 ? "1 open task" : "\(openTasks) open tasks"
+    let label = openTasks == 1
+      ? NSLocalizedString("1 open task", comment: "")
+      : String(format: NSLocalizedString("%d open tasks", comment: ""), openTasks)
     return ResolvedHero(kind: "tasks", title: label, accent: "lavender")
   }
   if !nextEvent.isEmpty {
@@ -159,7 +165,11 @@ private func resolveHero(
   if !dinner.isEmpty {
     return ResolvedHero(kind: "dinner", title: dinner, accent: "peach")
   }
-  return ResolvedHero(kind: "quiet", title: "Quiet day · enjoy it", accent: "mint")
+  return ResolvedHero(
+    kind: "quiet",
+    title: NSLocalizedString("Quiet day · enjoy it", comment: ""),
+    accent: "mint"
+  )
 }
 
 struct NestlyHomeWidgetEntryView: View {
@@ -170,31 +180,31 @@ struct NestlyHomeWidgetEntryView: View {
     Group {
       if family == .systemSmall {
         smallBody
-          .widgetURL(URL(string: "nestly://home"))
+          .widgetURL(URL(string: "casaio://home"))
       } else if entry.hasNest {
         mediumBody
       } else {
         mediumBody
-          .widgetURL(URL(string: "nestly://home"))
+          .widgetURL(URL(string: "casaio://home"))
       }
     }
   }
 
   private var accentColor: Color {
     switch entry.accent {
-    case "lavender": return NestlyColor.lavender
-    case "teal": return NestlyColor.teal
-    case "peach": return NestlyColor.peach
-    default: return NestlyColor.mint
+    case "lavender": return CasaioColor.lavender
+    case "teal": return CasaioColor.teal
+    case "peach": return CasaioColor.peach
+    default: return CasaioColor.mint
     }
   }
 
   private var smallBody: some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .center, spacing: 8) {
-        Text(entry.hasNest ? entry.nestName : "Nestly")
+        Text(entry.hasNest ? entry.nestName : "Casaio")
           .font(.subheadline.weight(.bold))
-          .foregroundStyle(NestlyColor.ink)
+          .foregroundStyle(CasaioColor.ink)
           .lineLimit(1)
         Spacer(minLength: 4)
         Circle()
@@ -206,21 +216,21 @@ struct NestlyHomeWidgetEntryView: View {
 
       Text(entry.heroTitle)
         .font(.title3.weight(.bold))
-        .foregroundStyle(NestlyColor.ink)
+        .foregroundStyle(CasaioColor.ink)
         .lineLimit(3)
         .minimumScaleFactor(0.85)
 
       if entry.hasNest && entry.heroKind == "tasks" && !entry.eventLabel.isEmpty
-          && entry.eventLabel != "Nothing scheduled"
+          && entry.eventLabel != NSLocalizedString("Nothing scheduled", comment: "")
       {
         Text(entry.eventLabel)
           .font(.caption.weight(.semibold))
-          .foregroundStyle(NestlyColor.inkSecondary)
+          .foregroundStyle(CasaioColor.inkSecondary)
           .lineLimit(2)
       } else if entry.hasNest && entry.heroKind != "quiet" {
-        Text("Today")
+        Text(NSLocalizedString("Today", comment: ""))
           .font(.caption.weight(.semibold))
-          .foregroundStyle(NestlyColor.inkMuted)
+          .foregroundStyle(CasaioColor.inkMuted)
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -230,40 +240,42 @@ struct NestlyHomeWidgetEntryView: View {
   private var mediumBody: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .firstTextBaseline) {
-        Text(entry.hasNest ? entry.nestName : "Nestly")
+        Text(entry.hasNest ? entry.nestName : "Casaio")
           .font(.headline.weight(.bold))
-          .foregroundStyle(NestlyColor.ink)
+          .foregroundStyle(CasaioColor.ink)
           .lineLimit(1)
         Spacer(minLength: 8)
-        Text(entry.hasNest ? "Today" : "Welcome")
+        Text(entry.hasNest
+          ? NSLocalizedString("Today", comment: "")
+          : NSLocalizedString("Welcome", comment: ""))
           .font(.caption.weight(.bold))
-          .foregroundStyle(NestlyColor.inkMuted)
+          .foregroundStyle(CasaioColor.inkMuted)
       }
 
       if (!entry.hasNest) {
-        Text("Open Nestly to join a nest")
+        Text(NSLocalizedString("Open Casaio to join a nest", comment: ""))
           .font(.subheadline.weight(.semibold))
-          .foregroundStyle(NestlyColor.inkSecondary)
+          .foregroundStyle(CasaioColor.inkSecondary)
           .fixedSize(horizontal: false, vertical: true)
         Spacer(minLength: 0)
       } else {
         VStack(spacing: 8) {
           linkRow(
-            uri: "nestly://tasks",
-            dot: NestlyColor.lavender,
-            label: "Tasks",
+            uri: "casaio://tasks",
+            dot: CasaioColor.lavender,
+            label: NSLocalizedString("Tasks", comment: ""),
             value: entry.tasksLabel
           )
           linkRow(
-            uri: "nestly://calendar",
-            dot: NestlyColor.teal,
-            label: "Next",
+            uri: "casaio://calendar",
+            dot: CasaioColor.teal,
+            label: NSLocalizedString("Next", comment: ""),
             value: entry.eventLabel
           )
           linkRow(
-            uri: "nestly://meals",
-            dot: NestlyColor.mint,
-            label: "Dinner",
+            uri: "casaio://meals",
+            dot: CasaioColor.mint,
+            label: NSLocalizedString("Dinner", comment: ""),
             value: entry.dinnerLabel
           )
         }
@@ -271,9 +283,9 @@ struct NestlyHomeWidgetEntryView: View {
         Spacer(minLength: 0)
 
         if let updated = entry.updatedAt {
-          Text("Updated \(relativeAge(from: updated))")
+          Text(String(format: NSLocalizedString("Updated %@", comment: ""), relativeAge(from: updated)))
             .font(.caption2.weight(.semibold))
-            .foregroundStyle(NestlyColor.inkMuted)
+            .foregroundStyle(CasaioColor.inkMuted)
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
       }
@@ -290,11 +302,11 @@ struct NestlyHomeWidgetEntryView: View {
         .frame(width: 8, height: 8)
       Text(label)
         .font(.caption.weight(.bold))
-        .foregroundStyle(NestlyColor.inkMuted)
+        .foregroundStyle(CasaioColor.inkMuted)
         .frame(width: 48, alignment: .leading)
       Text(value)
         .font(.subheadline.weight(.semibold))
-        .foregroundStyle(NestlyColor.ink)
+        .foregroundStyle(CasaioColor.ink)
         .lineLimit(2)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -309,14 +321,20 @@ struct NestlyHomeWidgetEntryView: View {
 
   private func relativeAge(from date: Date) -> String {
     let seconds = Int(Date().timeIntervalSince(date))
-    if seconds < 45 { return "just now" }
+    if seconds < 45 { return NSLocalizedString("just now", comment: "") }
     let minutes = seconds / 60
-    if minutes < 60 { return minutes == 1 ? "1m ago" : "\(minutes)m ago" }
+    if minutes < 60 {
+      return String(format: NSLocalizedString("%dm ago", comment: ""), minutes)
+    }
     let hours = minutes / 60
-    if hours < 24 { return hours == 1 ? "1h ago" : "\(hours)h ago" }
+    if hours < 24 {
+      return String(format: NSLocalizedString("%dh ago", comment: ""), hours)
+    }
     let days = hours / 24
-    if days < 7 { return days == 1 ? "1d ago" : "\(days)d ago" }
-    return "earlier"
+    if days < 7 {
+      return String(format: NSLocalizedString("%dd ago", comment: ""), days)
+    }
+    return NSLocalizedString("earlier", comment: "")
   }
 }
 
@@ -337,24 +355,24 @@ struct NestlyHomeWidget: Widget {
           .background(widgetBackground(for: entry))
       }
     }
-    .configurationDisplayName("Nestly Today")
-    .description("Open tasks, next event, and tonight’s dinner — no vault data.")
+    .configurationDisplayName(NSLocalizedString("Casaio Today", comment: ""))
+    .description(NSLocalizedString("Open tasks, next event, and tonight’s dinner — no vault data.", comment: ""))
     .supportedFamilies([.systemSmall, .systemMedium])
   }
 
   @ViewBuilder
-  private func widgetBackground(for entry: NestlyEntry) -> some View {
+  private func widgetBackground(for entry: CasaioEntry) -> some View {
     let top: Color = {
       switch entry.accent {
-      case "lavender": return NestlyColor.lavender.opacity(0.42)
-      case "teal": return NestlyColor.teal.opacity(0.42)
-      case "peach": return NestlyColor.peach.opacity(0.45)
-      default: return NestlyColor.mint.opacity(0.48)
+      case "lavender": return CasaioColor.lavender.opacity(0.42)
+      case "teal": return CasaioColor.teal.opacity(0.42)
+      case "peach": return CasaioColor.peach.opacity(0.45)
+      default: return CasaioColor.mint.opacity(0.48)
       }
     }()
 
     LinearGradient(
-      colors: [top, NestlyColor.wash],
+      colors: [top, CasaioColor.wash],
       startPoint: .topLeading,
       endPoint: .bottomTrailing
     )

@@ -9,6 +9,7 @@ import '../data/family_needs.dart';
 import '../data/home_tips.dart';
 import '../data/repositories.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
@@ -43,6 +44,7 @@ class HomeScreen extends ConsumerWidget {
       return const HomeLoadingSkeleton();
     }
 
+    final l10n = context.l10n;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final events = eventsAsync.valueOrNull ?? const [];
@@ -94,6 +96,7 @@ class HomeScreen extends ConsumerWidget {
       }
     }
     final dinnerToday = dinnerMeal != null;
+    final dinnerPlanned = dinnerMeal?.title.trim().isNotEmpty == true;
     final vaultExpiring =
         ref.watch(vaultExpiringSoonProvider).valueOrNull ?? const [];
     final needs = buildFamilyNeeds(
@@ -110,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
     );
 
     final nestInfo = ref.watch(nestInfoProvider).valueOrNull;
-    final nestName = nestInfo?.name ?? 'Your nest';
+    final nestName = nestInfo?.name ?? l10n.yourNest;
     final members = membersAsync.valueOrNull ?? const [];
     final greetingName = members.isNotEmpty
         ? members.first.name.split(' ').first
@@ -121,13 +124,13 @@ class HomeScreen extends ConsumerWidget {
     final pressure =
         openTasks + todayEvents.length + careDue + schoolDue + billsDueSoon;
     final paceLabel = pressure >= 5
-        ? 'Busy'
+        ? l10n.homePaceBusy
         : pressure >= 1
-        ? 'Steady'
-        : 'Quiet';
-    final dinnerSnapshot = dinnerMeal?.title.trim().isNotEmpty == true
+        ? l10n.homePaceSteady
+        : l10n.homePaceQuiet;
+    final dinnerSnapshot = dinnerPlanned
         ? _shortLabel(dinnerMeal!.title.trim())
-        : 'Plan dinner';
+        : l10n.homePlanDinner;
     final inviteCode = nestInfo?.inviteCode.trim() ?? '';
     final showInvite = aloneInNest && inviteCode.isNotEmpty;
     final tipDismissedAsync = ref.watch(inviteTipDismissedProvider);
@@ -168,7 +171,7 @@ class HomeScreen extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              'Hello, $greetingName!',
+                              '${l10n.homeHello}, $greetingName!',
                               style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(
                                     fontWeight: FontWeight.w800,
@@ -195,10 +198,10 @@ class HomeScreen extends ConsumerWidget {
                                 : AppColors.ink,
                             size: 38,
                             semanticLabel: sync.isSyncing
-                                ? 'Syncing'
+                                ? l10n.syncing
                                 : sync.hasError
-                                ? 'Sync failed, retry'
-                                : 'Sync now',
+                                ? l10n.syncFailedRetry
+                                : l10n.syncNow,
                             onTap: () {
                               if (sync.isSyncing) return;
                               ref
@@ -212,7 +215,7 @@ class HomeScreen extends ConsumerWidget {
                             background: AppColors.surfaceMuted,
                             foreground: AppColors.ink,
                             size: 38,
-                            semanticLabel: 'Today reminders',
+                            semanticLabel: l10n.homeTodayReminders,
                             onTap: () => _showTodayReminders(
                               context,
                               ref,
@@ -257,16 +260,16 @@ class HomeScreen extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Still flying solo',
-                                      style: TextStyle(
+                                    Text(
+                                      context.l10n.homeStillSolo,
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.w800,
                                         fontSize: 15,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Invite a partner with $inviteCode so Today stays shared.',
+                                      context.l10n.homeStillSoloBody(inviteCode),
                                       style: const TextStyle(
                                         color: AppColors.inkSecondary,
                                         fontWeight: FontWeight.w600,
@@ -284,13 +287,13 @@ class HomeScreen extends ConsumerWidget {
                                                 inviteCode: inviteCode,
                                                 nestName: nestName,
                                               ),
-                                          child: const Text('Invite'),
+                                          child: Text(context.l10n.commonInvite),
                                         ),
                                         const SizedBox(width: 4),
                                         TextButton(
                                           onPressed: () =>
                                               dismissInviteSoloBanner(ref),
-                                          child: const Text('Not now'),
+                                          child: Text(context.l10n.commonNotNow),
                                         ),
                                       ],
                                     ),
@@ -298,7 +301,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                               IconButton(
-                                tooltip: 'Dismiss',
+                                tooltip: context.l10n.commonDismiss,
                                 onPressed: () => dismissInviteSoloBanner(ref),
                                 icon: const Icon(Icons.close_rounded, size: 20),
                               ),
@@ -322,16 +325,16 @@ class HomeScreen extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Invite a partner',
-                                      style: TextStyle(
+                                    Text(
+                                      context.l10n.homeInvitePartner,
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.w800,
                                         fontSize: 14,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Share $inviteCode so someone can join this nest.',
+                                      context.l10n.homeInvitePartnerBody(inviteCode),
                                       style: const TextStyle(
                                         color: AppColors.inkSecondary,
                                         fontWeight: FontWeight.w600,
@@ -349,12 +352,12 @@ class HomeScreen extends ConsumerWidget {
                                                 inviteCode: inviteCode,
                                                 nestName: nestName,
                                               ),
-                                          child: const Text('Share invite'),
+                                          child: Text(l10n.homeShareInvite),
                                         ),
                                         TextButton(
                                           onPressed: () =>
                                               dismissInvitePartnerTip(ref),
-                                          child: const Text('Dismiss'),
+                                          child: Text(l10n.commonDismiss),
                                         ),
                                       ],
                                     ),
@@ -362,7 +365,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                               IconButton(
-                                tooltip: 'Dismiss',
+                                tooltip: l10n.commonDismiss,
                                 onPressed: () => dismissInvitePartnerTip(ref),
                                 icon: const Icon(Icons.close_rounded, size: 20),
                               ),
@@ -379,8 +382,8 @@ class HomeScreen extends ConsumerWidget {
                             if (emptyToday) ...[
                               Text(
                                 aloneInNest
-                                    ? 'Your nest is quiet — start Today'
-                                    : 'Nothing on Today yet',
+                                    ? context.l10n.homeQuietTitle
+                                    : context.l10n.homeNothingToday,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
@@ -391,8 +394,8 @@ class HomeScreen extends ConsumerWidget {
                               const SizedBox(height: 6),
                               Text(
                                 aloneInNest
-                                    ? 'Invite someone, or add your first task or event. No demo data — just your family.'
-                                    : 'Add a task or calendar event so the nest has something to gather around.',
+                                    ? context.l10n.homeQuietBody
+                                    : context.l10n.homeNothingTodayBody,
                                 style: const TextStyle(
                                   color: AppColors.inkSecondary,
                                   fontWeight: FontWeight.w600,
@@ -411,7 +414,7 @@ class HomeScreen extends ConsumerWidget {
                                   icon: const Icon(
                                     Icons.person_add_alt_1_rounded,
                                   ),
-                                  label: Text('Invite · $inviteCode'),
+                                  label: Text(l10n.homeInviteChip(inviteCode)),
                                 ),
                               ],
                               const SizedBox(height: 10),
@@ -425,7 +428,7 @@ class HomeScreen extends ConsumerWidget {
                                             ref,
                                           ),
                                       icon: const Icon(Icons.add_task_rounded),
-                                      label: const Text('Add task'),
+                                      label: Text(l10n.homeAddTask),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -439,7 +442,7 @@ class HomeScreen extends ConsumerWidget {
                                         onOpenTab(1);
                                       },
                                       icon: const Icon(Icons.event_rounded),
-                                      label: const Text('Add event'),
+                                      label: Text(l10n.addEvent),
                                     ),
                                   ),
                                 ],
@@ -448,27 +451,13 @@ class HomeScreen extends ConsumerWidget {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: Text.rich(
-                                      TextSpan(
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.ink,
-                                          height: 1.3,
-                                        ),
-                                        children: [
-                                          const TextSpan(text: 'You have '),
-                                          TextSpan(
-                                            text: '$todayLoad',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w900,
-                                              color: AppColors.accentDeep,
-                                            ),
-                                          ),
-                                          const TextSpan(
-                                            text: ' things for today',
-                                          ),
-                                        ],
+                                    child: Text(
+                                      l10n.homeThingsToday(todayLoad),
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.ink,
+                                        height: 1.3,
                                       ),
                                     ),
                                   ),
@@ -516,7 +505,7 @@ class HomeScreen extends ConsumerWidget {
                                       icon: const Icon(
                                         Icons.notifications_none_rounded,
                                       ),
-                                      label: const Text('Reminders'),
+                                      label: Text(l10n.homeReminders),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -524,7 +513,7 @@ class HomeScreen extends ConsumerWidget {
                                     child: FilledButton.icon(
                                       onPressed: () => onOpenTab(2),
                                       icon: const Icon(Icons.checklist_rounded),
-                                      label: const Text('Open tasks'),
+                                      label: Text(l10n.homeOpenTasks),
                                     ),
                                   ),
                                 ],
@@ -547,9 +536,9 @@ class HomeScreen extends ConsumerWidget {
                                         color: AppColors.mint,
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: const Text(
-                                        'Done',
-                                        style: TextStyle(
+                                      child: Text(
+                                        l10n.commonDone,
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
@@ -578,9 +567,9 @@ class HomeScreen extends ConsumerWidget {
                                               ),
                                             ),
                                           ),
-                                          const Text(
-                                            'Done',
-                                            style: TextStyle(
+                                          Text(
+                                            l10n.commonDone,
+                                            style: const TextStyle(
                                               color: AppColors.primary,
                                               fontWeight: FontWeight.w800,
                                               fontSize: 12,
@@ -597,53 +586,55 @@ class HomeScreen extends ConsumerWidget {
                                 onPressed: () =>
                                     TasksScreen.showTaskSheet(context, ref),
                                 icon: const Icon(Icons.add_rounded, size: 18),
-                                label: const Text('Add a task'),
+                                label: Text(l10n.homeAddTask),
                               ),
                             ],
                           ],
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const SectionLabel('Today snapshot'),
+                      SectionLabel(l10n.homeTodaySnapshot),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           _TodayMiniStat(
-                            label: 'Calendar',
+                            label: l10n.tabCalendar,
                             value: todayEvents.isEmpty
-                                ? 'None today'
-                                : '${todayEvents.length} due',
+                                ? l10n.homeNoneToday
+                                : l10n.homeCountDue(todayEvents.length),
                             icon: Icons.calendar_month_rounded,
                             tone: AppColors.accent,
                             onTap: () => onOpenTab(1),
                           ),
                           _TodayMiniStat(
-                            label: 'Bills',
+                            label: l10n.homeBills,
                             value: billsDueSoon == 0
-                                ? 'None due'
-                                : '$billsDueSoon due',
+                                ? l10n.homeNoneDue
+                                : l10n.homeCountDue(billsDueSoon),
                             icon: Icons.receipt_long_rounded,
                             tone: AppColors.tileYellow,
                             onTap: () =>
                                 nestPush(context, const ExpensesScreen()),
                           ),
                           _TodayMiniStat(
-                            label: 'Care',
-                            value: careDue == 0 ? 'None due' : '$careDue due',
+                            label: l10n.screenCare,
+                            value: careDue == 0
+                                ? l10n.homeNoneDue
+                                : l10n.homeCountDue(careDue),
                             icon: Icons.favorite_rounded,
                             tone: AppColors.mint,
                             onTap: () => nestPush(context, const CareScreen()),
                           ),
                           _TodayMiniStat(
-                            label: 'Dinner',
+                            label: l10n.screenMeals,
                             value: dinnerSnapshot,
                             icon: Icons.restaurant_rounded,
                             tone: AppColors.tileTeal,
                             onTap: () => nestPush(
                               context,
                               MealsScreen(
-                                entry: dinnerSnapshot == 'Plan dinner'
+                                entry: !dinnerPlanned
                                     ? MealsEntry.addDinnerToday
                                     : MealsEntry.browse,
                               ),
@@ -659,24 +650,24 @@ class HomeScreen extends ConsumerWidget {
                                 PendingAdd.event;
                             onOpenTab(1);
                           },
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.event_available_rounded,
                                 color: AppColors.accentDeep,
                               ),
-                              SizedBox(width: 12),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'No events on the calendar today — tap to add one',
-                                  style: TextStyle(
+                                  l10n.homeNoEventsToday,
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.inkSecondary,
                                     height: 1.35,
                                   ),
                                 ),
                               ),
-                              Icon(
+                              const Icon(
                                 Icons.chevron_right_rounded,
                                 color: AppColors.inkMuted,
                               ),
@@ -685,7 +676,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      const SectionLabel('Today for your nest'),
+                      SectionLabel(context.l10n.homeTodayForNest),
                       NestCard(
                         padding: EdgeInsets.zero,
                         child: Column(
@@ -743,8 +734,8 @@ class HomeScreen extends ConsumerWidget {
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            const Expanded(
-                              child: SectionLabel('On the calendar'),
+                            Expanded(
+                              child: SectionLabel(context.l10n.homeOnCalendar),
                             ),
                             TextButton(
                               onPressed: () {
@@ -755,7 +746,7 @@ class HomeScreen extends ConsumerWidget {
                                 );
                                 onOpenTab(1);
                               },
-                              child: const Text('See all'),
+                              child: Text(l10n.commonSeeAll),
                             ),
                           ],
                         ),
@@ -787,62 +778,64 @@ class HomeScreen extends ConsumerWidget {
                       _FeatureGrid(
                         tiles: [
                           FeatureTile(
-                            title: 'Calendar',
+                            title: l10n.tabCalendar,
                             subtitle: todayEvents.isEmpty
-                                ? 'Open'
-                                : '${todayEvents.length} today',
+                                ? l10n.commonOpen
+                                : l10n.homeCountToday(todayEvents.length),
                             icon: Icons.calendar_month_rounded,
                             color: AppColors.accent,
                             onTap: () => onOpenTab(1),
                           ),
                           FeatureTile(
-                            title: 'Lists',
-                            subtitle: '$openShopping items',
+                            title: l10n.homeLists,
+                            subtitle: l10n.homeItemsCount(openShopping),
                             icon: Icons.shopping_bag_rounded,
                             color: AppColors.tileOrange,
                             onTap: () => onOpenTab(3),
                           ),
                           FeatureTile(
-                            title: 'Tasks',
-                            subtitle: '$openTasks open',
+                            title: l10n.screenTasks,
+                            subtitle: l10n.homeOpenCount(openTasks),
                             icon: Icons.checklist_rounded,
                             color: AppColors.mint,
                             onTap: () => onOpenTab(2),
                           ),
                           FeatureTile(
-                            title: 'Expenses',
-                            subtitle: 'This month',
+                            title: l10n.screenExpenses,
+                            subtitle: l10n.homeThisMonth,
                             icon: Icons.account_balance_wallet_rounded,
                             color: AppColors.tileYellow,
                             onTap: () =>
                                 nestPush(context, const ExpensesScreen()),
                           ),
                           FeatureTile(
-                            title: 'Vault',
-                            subtitle: '$vaultCount docs',
+                            title: l10n.screenVault,
+                            subtitle: l10n.homeDocsCount(vaultCount),
                             icon: Icons.folder_rounded,
                             color: AppColors.tilePink,
                             onTap: () => nestPush(context, const VaultScreen()),
                           ),
                           FeatureTile(
-                            title: 'Emergency',
-                            subtitle: 'Always ready',
+                            title: l10n.screenEmergency,
+                            subtitle: l10n.homeAlwaysReady,
                             icon: Icons.health_and_safety_rounded,
                             color: AppColors.tileRed,
                             onTap: () =>
                                 nestPush(context, const EmergencyScreen()),
                           ),
                           FeatureTile(
-                            title: 'Locator',
-                            subtitle: 'Nest map & last-known pins',
+                            title: l10n.screenLocator,
+                            subtitle: l10n.homeLocatorSubtitle,
                             icon: Icons.location_on_rounded,
                             color: AppColors.tileBlue,
                             onTap: () =>
                                 nestPush(context, const LocatorScreen()),
                           ),
                           FeatureTile(
-                            title: 'Meals',
-                            subtitle: dinnerToday ? 'Dinner set' : 'Plan week',
+                            title: l10n.screenMeals,
+                            subtitle: dinnerToday
+                                ? l10n.homeDinnerSet
+                                : l10n.homePlanWeek,
                             icon: Icons.restaurant_rounded,
                             color: AppColors.tileTeal,
                             onTap: () => nestPush(
@@ -855,29 +848,29 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           ),
                           FeatureTile(
-                            title: 'Care',
+                            title: l10n.screenCare,
                             subtitle: careDue == 0
-                                ? 'Up to date'
-                                : '$careDue due',
+                                ? l10n.homeUpToDate
+                                : l10n.homeCountDue(careDue),
                             icon: Icons.pets_rounded,
                             color: AppColors.mint,
                             onTap: () => nestPush(context, const CareScreen()),
                           ),
                           FeatureTile(
-                            title: 'School',
+                            title: l10n.schoolKindSchool,
                             subtitle: schoolDue == 0
-                                ? 'Activities'
-                                : '$schoolDue due',
+                                ? l10n.homeActivities
+                                : l10n.homeCountDue(schoolDue),
                             icon: Icons.school_rounded,
                             color: AppColors.accent,
                             onTap: () =>
                                 nestPush(context, const SchoolScreen()),
                           ),
                           FeatureTile(
-                            title: 'Timeline',
+                            title: l10n.screenTimeline,
                             subtitle: timelineCount == 0
-                                ? 'Nest activity'
-                                : '$timelineCount recent',
+                                ? l10n.homeNestActivity
+                                : l10n.homeRecentCount(timelineCount),
                             icon: Icons.history_rounded,
                             color: AppColors.tileTeal,
                             onTap: () => nestPush(
@@ -966,14 +959,14 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Today’s reminders',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              Text(
+                context.l10n.homeTodayReminders,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 6),
               Text(
                 lines.isEmpty
-                    ? 'Nothing urgent right now. Local reminders stay scheduled when items are due.'
+                    ? context.l10n.homeRemindersEmpty
                     : lines.map((l) => '• $l').join('\n'),
                 style: const TextStyle(
                   color: AppColors.inkSecondary,
@@ -986,12 +979,12 @@ class HomeScreen extends ConsumerWidget {
                   Navigator.pop(context);
                   nestPush(context, const EmergencyScreen());
                 },
-                child: const Text('Open emergency card'),
+                child: Text(context.l10n.homeOpenEmergency),
               ),
               const SizedBox(height: 6),
               FilledButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Got it'),
+                child: Text(context.l10n.commonGotIt),
               ),
             ],
           ),
@@ -1052,9 +1045,10 @@ class HomeScreen extends ConsumerWidget {
         await ref.read(taskRepositoryProvider).toggleDone(firstOpenTask);
         await syncAfterWrite(ref, context: context);
         if (context.mounted) {
+          final l10n = context.l10n;
           final note = firstOpenTask.recurring
               ? 'Done · next ${TaskRepository.nextDueLabel(firstOpenTask.dueLabel)}'
-              : 'Done: ${firstOpenTask.title}';
+              : l10n.snackDoneTitle(firstOpenTask.title);
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(note)));
@@ -1071,7 +1065,9 @@ class HomeScreen extends ConsumerWidget {
         } catch (_) {}
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Done: ${firstCareDue.title}')),
+            SnackBar(
+              content: Text(context.l10n.snackDoneTitle(firstCareDue.title)),
+            ),
           );
         }
       case FamilyNeedKind.school:
@@ -1086,7 +1082,9 @@ class HomeScreen extends ConsumerWidget {
         } catch (_) {}
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Done: ${firstSchoolDue.title}')),
+            SnackBar(
+              content: Text(context.l10n.snackDoneTitle(firstSchoolDue.title)),
+            ),
           );
         }
       case FamilyNeedKind.bills:
@@ -1101,7 +1099,9 @@ class HomeScreen extends ConsumerWidget {
         } catch (_) {}
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Paid: ${firstBillDue.title}')),
+            SnackBar(
+              content: Text(context.l10n.snackPaidTitle(firstBillDue.title)),
+            ),
           );
         }
       case FamilyNeedKind.meals:
@@ -1133,7 +1133,7 @@ class HomeScreen extends ConsumerWidget {
               final n = suggestions.take(5).length;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Added $n restock item${n == 1 ? '' : 's'}'),
+                  content: Text(context.l10n.snackRestockAdded(n)),
                 ),
               );
             }
@@ -1284,8 +1284,9 @@ class _TodayEventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final time = event.allDay
-        ? 'All day'
+        ? l10n.commonAllDay
         : DateFormat.jm().format(event.startsAt);
     return NestCard(
       onTap: onTap,
@@ -1399,11 +1400,12 @@ class _NeedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final detail = detailOverride ?? need.detail;
+    final l10n = context.l10n;
+    final detail = detailOverride ?? need.detailFor(l10n);
     return ListTile(
       onTap: onOpen,
       title: Text(
-        need.title,
+        need.titleFor(l10n),
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w700,
         ),
@@ -1415,7 +1417,7 @@ class _NeedRow extends StatelessWidget {
         ),
       ),
       trailing: SoftPill(
-        label: need.actionLabel,
+        label: need.actionFor(l10n),
         selected:
             need.kind == FamilyNeedKind.tasks ||
             need.kind == FamilyNeedKind.care,

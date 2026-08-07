@@ -110,7 +110,7 @@ void main() {
     };
     expect(uris, hasLength(4));
     for (final u in uris) {
-      expect(u.startsWith('nestly://'), isTrue);
+      expect(u.startsWith('casaio://'), isTrue);
     }
   });
 }

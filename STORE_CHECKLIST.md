@@ -1,6 +1,6 @@
 # Store closed testing checklist
 
-Nestly soft-launches **without a paywall**. Core family features stay free.
+Casaio soft-launches **without a paywall**. Core family features stay free.
 
 ## Before upload
 
@@ -12,7 +12,7 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 - [ ] Build release: `flutter build appbundle` / `flutter build ipa`
 - [ ] Privacy policy URL live (in-app: Nest → Privacy — includes export + delete + leave nest)
 - [ ] Store listing screenshots of Home, Calendar, Tasks, Vault, Nest/Privacy
-- [ ] Short description: “Nestly — the operating system for modern families.”
+- [ ] Short description: “Casaio — the operating system for modern families.”
 - [ ] Data safety / App Privacy: account email, nest content, files, notifications, Crashlytics diagnostics, optional document-scan AI, optional approximate location (Locator opt-in)
 - [ ] Copy from `store/APP_STORE_LISTING.md` (What’s New + keywords ready)
 - [ ] Maps API key in local `android/keys.properties` + `ios/Flutter/Secrets.xcconfig` for Locator map (see `store/LOCATOR_MAPS_SETUP.md`)
@@ -22,7 +22,7 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 - [x] Mobile scan uses **Firebase AI Logic → Vertex AI Gemini**
 - [ ] Firebase project on **Blaze** + Vertex AI Gemini API enabled in Build → AI
 - [x] Harden scan AI acceptance UX (hint picker, editable review, clearer errors)
-- [ ] (Optional) Website: https://glowing-strudel-442ff8.netlify.app
+- [ ] Website: https://casaio.app
   - Privacy / Support pages live under `/privacy` and `/support`
 
 ## Tester flow
@@ -40,6 +40,6 @@ Nestly soft-launches **without a paywall**. Core family features stay free.
 ## Known manual steps
 
 - Apple / Google social sign-in not enabled yet
-- **No Nestly Plus paywall** — free soft launch by design
+- **No Casaio Plus paywall** — free soft launch by design
 - Enable Firebase Storage in console before vault cloud upload
 - Account delete asks for your password (reauth) under Nest → Privacy or Nest → Delete account

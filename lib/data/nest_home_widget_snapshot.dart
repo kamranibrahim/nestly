@@ -1,6 +1,7 @@
-/// Pure Nestly Home Widget snapshot helpers (no plugins).
+/// Pure Casaio Home Widget snapshot helpers (no plugins).
 library;
 
+import '../l10n/app_localizations.dart';
 import 'enums.dart';
 
 export 'enums.dart' show WidgetHeroKind;
@@ -26,12 +27,14 @@ WidgetHeroSelection selectWidgetHero({
   required int openTasks,
   required String nextEvent,
   required String dinner,
+  AppLocalizations? l10n,
 }) {
   final event = nextEvent.trim();
   final meal = dinner.trim();
 
   if (openTasks > 0) {
-    final label = openTasks == 1 ? '1 open task' : '$openTasks open tasks';
+    final label = l10n?.widgetOpenTasks(openTasks) ??
+        (openTasks == 1 ? '1 open task' : '$openTasks open tasks');
     return WidgetHeroSelection(
       kind: WidgetHeroKind.tasks,
       title: label,
@@ -52,26 +55,27 @@ WidgetHeroSelection selectWidgetHero({
       accent: 'peach',
     );
   }
-  return const WidgetHeroSelection(
+  return WidgetHeroSelection(
     kind: WidgetHeroKind.quiet,
-    title: 'Quiet day · enjoy it',
+    title: l10n?.widgetQuietDay ?? 'Quiet day · enjoy it',
     accent: 'mint',
   );
 }
 
-String formatWidgetTasksLabel(int openTasks) {
-  if (openTasks <= 0) return 'All clear';
-  return openTasks == 1 ? '1 open' : '$openTasks open';
+String formatWidgetTasksLabel(int openTasks, [AppLocalizations? l10n]) {
+  if (openTasks <= 0) return l10n?.widgetAllClear ?? 'All clear';
+  return l10n?.widgetOpenShort(openTasks) ??
+      (openTasks == 1 ? '1 open' : '$openTasks open');
 }
 
-String formatWidgetEventLabel(String nextEvent) {
+String formatWidgetEventLabel(String nextEvent, [AppLocalizations? l10n]) {
   final t = nextEvent.trim();
-  return t.isEmpty ? 'Nothing scheduled' : t;
+  return t.isEmpty ? (l10n?.widgetNothingScheduled ?? 'Nothing scheduled') : t;
 }
 
-String formatWidgetDinnerLabel(String dinner) {
+String formatWidgetDinnerLabel(String dinner, [AppLocalizations? l10n]) {
   final t = dinner.trim();
-  return t.isEmpty ? 'Not planned' : t;
+  return t.isEmpty ? (l10n?.widgetNotPlanned ?? 'Not planned') : t;
 }
 
 String shortWidgetText(String value, {int max = 36}) {
@@ -81,20 +85,24 @@ String shortWidgetText(String value, {int max = 36}) {
 }
 
 /// Relative age for “Updated …” footers.
-String formatWidgetUpdatedAge(DateTime updatedAt, {DateTime? now}) {
+String formatWidgetUpdatedAge(
+  DateTime updatedAt, {
+  DateTime? now,
+  AppLocalizations? l10n,
+}) {
   final n = now ?? DateTime.now();
   var diff = n.difference(updatedAt);
   if (diff.isNegative) diff = Duration.zero;
-  if (diff.inSeconds < 45) return 'just now';
+  if (diff.inSeconds < 45) return l10n?.widgetJustNow ?? 'just now';
   if (diff.inMinutes < 60) {
-    final m = diff.inMinutes;
-    return m == 1 ? '1m ago' : '${m}m ago';
+    return l10n?.widgetMinutesAgo(diff.inMinutes) ?? '${diff.inMinutes}m ago';
   }
   if (diff.inHours < 24) {
-    final h = diff.inHours;
-    return h == 1 ? '1h ago' : '${h}h ago';
+    return l10n?.widgetHoursAgo(diff.inHours) ?? '${diff.inHours}h ago';
   }
   final d = diff.inDays;
-  if (d < 7) return d == 1 ? '1d ago' : '${d}d ago';
-  return 'earlier';
+  if (d < 7) {
+    return l10n?.widgetDaysAgo(d) ?? (d == 1 ? '1d ago' : '${d}d ago');
+  }
+  return l10n?.widgetEarlier ?? 'earlier';
 }

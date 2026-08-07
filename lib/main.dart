@@ -9,8 +9,10 @@ import 'data/nest_home_widget.dart';
 import 'data/notification_service.dart';
 import 'data/telemetry.dart';
 import 'firebase_options.dart';
+import 'l10n/app_localizations.dart';
 import 'navigation/app_navigator.dart';
 import 'screens/auth_gate.dart';
+import 'state/locale_ui.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -35,32 +37,41 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [databaseProvider.overrideWithValue(database)],
-      child: const NestlyApp(),
+      child: const CasaioApp(),
     ),
   );
 }
 
-class NestlyApp extends StatefulWidget {
-  const NestlyApp({super.key});
+class CasaioApp extends ConsumerStatefulWidget {
+  const CasaioApp({super.key});
 
   @override
-  State<NestlyApp> createState() => _NestlyAppState();
+  ConsumerState<CasaioApp> createState() => _CasaioAppState();
 }
 
-class _NestlyAppState extends State<NestlyApp> {
+class _CasaioAppState extends ConsumerState<CasaioApp> {
   @override
   void initState() {
     super.initState();
-    NestHomeWidget.bindLaunchHandling(openNestlyUri);
+    NestHomeWidget.bindLaunchHandling(openCasaioUri);
   }
 
   @override
   Widget build(BuildContext context) {
+    final preference = ref.watch(localePreferenceProvider);
+    final resolved = LocalePreference.resolve(
+      preference: preference,
+      deviceLocale: WidgetsBinding.instance.platformDispatcher.locale,
+    );
+
     return MaterialApp(
       navigatorKey: rootNavigatorKey,
-      title: 'Nestly',
+      onGenerateTitle: (context) => AppLocalizations.of(context).appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      locale: preference.materialLocale,
+      supportedLocales: LocalePreference.supported,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      theme: AppTheme.light(arabic: resolved.languageCode == 'ar'),
       builder: (context, child) {
         return GestureDetector(
           behavior: HitTestBehavior.translucent,

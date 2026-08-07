@@ -16,6 +16,7 @@ import '../widgets/first_run_empty_card.dart';
 import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 
 class CalendarScreen extends ConsumerWidget {
   const CalendarScreen({super.key});
@@ -143,34 +144,10 @@ class CalendarScreen extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 2, 10, 0),
-              child: Row(
-                children: [
-                  CircleIconButton(
-                    icon: Icons.today_rounded,
-                    background: AppColors.surfaceMuted,
-                    foreground: AppColors.ink,
-                    size: 38,
-                    onTap: controller.goToday,
-                  ),
-                  const Spacer(),
-                  SoftPill(
-                    label: 'Month',
-                    selected: ui.mode == CalendarBrowseMode.month,
-                    onTap: () => controller.setMode(CalendarBrowseMode.month),
-                  ),
-                  const SizedBox(width: 6),
-                  SoftPill(
-                    label: 'Week',
-                    selected: ui.mode == CalendarBrowseMode.week,
-                    onTap: () => controller.setMode(CalendarBrowseMode.week),
-                  ),
-                  const SizedBox(width: 8),
-                  CircleIconButton(
-                    icon: Icons.add_rounded,
-                    size: 38,
-                    onTap: () => _showAddEvent(context, ref),
-                  ),
-                ],
+              child: _CalendarSearchHeader(
+                ui: ui,
+                controller: controller,
+                onAdd: () => _showAddEvent(context, ref),
               ),
             ),
             Padding(
@@ -179,7 +156,9 @@ class CalendarScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Family calendar',
+                    ui.mode == CalendarBrowseMode.month
+                        ? context.l10n.calendarTitleMonth
+                        : context.l10n.calendarTitle,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.8,
@@ -230,7 +209,7 @@ class CalendarScreen extends ConsumerWidget {
                       children: [
                         for (final filter in CalendarMemberFilter.pills) ...[
                           SoftPill(
-                            label: filter.label,
+                            label: filter.display(context.l10n),
                             selected: memberFilter == filter,
                             onTap: () => controller.setMemberFilter(filter),
                           ),
@@ -251,17 +230,7 @@ class CalendarScreen extends ConsumerWidget {
                 child: ui.mode == CalendarBrowseMode.month
                     ? Column(
                         children: [
-                          const Row(
-                            children: [
-                              _Dow('S'),
-                              _Dow('M'),
-                              _Dow('T'),
-                              _Dow('W'),
-                              _Dow('T'),
-                              _Dow('F'),
-                              _Dow('S'),
-                            ],
-                          ),
+                          _dowRow(context.l10n),
                           const SizedBox(height: 6),
                           ..._buildMonthRows(
                             filteredForGrid,
@@ -270,7 +239,12 @@ class CalendarScreen extends ConsumerWidget {
                           ),
                         ],
                       )
-                    : _buildWeekStrip(filteredForGrid, selected, controller),
+                    : _buildWeekStrip(
+                        context,
+                        filteredForGrid,
+                        selected,
+                        controller,
+                      ),
               ),
             ),
             const SizedBox(height: 6),
@@ -313,41 +287,28 @@ class CalendarScreen extends ConsumerWidget {
                   return ListView(
                     padding: nestShellPageInsets(context),
                     children: [
-                      NestCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: TextField(
-                          controller: controller.searchController,
-                          onChanged: controller.setSearchQuery,
-                          decoration: const InputDecoration(
-                            hintText: 'Search events',
-                            border: InputBorder.none,
-                            prefixIcon: Icon(Icons.search_rounded),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
                       if (dayEvents.isEmpty)
                         FirstRunEmptyCard(
                           icon: Icons.event_rounded,
                           color: AppColors.accent,
                           title: allEvents.isEmpty
-                              ? 'Add your first family event'
+                              ? context.l10n.emptyCalendarTitle
                               : (q.isNotEmpty
-                                    ? 'No events match'
+                                    ? context.l10n.emptyCalendarNoMatch
                                     : (_isToday(selected)
-                                          ? 'Nothing planned today'
-                                          : 'Nothing on this day')),
+                                          ? context.l10n.emptyCalendarNothingToday
+                                          : context.l10n.emptyCalendarNothingDay)),
                           body: allEvents.isEmpty
-                              ? 'School runs, dinners, and appointments land here — no demo data, just yours.'
+                              ? context.l10n.emptyCalendarBody
                               : (q.isNotEmpty
-                                    ? 'Try a different search, or clear the filter.'
-                                    : 'Tap to schedule something for this day.'),
+                                    ? context.l10n.emptyCalendarSearchHint
+                                    : context.l10n.emptyCalendarDayHint),
                           actionLabel: q.isNotEmpty
-                              ? 'Clear search'
-                              : 'Add event',
+                              ? context.l10n.emptyCalendarClearSearch
+                              : context.l10n.addEvent,
                           onAction: () {
                             if (q.isNotEmpty) {
-                              controller.clearSearch();
+                              controller.closeSearch();
                             } else {
                               _showAddEvent(context, ref);
                             }
@@ -469,7 +430,22 @@ class CalendarScreen extends ConsumerWidget {
         .toSet();
   }
 
+  static Widget _dowRow(AppLocalizations l10n) {
+    return Row(
+      children: [
+        _Dow(l10n.dowSunday),
+        _Dow(l10n.dowMonday),
+        _Dow(l10n.dowTuesday),
+        _Dow(l10n.dowWednesday),
+        _Dow(l10n.dowThursday),
+        _Dow(l10n.dowFriday),
+        _Dow(l10n.dowSaturday),
+      ],
+    );
+  }
+
   static Widget _buildWeekStrip(
+    BuildContext context,
     List<CalendarEvent> events,
     DateTime selected,
     CalendarUiController controller,
@@ -479,17 +455,7 @@ class CalendarScreen extends ConsumerWidget {
 
     return Column(
       children: [
-        const Row(
-          children: [
-            _Dow('S'),
-            _Dow('M'),
-            _Dow('T'),
-            _Dow('W'),
-            _Dow('T'),
-            _Dow('F'),
-            _Dow('S'),
-          ],
-        ),
+        _dowRow(context.l10n),
         const SizedBox(height: 6),
         Row(
           children: [
@@ -714,7 +680,9 @@ class CalendarScreen extends ConsumerWidget {
                     sheetHandle(),
                     const SizedBox(height: 6),
                     Text(
-                      existing == null ? 'New event' : 'Edit event',
+                      existing == null
+                          ? context.l10n.calendarNewEvent
+                          : context.l10n.calendarEditEvent,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -724,25 +692,25 @@ class CalendarScreen extends ConsumerWidget {
                     TextField(
                       controller: c[0],
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Event title',
+                      decoration: InputDecoration(
+                        hintText: context.l10n.hintEventTitle,
                       ),
                       onSubmitted: (_) => submit(),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: c[1],
-                      decoration: const InputDecoration(
-                        hintText: 'Location (optional)',
+                      decoration: InputDecoration(
+                        hintText: context.l10n.hintLocationOptional,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'All day',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                            context.l10n.commonAllDay,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
                         Switch(
@@ -829,7 +797,7 @@ class CalendarScreen extends ConsumerWidget {
                           for (final m in members)
                             SoftPill(
                               label:
-                                  '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
+                                  '${m.name.split(' ').first} · ${localizedMemberRole(m.role, context.l10n)}',
                               selected: selectedMemberId == m.id,
                               onTap: () =>
                                   setModal(() => selectedMemberId = m.id),
@@ -841,7 +809,9 @@ class CalendarScreen extends ConsumerWidget {
                     FilledButton(
                       onPressed: submit,
                       child: Text(
-                        existing == null ? 'Add event' : 'Save changes',
+                        existing == null
+                            ? context.l10n.scanAddEvent
+                            : context.l10n.commonSaveChanges,
                       ),
                     ),
                     if (existing != null) ...[
@@ -851,20 +821,18 @@ class CalendarScreen extends ConsumerWidget {
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (dialogContext) => AlertDialog(
-                              title: const Text('Delete event?'),
-                              content: const Text(
-                                'This removes it from the shared calendar.',
-                              ),
+                              title: Text(context.l10n.deleteEventTitle),
+                              content: Text(context.l10n.calendarDeleteBody),
                               actions: [
                                 TextButton(
                                   onPressed: () =>
                                       Navigator.pop(dialogContext, false),
-                                  child: const Text('Cancel'),
+                                  child: Text(context.l10n.commonCancel),
                                 ),
                                 FilledButton(
                                   onPressed: () =>
                                       Navigator.pop(dialogContext, true),
-                                  child: const Text('Delete'),
+                                  child: Text(context.l10n.commonDelete),
                                 ),
                               ],
                             ),
@@ -873,7 +841,7 @@ class CalendarScreen extends ConsumerWidget {
                           deleteEvent = true;
                           await submit();
                         },
-                        child: const Text('Delete event'),
+                        child: Text(context.l10n.deleteEventAction),
                       ),
                     ],
                   ],
@@ -932,7 +900,7 @@ class _PastelEventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final end = event.endsAt;
     final timeLabel = event.allDay
-        ? 'All day'
+        ? context.l10n.commonAllDay
         : end == null
         ? DateFormat.jm().format(event.startsAt)
         : '${DateFormat.jm().format(event.startsAt)} - ${DateFormat.jm().format(end)}';
@@ -1014,6 +982,191 @@ class _PastelEventCard extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarSearchHeader extends StatelessWidget {
+  const _CalendarSearchHeader({
+    required this.ui,
+    required this.controller,
+    required this.onAdd,
+  });
+
+  final CalendarUiState ui;
+  final CalendarUiController controller;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final open = ui.searchOpen;
+
+    return SizedBox(
+      height: 38,
+      child: Row(
+        children: [
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Stack(
+                  alignment: AlignmentDirectional.centerStart,
+                  children: [
+                    AnimatedOpacity(
+                      duration: AppMotion.fast,
+                      curve: AppMotion.standard,
+                      opacity: open ? 0 : 1,
+                      child: IgnorePointer(
+                        ignoring: open,
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 46),
+                            const Spacer(),
+                            SoftPill(
+                              label: 'Month',
+                              selected: ui.mode == CalendarBrowseMode.month,
+                              onTap: () => controller
+                                  .setMode(CalendarBrowseMode.month),
+                            ),
+                            const SizedBox(width: 6),
+                            SoftPill(
+                              label: 'Week',
+                              selected: ui.mode == CalendarBrowseMode.week,
+                              onTap: () =>
+                                  controller.setMode(CalendarBrowseMode.week),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    AnimatedContainer(
+                      duration: AppMotion.medium,
+                      curve: AppMotion.standard,
+                      width: open ? constraints.maxWidth : 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(open ? 14 : 19),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: AnimatedSwitcher(
+                        duration: AppMotion.fast,
+                        switchInCurve: AppMotion.standard,
+                        switchOutCurve: AppMotion.standard,
+                        child: open
+                            ? KeyedSubtree(
+                                key: const ValueKey('field'),
+                                child: OverflowBox(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  minWidth: 0,
+                                  maxWidth: constraints.maxWidth,
+                                  child: SizedBox(
+                                    width: constraints.maxWidth,
+                                    height: 38,
+                                    child: Row(
+                                      children: [
+                                        const SizedBox(width: 10),
+                                        const Icon(
+                                          Icons.search_rounded,
+                                          size: 20,
+                                          color: AppColors.ink,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: TextField(
+                                            controller:
+                                                controller.searchController,
+                                            focusNode: controller.searchFocus,
+                                            onChanged:
+                                                controller.setSearchQuery,
+                                            textInputAction:
+                                                TextInputAction.search,
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.ink,
+                                            ),
+                                            decoration: InputDecoration(
+                                              isDense: true,
+                                              hintText: l10n.searchEvents,
+                                              hintStyle: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.inkMuted,
+                                              ),
+                                              border: InputBorder.none,
+                                              contentPadding:
+                                                  const EdgeInsets.fromLTRB(
+                                                8,
+                                                8,
+                                                0,
+                                                8,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 36,
+                                          height: 36,
+                                          child: IconButton(
+                                            tooltip: l10n.commonClose,
+                                            onPressed: controller.closeSearch,
+                                            style: IconButton.styleFrom(
+                                              padding: EdgeInsets.zero,
+                                              minimumSize: const Size(36, 36),
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                            ),
+                                            icon: const Icon(
+                                              Icons.close_rounded,
+                                              size: 18,
+                                              color: AppColors.ink,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : KeyedSubtree(
+                                key: const ValueKey('icon'),
+                                child: Material(
+                                  type: MaterialType.transparency,
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onTap: controller.openSearch,
+                                    child: Semantics(
+                                      button: true,
+                                      label: l10n.commonSearch,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.search_rounded,
+                                          size: 18,
+                                          color: AppColors.ink,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          CircleIconButton(
+            icon: Icons.add_rounded,
+            size: 38,
+            onTap: onAdd,
           ),
         ],
       ),

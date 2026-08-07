@@ -1,4 +1,4 @@
-// File generated manually for Nestly (flutterfire could not resolve the new project).
+// File generated manually for Casaio (flutterfire could not resolve the new project).
 // ignore_for_file: lines_longer_than_80_chars
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;

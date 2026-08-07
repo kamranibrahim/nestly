@@ -6,19 +6,20 @@ import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:home_widget/home_widget.dart';
 import 'package:intl/intl.dart';
 
+import 'app_l10n.dart';
 import 'db/app_database.dart';
 import 'nest_home_widget_snapshot.dart';
 
-/// Shared App Group + WidgetKit kind for the Nestly Home Screen widget.
+/// Shared App Group + WidgetKit kind for the Casaio Home Screen widget.
 abstract final class NestHomeWidget {
   static const appGroupId = 'group.app.nestly.family';
   static const iOSName = 'NestlyHomeWidget';
   static const androidName = 'NestlyHomeWidget';
 
-  static const launchUri = 'nestly://home';
-  static const tasksUri = 'nestly://tasks';
-  static const calendarUri = 'nestly://calendar';
-  static const mealsUri = 'nestly://meals';
+  static const launchUri = 'casaio://home';
+  static const tasksUri = 'casaio://tasks';
+  static const calendarUri = 'casaio://calendar';
+  static const mealsUri = 'casaio://meals';
 
   static StreamSubscription<Uri?>? _clickSub;
   static void Function(Uri uri)? _onUri;
@@ -107,9 +108,9 @@ abstract final class NestHomeWidget {
         HomeWidget.saveWidgetData<String>('updated_at', ''),
         HomeWidget.saveWidgetData<String>('hero_kind', 'quiet'),
         HomeWidget.saveWidgetData<String>('hero_title', ''),
-        HomeWidget.saveWidgetData<String>('tasks_label', 'All clear'),
-        HomeWidget.saveWidgetData<String>('event_label', 'Nothing scheduled'),
-        HomeWidget.saveWidgetData<String>('dinner_label', 'Not planned'),
+        HomeWidget.saveWidgetData<String>('tasks_label', ''),
+        HomeWidget.saveWidgetData<String>('event_label', ''),
+        HomeWidget.saveWidgetData<String>('dinner_label', ''),
         HomeWidget.saveWidgetData<String>('accent', 'mint'),
       ]);
       await HomeWidget.updateWidget(
@@ -127,19 +128,21 @@ abstract final class NestHomeWidget {
     final nestId = await db.getMeta('nestId');
     final hasNest = nestId != null && nestId.isNotEmpty;
     final nestLabel = (nestNameOverride ?? '').trim();
+    final l10n = await resolvedAppLocalizations(db);
+    final localeName = l10n.localeName;
 
     if (!hasNest) {
-      return const _WidgetSnapshot(
+      return _WidgetSnapshot(
         openTasks: 0,
         nextEvent: '',
         dinner: '',
         nestName: '',
         hasNest: false,
         heroKind: 'quiet',
-        heroTitle: 'Open Nestly to join a nest',
-        tasksLabel: 'All clear',
-        eventLabel: 'Nothing scheduled',
-        dinnerLabel: 'Not planned',
+        heroTitle: l10n.widgetJoinNest,
+        tasksLabel: l10n.widgetAllClear,
+        eventLabel: l10n.widgetNothingScheduled,
+        dinnerLabel: l10n.widgetNotPlanned,
         accent: 'mint',
       );
     }
@@ -169,8 +172,8 @@ abstract final class NestHomeWidget {
     if (events.isNotEmpty) {
       final e = events.first;
       final when = e.allDay
-          ? DateFormat.MMMd().format(e.startsAt)
-          : DateFormat('EEE · h:mm a').format(e.startsAt);
+          ? DateFormat.MMMd(localeName).format(e.startsAt)
+          : DateFormat('EEE · h:mm a', localeName).format(e.startsAt);
       nextEvent = '${shortWidgetText(e.title)} · $when';
     }
 
@@ -192,19 +195,20 @@ abstract final class NestHomeWidget {
       openTasks: openTasks,
       nextEvent: nextEvent,
       dinner: dinner,
+      l10n: l10n,
     );
 
     return _WidgetSnapshot(
       openTasks: openTasks,
       nextEvent: nextEvent,
       dinner: dinner,
-      nestName: nestLabel.isEmpty ? 'Nestly' : shortWidgetText(nestLabel, max: 24),
+      nestName: nestLabel.isEmpty ? 'Casaio' : shortWidgetText(nestLabel, max: 24),
       hasNest: true,
       heroKind: hero.kindKey,
       heroTitle: shortWidgetText(hero.title, max: 40),
-      tasksLabel: formatWidgetTasksLabel(openTasks),
-      eventLabel: formatWidgetEventLabel(nextEvent),
-      dinnerLabel: formatWidgetDinnerLabel(dinner),
+      tasksLabel: formatWidgetTasksLabel(openTasks, l10n),
+      eventLabel: formatWidgetEventLabel(nextEvent, l10n),
+      dinnerLabel: formatWidgetDinnerLabel(dinner, l10n),
       accent: hero.accent,
     );
   }

@@ -13,6 +13,7 @@ import '../widgets/common.dart';
 import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 
 class CareScreen extends ConsumerWidget {
   const CareScreen({super.key});
@@ -37,7 +38,7 @@ class CareScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Care'),
+        title: Text(context.l10n.screenCare),
         actions: [
           IconButton(
             onPressed: () => _showAdd(context, ref),
@@ -48,7 +49,7 @@ class CareScreen extends ConsumerWidget {
       body: itemsAsync.when(
         loading: () => const NestLoadingSkeleton(itemCount: 3),
         error: (_, _) =>
-            const Center(child: Text('Could not load care items.')),
+            Center(child: Text(context.l10n.loadFailedCare)),
         data: (all) {
           final items = ui.filter.isAll
               ? all
@@ -63,26 +64,26 @@ class CareScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(10, 4, 10, 84),
             children: [
-              const NestCard(
+              NestCard(
                 child: Text(
-                  'Elder profiles plus pet, home, and car upkeep. Mark done to roll the next due date — start with one schedule if the list is empty.',
-                  style: TextStyle(color: AppColors.inkSecondary, height: 1.4),
+                  context.l10n.careIntro,
+                  style: const TextStyle(color: AppColors.inkSecondary, height: 1.4),
                 ),
               ),
               const SizedBox(height: 10),
-              const SectionLabel('Elder profiles'),
+              SectionLabel(context.l10n.careElderProfiles),
               if (members.isEmpty)
-                const NestCard(
+                NestCard(
                   child: Text(
-                    'Add family members in Nest, then set a Grandparent role.',
-                    style: TextStyle(color: AppColors.inkMuted),
+                    context.l10n.careAddMembersHint,
+                    style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 )
               else if (careMembers.isEmpty)
-                const NestCard(
+                NestCard(
                   child: Text(
-                    'No elder profiles yet — set Grandparent in Nest, then add meds and allergies here.',
-                    style: TextStyle(color: AppColors.inkMuted, height: 1.35),
+                    context.l10n.careNoElders,
+                    style: const TextStyle(color: AppColors.inkMuted, height: 1.35),
                   ),
                 )
               else
@@ -110,20 +111,20 @@ class CareScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     SoftPill(
-                      label: 'Due list',
+                      label: CareViewMode.due.display(context.l10n),
                       selected: ui.viewMode == CareViewMode.due,
                       onTap: () => uiCtrl.setViewMode(CareViewMode.due),
                     ),
                     const SizedBox(width: 6),
                     SoftPill(
-                      label: 'By category',
+                      label: CareViewMode.category.display(context.l10n),
                       selected: ui.viewMode == CareViewMode.category,
                       onTap: () => uiCtrl.setViewMode(CareViewMode.category),
                     ),
                     const SizedBox(width: 10),
                     for (final cat in CareCategory.values) ...[
                       SoftPill(
-                        label: cat.label,
+                        label: cat.display(context.l10n),
                         selected: ui.filter == cat,
                         onTap: () => uiCtrl.setFilter(cat),
                       ),
@@ -138,19 +139,23 @@ class CareScreen extends ConsumerWidget {
                   icon: Icons.favorite_outline_rounded,
                   color: all.isEmpty ? AppColors.mint : null,
                   title: all.isEmpty
-                      ? 'Add your first care schedule'
-                      : 'Nothing in ${ui.filter.label}',
+                      ? context.l10n.emptyCareTitle
+                      : context.l10n.careEmptyFilter(
+                          ui.filter.display(context.l10n),
+                        ),
                   body: all.isEmpty
-                      ? 'Pet, home, car, or elder routines — mark done to roll the next due date.'
-                      : 'Try another filter, or add a ${ui.filter.label} care item.',
-                  actionLabel: 'Add care item',
+                      ? context.l10n.emptyCareBody
+                      : context.l10n.careEmptyFilterHint(
+                          ui.filter.display(context.l10n),
+                        ),
+                  actionLabel: context.l10n.careAddItem,
                   onAction: () => _showAdd(context, ref),
                 )
               else if (ui.viewMode == CareViewMode.category)
                 ..._categorySections(context, ref, items, members, endToday)
               else ...[
                 if (due.isNotEmpty) ...[
-                  const SectionLabel('Due now'),
+                  SectionLabel(context.l10n.careDueNow),
                   NestCard(
                     padding: EdgeInsets.zero,
                     child: Column(
@@ -229,13 +234,16 @@ List<Widget> _categorySections(
   List<NestMember> members,
   DateTime endToday,
 ) {
+  final l10n = context.l10n;
   final cats = <String>[];
   for (final item in items) {
     if (!cats.contains(item.category)) cats.add(item.category);
   }
   return [
     for (final cat in cats) ...[
-      SectionLabel(cat),
+      SectionLabel(
+        CareCategory.parse(cat).display(l10n),
+      ),
       NestCard(
         padding: EdgeInsets.zero,
         child: Column(
@@ -292,7 +300,7 @@ Future<void> _snooze(
   } catch (_) {}
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Snoozed ${item.title} by 1 day')),
+    SnackBar(content: Text(context.l10n.snackSnoozed(item.title))),
   );
 }
 
@@ -308,7 +316,7 @@ Future<void> _skip(
   } catch (_) {}
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Skipped ${item.title} this cycle')),
+    SnackBar(content: Text(context.l10n.snackSkipped(item.title))),
   );
 }
 
@@ -368,7 +376,7 @@ Future<void> _editProfile(
   await syncAfterWrite(ref, context: context);
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved care profile for ${member.name}')),
+      SnackBar(content: Text(context.l10n.snackCareProfileSaved(member.name))),
     );
   }
 }
@@ -418,7 +426,9 @@ Future<void> _showAdd(
                   sheetHandle(),
                   const SizedBox(height: 6),
                   Text(
-                    existing == null ? 'New care item' : 'Edit care item',
+                    existing == null
+                        ? context.l10n.careNewItem
+                        : context.l10n.careEditItem,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -441,7 +451,7 @@ Future<void> _showAdd(
                     children: [
                       for (final cat in CareCategory.stored)
                         ChoiceChip(
-                          label: Text(cat.label),
+                          label: Text(cat.display(context.l10n)),
                           selected: category == cat,
                           showCheckmark: false,
                           selectedColor: AppColors.primary,
@@ -465,9 +475,9 @@ Future<void> _showAdd(
                   ),
                   if (category == CareCategory.elder && members.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    const Text(
-                      'For whom?',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    Text(
+                      context.l10n.careForWhom,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -592,7 +602,7 @@ class _CareProfileSheetState extends State<_CareProfileSheet> {
         sheetHandle(),
         const SizedBox(height: 6),
         Text(
-          'Care profile · ${widget.member.name}',
+          context.l10n.careProfileTitle(widget.member.name),
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 4),
@@ -605,18 +615,18 @@ class _CareProfileSheetState extends State<_CareProfileSheet> {
           controller: _medications,
           textCapitalization: TextCapitalization.sentences,
           maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Medications',
-            hintText: 'Morning BP med, evening…',
+          decoration: InputDecoration(
+            labelText: context.l10n.careMeds,
+            hintText: context.l10n.careMedsHint,
           ),
         ),
         const SizedBox(height: 10),
         TextField(
           controller: _allergies,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Allergies',
-            hintText: 'Penicillin, peanuts…',
+          decoration: InputDecoration(
+            labelText: context.l10n.careAllergies,
+            hintText: context.l10n.careAllergiesHint,
           ),
         ),
         const SizedBox(height: 10),
@@ -624,18 +634,18 @@ class _CareProfileSheetState extends State<_CareProfileSheet> {
           controller: _mobility,
           textCapitalization: TextCapitalization.sentences,
           maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Mobility & support',
-            hintText: 'Walker, needs help stairs…',
+          decoration: InputDecoration(
+            labelText: context.l10n.careMobility,
+            hintText: context.l10n.careMobilityHint,
           ),
         ),
         const SizedBox(height: 10),
         TextField(
           controller: _doctor,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Primary doctor',
-            hintText: 'Dr. Name · clinic',
+          decoration: InputDecoration(
+            labelText: context.l10n.careDoctor,
+            hintText: context.l10n.careDoctorHint,
           ),
         ),
         const SizedBox(height: 10),
@@ -643,9 +653,9 @@ class _CareProfileSheetState extends State<_CareProfileSheet> {
           controller: _notes,
           textCapitalization: TextCapitalization.sentences,
           maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Notes',
-            hintText: 'Preferences, routines…',
+          decoration: InputDecoration(
+            labelText: context.l10n.commonNotes,
+            hintText: context.l10n.careNotesHint,
           ),
         ),
         const SizedBox(height: 14),
@@ -657,7 +667,7 @@ class _CareProfileSheetState extends State<_CareProfileSheet> {
             primaryDoctor: _doctor.text.trim(),
             notes: _notes.text.trim(),
           )),
-          child: const Text('Save profile'),
+          child: Text(context.l10n.saveProfile),
         ),
       ],
     );
@@ -796,19 +806,22 @@ class _CareRow extends StatelessWidget {
                   onDelete();
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: CareItemAction.edit, child: Text('Edit')),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: CareItemAction.edit,
+                child: Text(context.l10n.commonEdit),
+              ),
               PopupMenuItem(
                 value: CareItemAction.snooze,
-                child: Text('Snooze 1 day'),
+                child: Text(context.l10n.snooze1Day),
               ),
               PopupMenuItem(
                 value: CareItemAction.skip,
-                child: Text('Skip this cycle'),
+                child: Text(context.l10n.skipCycle),
               ),
               PopupMenuItem(
                 value: CareItemAction.delete,
-                child: Text('Delete'),
+                child: Text(context.l10n.commonDelete),
               ),
             ],
           ),

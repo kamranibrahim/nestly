@@ -3,6 +3,8 @@ library;
 
 import 'dart:math' as math;
 
+import '../l10n/app_localizations.dart';
+
 const locatorSharingMetaKey = 'locatorSharingEnabled';
 const locatorLastLatMetaKey = 'locatorLastLat';
 const locatorLastLngMetaKey = 'locatorLastLng';
@@ -41,23 +43,29 @@ class NestLocation {
 }
 
 /// Human age for “Updated …” / “Last seen …”.
-String formatLocatorAge(DateTime updatedAt, {DateTime? now}) {
+String formatLocatorAge(
+  DateTime updatedAt, {
+  DateTime? now,
+  AppLocalizations? l10n,
+}) {
   final n = now ?? DateTime.now();
   var diff = n.difference(updatedAt);
   if (diff.isNegative) diff = Duration.zero;
 
-  if (diff.inSeconds < 45) return 'just now';
+  if (diff.inSeconds < 45) return l10n?.widgetJustNow ?? 'just now';
   if (diff.inMinutes < 60) {
-    final m = diff.inMinutes;
-    return m == 1 ? '1m ago' : '${m}m ago';
+    return l10n?.widgetMinutesAgo(diff.inMinutes) ??
+        (diff.inMinutes == 1 ? '1m ago' : '${diff.inMinutes}m ago');
   }
   if (diff.inHours < 24) {
-    final h = diff.inHours;
-    return h == 1 ? '1h ago' : '${h}h ago';
+    return l10n?.widgetHoursAgo(diff.inHours) ??
+        (diff.inHours == 1 ? '1h ago' : '${diff.inHours}h ago');
   }
   final d = diff.inDays;
-  if (d < 7) return d == 1 ? '1d ago' : '${d}d ago';
-  return 'over a week ago';
+  if (d < 7) {
+    return l10n?.widgetDaysAgo(d) ?? (d == 1 ? '1d ago' : '${d}d ago');
+  }
+  return l10n?.syncOverWeekAgo ?? 'over a week ago';
 }
 
 String locatorMapsUrl(double lat, double lng) {
@@ -137,6 +145,13 @@ String formatPlaceLabel({
   if (area.isNotEmpty) return area;
   if (n.isNotEmpty && n.toLowerCase() != 'near me') return n;
   return 'Near me';
+}
+
+String displayLocatorLabel(String? label, AppLocalizations l10n) {
+  final text = (label ?? '').trim();
+  if (text.isEmpty) return '';
+  if (text.toLowerCase() == 'near me') return l10n.locatorNearMe;
+  return text;
 }
 
 /// Axis-aligned bounds for fitting a nest map camera.

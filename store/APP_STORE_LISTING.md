@@ -1,4 +1,4 @@
-# Nestly — App Store & Play Store listing
+# Casaio — App Store & Play Store listing
 
 Bundle / package ID: `app.nestly.family`  
 Tagline: *the operating system for modern families*
@@ -11,7 +11,7 @@ Use the **iPhone** screenshots in `store/screenshots/iphone-1242x2688/` (1242 ×
 
 ### App name (30)
 ```
-Nestly
+Casaio
 ```
 
 ### Subtitle (30)
@@ -27,7 +27,7 @@ One nest for the whole family. Shared calendar, tasks, groceries, bills, meals, 
 
 ### Description
 ```
-Nestly is the operating system for modern families.
+Casaio is the operating system for modern families.
 
 One shared nest keeps school runs, chores, groceries, bills, meals, and important documents together — so everyone knows what matters today.
 
@@ -65,7 +65,7 @@ BUILT FOR REAL LIFE
 • Invite family with a nest code
 • Export your data or delete your account from Privacy
 
-Nestly soft-launches free for families — no paywall required to run your nest.
+Casaio soft-launches free for families — no paywall required to run your nest.
 
 The operating system for modern families.
 ```
@@ -92,17 +92,15 @@ Soft launch updates: Today snapshot and quiet family needs, invite funnel polish
 
 ### Copyright
 ```
-2026 Nestly
+2026 Casaio
 ```
 
 ### URLs (set in Connect)
 | Field | Value |
 |--------|--------|
-| Support URL | `https://glowing-strudel-442ff8.netlify.app/support` |
-| Marketing URL | `https://glowing-strudel-442ff8.netlify.app` *(optional)* |
-| Privacy Policy URL | `https://glowing-strudel-442ff8.netlify.app/privacy` |
-
-When you point `nestly.app` at this Netlify site, you can switch these to `https://nestly.app/support` and `https://nestly.app/privacy`.
+| Support URL | `https://casaio.app/support` |
+| Marketing URL | `https://casaio.app` *(optional)* |
+| Privacy Policy URL | `https://casaio.app/privacy` |
 
 
 ### App Privacy (nutrition labels) — declare
@@ -126,7 +124,7 @@ Optional AI document scan: if enabled, disclose that images may be processed by 
 
 ### Title (30)
 ```
-Nestly: Family Organizer
+Casaio: Family Organizer
 ```
 
 ### Short description (80)
@@ -137,7 +135,7 @@ The operating system for modern families — calendar, tasks, lists, bills & mor
 
 ### Full description
 ```
-Nestly is the operating system for modern families.
+Casaio is the operating system for modern families.
 
 Share one nest for calendar, chores, groceries, bills, meals, care, school, and documents — so your household stays aligned without five different apps.
 
@@ -155,11 +153,11 @@ What’s inside
 • Invite family with a nest code
 • Export data, leave a nest, or delete your account from Privacy / Nest
 
-iOS & Android: add the Nestly home widget for open tasks, next event, and dinner.
+iOS & Android: add the Casaio home widget for open tasks, next event, and dinner.
 
-Soft launch: core Nestly features are free — no paywall required to run your family nest.
+Soft launch: core Casaio features are free — no paywall required to run your family nest.
 
-Nestly — the operating system for modern families.
+Casaio — the operating system for modern families.
 ```
 
 ### App category
@@ -195,13 +193,13 @@ Password: <your tester password>
 
 **Notes**
 ```
-Nestly is a family organizer (nest). Sign in with the demo account. Core flows: Home briefing, Calendar, Tasks, Groceries, Budget, Documents vault, Nest invite code. Soft launch has no IAP / no paywall. Offline edits sync when online. Privacy: Nest → Privacy (export / delete). Optional AI document scan may require Firebase AI / Blaze; not required to review core features.
+Casaio is a family organizer (nest). Sign in with the demo account. Core flows: Home briefing, Calendar, Tasks, Groceries, Budget, Documents vault, Nest invite code. Soft launch has no IAP / no paywall. Offline edits sync when online. Privacy: Nest → Privacy (export / delete). Optional AI document scan may require Firebase AI / Blaze; not required to review core features.
 ```
 
 ---
 
 ## Copy-paste quick block (Apple)
 
-**Name:** Nestly  
+**Name:** Casaio  
 **Subtitle:** Family OS for modern homes  
 **Keywords:** `family,organizer,calendar,chores,grocery,shopping,bills,budget,meals,planner,household,kids,tasks,vault,documents`

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/providers.dart';
 import 'db/app_database.dart';
 import 'nest_home_widget.dart';
@@ -183,13 +184,23 @@ Future<bool> syncAfterWrite(
 }
 
 /// Relative label for Nest / banner (“Just now”, “5m ago”, …).
-String formatLastSynced(DateTime? at, {DateTime? now}) {
-  if (at == null) return 'Not synced yet';
+String formatLastSynced(
+  DateTime? at, {
+  DateTime? now,
+  AppLocalizations? l10n,
+}) {
+  if (at == null) return l10n?.syncNotYet ?? 'Not synced yet';
   final n = now ?? DateTime.now();
   final diff = n.difference(at);
-  if (diff.inSeconds < 45) return 'Just now';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-  if (diff.inHours < 24) return '${diff.inHours}h ago';
-  if (diff.inDays < 7) return '${diff.inDays}d ago';
+  if (diff.inSeconds < 45) return l10n?.syncJustNow ?? 'Just now';
+  if (diff.inMinutes < 60) {
+    return l10n?.syncMinutesAgo(diff.inMinutes) ?? '${diff.inMinutes}m ago';
+  }
+  if (diff.inHours < 24) {
+    return l10n?.syncHoursAgo(diff.inHours) ?? '${diff.inHours}h ago';
+  }
+  if (diff.inDays < 7) {
+    return l10n?.syncDaysAgo(diff.inDays) ?? '${diff.inDays}d ago';
+  }
   return '${at.month}/${at.day}';
 }

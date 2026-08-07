@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n_ext.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common.dart';
 import 'privacy_screen.dart';
@@ -11,7 +12,7 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('About')),
+      appBar: AppBar(title: Text(context.l10n.screenAboutShort)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(10, 4, 10, 36),
         children: [
@@ -22,31 +23,31 @@ class AboutScreen extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(24),
                   child: Image.asset(
-                    'assets/brand/logos/nestly-logo-lettermark.png',
+                    'assets/brand/logos/casaio-logo-mark-plain.png',
                     width: 72,
                     height: 72,
                     fit: BoxFit.cover,
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Nestly',
-                  style: TextStyle(
+                Text(
+                  context.l10n.appName,
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: AppColors.ink,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'The operating system for modern families',
+                Text(
+                  context.l10n.aboutTagline,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.inkSecondary),
+                  style: const TextStyle(color: AppColors.inkSecondary),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Version 1.0.0',
-                  style: TextStyle(
+                Text(
+                  context.l10n.aboutVersion('1.0.0'),
+                  style: const TextStyle(
                     color: AppColors.inkMuted,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
@@ -60,17 +61,17 @@ class AboutScreen extends StatelessWidget {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const PrivacyScreen()),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.privacy_tip_outlined, color: AppColors.accentDeep),
-                SizedBox(width: 12),
+                const Icon(Icons.privacy_tip_outlined, color: AppColors.accentDeep),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Privacy',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    context.l10n.screenPrivacyShort,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
               ],
             ),
           ),

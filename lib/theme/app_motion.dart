@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Soft, calm motion tokens for Nestly's pastel UI.
+/// Soft, calm motion tokens for Casaio's pastel UI.
 abstract final class AppMotion {
   static const Duration instant = Duration(milliseconds: 120);
   static const Duration fast = Duration(milliseconds: 180);

@@ -14,6 +14,7 @@ import '../widgets/motion.dart';
 import '../widgets/sheet_form.dart';
 import 'care_screen.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 
 class EmergencyScreen extends ConsumerWidget {
   const EmergencyScreen({super.key});
@@ -24,15 +25,15 @@ class EmergencyScreen extends ConsumerWidget {
     final profiles = ref.watch(careProfilesProvider).valueOrNull ?? const [];
     final members = ref.watch(membersProvider).valueOrNull ?? const [];
     final nestName =
-        ref.watch(nestInfoProvider).valueOrNull?.name ?? 'Our nest';
+        ref.watch(nestInfoProvider).valueOrNull?.name ?? context.l10n.ourNest;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Emergency'),
+        title: Text(context.l10n.screenEmergency),
         actions: [
           IconButton(
-            tooltip: 'Share card',
+            tooltip: context.l10n.emergencyShareCard,
             onPressed: () => _shareCard(
               context,
               nestName: nestName,
@@ -43,7 +44,7 @@ class EmergencyScreen extends ConsumerWidget {
             icon: const Icon(Icons.ios_share_rounded),
           ),
           IconButton(
-            tooltip: 'Copy card',
+            tooltip: context.l10n.emergencyCopyCard,
             onPressed: () => _copyCard(
               context,
               nestName: nestName,
@@ -62,16 +63,16 @@ class EmergencyScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(10, 4, 10, 28),
         children: [
-          const NestCard(
+          NestCard(
             color: AppColors.dangerSoft,
             child: Row(
               children: [
-                Icon(Icons.wifi_off_rounded, color: AppColors.danger),
-                SizedBox(width: 12),
+                const Icon(Icons.wifi_off_rounded, color: AppColors.danger),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Available offline — critical info stays on this device and syncs when you are online.',
-                    style: TextStyle(
+                    context.l10n.emergencyOfflineNote,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: AppColors.ink,
                     ),
@@ -82,7 +83,7 @@ class EmergencyScreen extends ConsumerWidget {
           ),
           if (profiles.isNotEmpty) ...[
             const SizedBox(height: 10),
-            const SectionLabel('Care profiles'),
+            SectionLabel(context.l10n.emergencyCareProfiles),
             NestCard(
               padding: EdgeInsets.zero,
               child: Column(
@@ -109,9 +110,9 @@ class EmergencyScreen extends ConsumerWidget {
               if (items.isEmpty) {
                 return NestCard(
                   onTap: () => _addEntry(context, ref),
-                  child: const Text(
-                    'Add emergency contacts, allergies, and doctors.',
-                    style: TextStyle(color: AppColors.inkMuted),
+                  child: Text(
+                    context.l10n.emergencyAddHint,
+                    style: const TextStyle(color: AppColors.inkMuted),
                   ),
                 );
               }
@@ -184,7 +185,7 @@ class EmergencyScreen extends ConsumerWidget {
       await Clipboard.setData(ClipboardData(text: entry.value.trim()));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Copied ${entry.label}')),
+          SnackBar(content: Text(context.l10n.emergencyCopiedEntry(entry.label))),
         );
       }
       return;
@@ -192,7 +193,7 @@ class EmergencyScreen extends ConsumerWidget {
     await Clipboard.setData(ClipboardData(text: entry.value.trim()));
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Copied to clipboard')),
+        SnackBar(content: Text(context.l10n.emergencyCopied)),
       );
     }
   }
@@ -205,6 +206,7 @@ class EmergencyScreen extends ConsumerWidget {
     required List<NestMember> members,
   }) async {
     final text = _cardText(
+      l10n: context.l10n,
       nestName: nestName,
       entries: entries,
       profiles: profiles,
@@ -213,9 +215,7 @@ class EmergencyScreen extends ConsumerWidget {
     if (text == null) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Add a contact or care profile before sharing'),
-        ),
+        SnackBar(content: Text(context.l10n.emergencyNeedData)),
       );
       return;
     }
@@ -242,6 +242,7 @@ class EmergencyScreen extends ConsumerWidget {
     required List<NestMember> members,
   }) async {
     final text = _cardText(
+      l10n: context.l10n,
       nestName: nestName,
       entries: entries,
       profiles: profiles,
@@ -250,20 +251,19 @@ class EmergencyScreen extends ConsumerWidget {
     if (text == null) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Add a contact or care profile before copying'),
-        ),
+        SnackBar(content: Text(context.l10n.emergencyNeedDataCopy)),
       );
       return;
     }
     await Clipboard.setData(ClipboardData(text: text));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Emergency card copied')),
+      SnackBar(content: Text(context.l10n.emergencyCardCopied)),
     );
   }
 
   String? _cardText({
+    required AppLocalizations l10n,
     required String nestName,
     required List<EmergencyEntry> entries,
     required List<CareProfile> profiles,
@@ -271,7 +271,7 @@ class EmergencyScreen extends ConsumerWidget {
   }) {
     if (profiles.isEmpty && entries.isEmpty) return null;
 
-    final buf = StringBuffer('Nestly emergency card — $nestName\n');
+    final buf = StringBuffer('${l10n.emergencyCardTitle(nestName)}\n');
     if (profiles.isNotEmpty) {
       buf.writeln('\nCare profiles');
       for (final p in profiles) {
@@ -298,7 +298,7 @@ class EmergencyScreen extends ConsumerWidget {
       }
     }
     buf.writeln(
-      '\nShared from Nestly — keep offline on family devices. Update in the app when details change.',
+      '\nShared from Casaio — keep offline on family devices. Update in the app when details change.',
     );
     return buf.toString();
   }
@@ -332,19 +332,19 @@ class EmergencyScreen extends ConsumerWidget {
               children: [
                 sheetHandle(),
                 const SizedBox(height: 6),
-                const Text(
-                  'Emergency info',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                Text(
+                  context.l10n.emergencyInfo,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: c[0],
-                  decoration: const InputDecoration(labelText: 'Label'),
+                  decoration: InputDecoration(labelText: context.l10n.emergencyLabel),
                 ),
                 const SizedBox(height: 6),
                 TextField(
                   controller: c[1],
-                  decoration: const InputDecoration(labelText: 'Details'),
+                  decoration: InputDecoration(labelText: context.l10n.emergencyDetails),
                 ),
                 const SizedBox(height: 6),
                 FilledButton(
@@ -352,7 +352,7 @@ class EmergencyScreen extends ConsumerWidget {
                     context,
                     (label: c[0].text.trim(), value: c[1].text.trim()),
                   ),
-                  child: const Text('Save offline'),
+                  child: Text(context.l10n.saveOffline),
                 ),
               ],
             );
@@ -385,7 +385,7 @@ class _CareSnapshotTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = member?.name ?? 'Family member';
+    final name = member?.name ?? context.l10n.familyMember;
     final allergies = profile.allergies.trim();
     final meds = profile.medications.trim();
     final lines = <String>[

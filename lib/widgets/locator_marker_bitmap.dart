@@ -20,8 +20,10 @@ class LocatorMarkerBitmaps {
     double logicalSize = 48,
   }) async {
     final fill = AppColors.avatarFill(color);
+    final drawnFill = stale ? Color.lerp(fill, Colors.white, 0.35)! : fill;
+    final drawnOn = AppColors.onAvatarFill(drawnFill);
     final key =
-        '${initials.toUpperCase()}|${fill.toARGB32()}|$selected|$stale|$logicalSize';
+        '${initials.toUpperCase()}|${drawnFill.toARGB32()}|${drawnOn.toARGB32()}|$selected|$stale|$logicalSize';
     final hit = _cache[key];
     if (hit != null) return hit;
 
@@ -40,8 +42,7 @@ class LocatorMarkerBitmaps {
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3 * dpr);
     canvas.drawCircle(center.translate(0, 1.5 * dpr), radius, shadow);
 
-    final fillPaint = Paint()
-      ..color = stale ? Color.lerp(fill, Colors.white, 0.35)! : fill;
+    final fillPaint = Paint()..color = drawnFill;
     canvas.drawCircle(center, radius, fillPaint);
 
     final border = Paint()
@@ -56,7 +57,7 @@ class LocatorMarkerBitmaps {
             ? initials.toUpperCase()
             : initials.substring(0, 2).toUpperCase(),
         style: TextStyle(
-          color: AppColors.ink.withValues(alpha: stale ? 0.55 : 0.9),
+          color: drawnOn.withValues(alpha: stale ? 0.7 : 1),
           fontWeight: FontWeight.w800,
           fontSize: size * 0.34,
         ),

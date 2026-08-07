@@ -13,13 +13,18 @@
 
 [[redirects]]
   from = "/support"
-  to = "/support.html"
-  status = 200
+  to = "https://casaio.app/support/"
+  status = 301
 
 [[redirects]]
   from = "/privacy"
-  to = "/privacy.html"
-  status = 200
+  to = "https://casaio.app/privacy/"
+  status = 301
+
+[[redirects]]
+  from = "/"
+  to = "https://casaio.app/"
+  status = 302
 
 # Function uses config.path = /api/parse-document (takes priority over SPA).
 [[redirects]]

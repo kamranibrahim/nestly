@@ -7,12 +7,12 @@ import '../screens/expenses_screen.dart';
 import '../screens/meals_screen.dart';
 import '../screens/school_screen.dart';
 
-export '../data/enums.dart' show NotificationDestination, NestlyDeepLink;
+export '../data/enums.dart' show NotificationDestination, CasaioDeepLink;
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Tab indexes in [AppShell] — keep in sync with `lib/screens/app_shell.dart`.
-abstract final class NestlyShellTab {
+abstract final class CasaioShellTab {
   static const home = 0;
   static const calendar = 1;
   static const tasks = 2;
@@ -42,10 +42,10 @@ class NotificationIntent {
 void openNotificationIntent(NotificationIntent intent) {
   switch (intent.destination) {
     case NotificationDestination.calendar:
-      nestlyShellTabRequest.value = NestlyShellTab.calendar;
+      nestlyShellTabRequest.value = CasaioShellTab.calendar;
       return;
     case NotificationDestination.tasks:
-      nestlyShellTabRequest.value = NestlyShellTab.tasks;
+      nestlyShellTabRequest.value = CasaioShellTab.tasks;
       return;
     case NotificationDestination.bills:
     case NotificationDestination.care:
@@ -64,24 +64,24 @@ void openNotificationIntent(NotificationIntent intent) {
   }
 }
 
-/// Handles `nestly://…` launches from the Home Screen widget (and similar).
-void openNestlyUri(Uri uri) {
-  if (uri.scheme != 'nestly') return;
+/// Handles `casaio://…` launches from the Home Screen widget (and similar).
+void openCasaioUri(Uri uri) {
+  if (uri.scheme != 'casaio' && uri.scheme != 'nestly') return;
   final host = uri.host.toLowerCase();
   final path = uri.path.toLowerCase();
   final key = host.isNotEmpty ? host : path.replaceFirst('/', '');
 
-  switch (NestlyDeepLink.parse(key)) {
-    case NestlyDeepLink.home:
-      nestlyShellTabRequest.value = NestlyShellTab.home;
-    case NestlyDeepLink.calendar:
-      nestlyShellTabRequest.value = NestlyShellTab.calendar;
-    case NestlyDeepLink.tasks:
-      nestlyShellTabRequest.value = NestlyShellTab.tasks;
-    case NestlyDeepLink.meals:
+  switch (CasaioDeepLink.parse(key)) {
+    case CasaioDeepLink.home:
+      nestlyShellTabRequest.value = CasaioShellTab.home;
+    case CasaioDeepLink.calendar:
+      nestlyShellTabRequest.value = CasaioShellTab.calendar;
+    case CasaioDeepLink.tasks:
+      nestlyShellTabRequest.value = CasaioShellTab.tasks;
+    case CasaioDeepLink.meals:
       _pushWhenReady((_) => const MealsScreen(), attempt: 0);
-    case NestlyDeepLink.shopping:
-      nestlyShellTabRequest.value = NestlyShellTab.shopping;
+    case CasaioDeepLink.shopping:
+      nestlyShellTabRequest.value = CasaioShellTab.shopping;
   }
 }
 
@@ -108,11 +108,11 @@ void _pushWhenReady(
 }
 
 /// Convenience for tests / callers that still have a raw string.
-void openNestlyUriString(String? raw) {
+void openCasaioUriString(String? raw) {
   if (raw == null || raw.trim().isEmpty) return;
   final uri = Uri.tryParse(raw.trim());
   if (uri == null) return;
-  openNestlyUri(uri);
+  openCasaioUri(uri);
 }
 
 // Re-export URI constants for navigation tests.

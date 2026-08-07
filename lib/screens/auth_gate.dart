@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/db/app_database.dart';
 import '../data/nest_home_widget.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
 import 'app_shell.dart';
@@ -24,7 +25,9 @@ class AuthGate extends ConsumerWidget {
 
     return auth.when(
       loading: () => const BrandLoadingScaffold(),
-      error: (e, _) => Scaffold(
+      error: (e, _) {
+        final l10n = context.l10n;
+        return Scaffold(
         backgroundColor: AppColors.background,
         body: Center(
           child: Padding(
@@ -33,19 +36,20 @@ class AuthGate extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Could not check sign-in.\n$e',
+                  '${l10n.authCheckFailed}\n$e',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: () => ref.invalidate(authStateProvider),
-                  child: const Text('Retry'),
+                  child: Text(l10n.commonRetry),
                 ),
               ],
             ),
           ),
         ),
-      ),
+      );
+      },
       data: (user) {
         if (user == null) return const _PreAuthGate();
         return const _NestGate();
@@ -78,28 +82,31 @@ class _NestGate extends ConsumerWidget {
 
     return nest.when(
       loading: () => const HomeLoadingSkeleton(),
-      error: (e, _) => Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Could not load nest: $e', textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () => ref.invalidate(nestInfoProvider),
-                  child: const Text('Retry'),
-                ),
-                TextButton(
-                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
-                  child: const Text('Sign out'),
-                ),
-              ],
+      error: (e, _) {
+        final l10n = context.l10n;
+        return Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l10n.loadFailedNest('$e'), textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => ref.invalidate(nestInfoProvider),
+                    child: Text(l10n.commonRetry),
+                  ),
+                  TextButton(
+                    onPressed: () => ref.read(authRepositoryProvider).signOut(),
+                    child: Text(l10n.commonSignOut),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
       data: (info) {
         if (info == null) return const NestSetupScreen();
         return const _SyncedShell();
@@ -183,6 +190,8 @@ class SyncStatusBanner extends ConsumerWidget {
     final sync = ref.watch(syncControllerProvider);
     if (!sync.hasError) return const SizedBox.shrink();
 
+    final l10n = context.l10n;
+
     return Material(
       color: const Color(0xFFFFE8D6),
       child: SafeArea(
@@ -200,8 +209,8 @@ class SyncStatusBanner extends ConsumerWidget {
               Expanded(
                 child: Text(
                   sync.isSyncing
-                      ? 'Syncing…'
-                      : 'Sync failed · tap Retry to try again',
+                      ? l10n.syncing
+                      : l10n.syncFailedTapRetry,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,

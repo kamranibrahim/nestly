@@ -5,6 +5,7 @@ import '../data/db/app_database.dart';
 import '../data/locator_models.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_motion.dart';
+import '../l10n/l10n_ext.dart';
 import 'common.dart';
 import 'locator_marker_bitmap.dart';
 import 'locator_map_style.dart';
@@ -83,7 +84,7 @@ class _LocatorMapState extends State<LocatorMap> {
     }
   }
 
-  Set<Marker> _markers() {
+  Set<Marker> _markers(AppLocalizations l10n) {
     final out = <Marker>{};
     for (final loc in widget.locations) {
       if (!loc.hasCoordinates) continue;
@@ -91,17 +92,19 @@ class _LocatorMapState extends State<LocatorMap> {
       final selected = widget.focusMemberId == loc.memberId;
       final icon = _icons[loc.memberId] ??
           BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet);
+      final age = formatLocatorAge(loc.updatedAt, l10n: l10n);
       out.add(
         Marker(
           markerId: MarkerId(loc.memberId),
           position: LatLng(loc.lat, loc.lng),
           infoWindow: InfoWindow(
-            title: member?.name ?? 'Family member',
+            title: member?.name ?? l10n.familyMember,
             snippet: [
-              if ((loc.label ?? '').trim().isNotEmpty) loc.label!.trim(),
+              if (displayLocatorLabel(loc.label, l10n).isNotEmpty)
+                displayLocatorLabel(loc.label, l10n),
               loc.isStale()
-                  ? 'Last seen ${formatLocatorAge(loc.updatedAt)}'
-                  : 'Updated ${formatLocatorAge(loc.updatedAt)}',
+                  ? l10n.locatorLastSeen(age)
+                  : l10n.locatorUpdatedAge(age),
             ].join(' · '),
           ),
           icon: icon,
@@ -205,6 +208,7 @@ class _LocatorMapState extends State<LocatorMap> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final pins = widget.locations.where((l) => l.hasCoordinates).toList();
     final bounds = boundsForLocations(pins);
     final initial = bounds == null
@@ -222,7 +226,7 @@ class _LocatorMapState extends State<LocatorMap> {
           initialCameraPosition: initial,
           mapType: _mapType,
           style: useModernStyle ? locatorMapStyleJson : null,
-          markers: _markers(),
+          markers: _markers(l10n),
           circles: _circles(),
           myLocationEnabled: widget.showMyLocation,
           myLocationButtonEnabled: false,
@@ -277,22 +281,22 @@ class _LocatorMapState extends State<LocatorMap> {
                   ],
                 ),
               ),
-              child: const Center(
+              child: Center(
                 child: Padding(
-                  padding: EdgeInsets.all(28),
+                  padding: const EdgeInsets.all(28),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.location_on_outlined,
                         size: 40,
                         color: AppColors.inkMuted,
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Text(
-                        'Nest map wakes up when someone shares a pin',
+                        l10n.locatorMapWake,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w800,
                           color: AppColors.inkSecondary,
                           height: 1.35,
@@ -326,7 +330,9 @@ class _LocatorMapState extends State<LocatorMap> {
                   icon: widget.expanded
                       ? Icons.fullscreen_exit_rounded
                       : Icons.fullscreen_rounded,
-                  tooltip: widget.expanded ? 'Shrink map' : 'Expand map',
+                  tooltip: widget.expanded
+                      ? l10n.locatorShrinkMap
+                      : l10n.locatorExpandMap,
                   onTap: widget.onToggleExpand,
                 ),
                 const SizedBox(height: 8),
@@ -335,7 +341,9 @@ class _LocatorMapState extends State<LocatorMap> {
                 icon: useModernStyle
                     ? Icons.layers_outlined
                     : Icons.map_outlined,
-                tooltip: useModernStyle ? 'Satellite' : 'Modern map',
+                tooltip: useModernStyle
+                    ? l10n.locatorSatellite
+                    : l10n.locatorModernMap,
                 onTap: () {
                   setState(() {
                     _mapType = useModernStyle
@@ -366,7 +374,7 @@ class _LocatorMapState extends State<LocatorMap> {
               ],
               _MapChip(
                 icon: Icons.zoom_out_map_rounded,
-                label: 'Fit all',
+                label: l10n.locatorFitAll,
                 onTap: () {
                   _lastFocused = null;
                   _fitOrFocus(forceFit: true);

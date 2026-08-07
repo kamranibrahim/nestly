@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/auth_errors.dart';
+import '../../l10n/l10n_ext.dart';
 import '../../providers/providers.dart';
 import '../../state/auth_ui.dart';
 import '../../theme/app_colors.dart';
@@ -17,6 +18,7 @@ class NestSetupScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ui = ref.watch(nestSetupUiProvider);
     final ctrl = ref.read(nestSetupUiProvider.notifier);
+    final l10n = context.l10n;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _prefillFromUser(ref);
@@ -25,11 +27,13 @@ class NestSetupScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(ui.joining ? 'Join nest' : 'Set up in under a minute'),
+        title: Text(
+          ui.joining ? l10n.nestSetupJoinTitle : l10n.nestSetupCreateTitle,
+        ),
         actions: [
           TextButton(
             onPressed: () => ref.read(authRepositoryProvider).signOut(),
-            child: const Text('Sign out'),
+            child: Text(l10n.commonSignOut),
           ),
         ],
       ),
@@ -37,9 +41,7 @@ class NestSetupScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(24),
         children: [
           Text(
-            ui.joining
-                ? 'Paste or type the 6-character code from your family.'
-                : 'Create your household nest. You can rename it and invite family later.',
+            ui.joining ? l10n.nestSetupJoinBody : l10n.nestSetupCreateBody,
             style: const TextStyle(
               color: AppColors.inkSecondary,
               fontWeight: FontWeight.w500,
@@ -49,9 +51,9 @@ class NestSetupScreen extends ConsumerWidget {
           TextField(
             controller: ctrl.memberNameController,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Your name',
-              helperText: 'Shown on shared tasks and timeline',
+            decoration: InputDecoration(
+              labelText: l10n.authNameHint,
+              helperText: l10n.nestSetupNameHelper,
             ),
           ),
           const SizedBox(height: 12),
@@ -75,11 +77,11 @@ class NestSetupScreen extends ConsumerWidget {
                 LengthLimitingTextInputFormatter(6),
               ],
               decoration: InputDecoration(
-                labelText: 'Invite code',
+                labelText: l10n.nestSetupInviteCode,
                 hintText: 'ABC123',
-                helperText: 'Spaces and dashes are stripped automatically',
+                helperText: l10n.nestSetupInviteHelper,
                 suffixIcon: IconButton(
-                  tooltip: 'Paste',
+                  tooltip: l10n.commonPaste,
                   onPressed:
                       ui.busy ? null : () => _pasteInviteCode(context, ref),
                   icon: const Icon(Icons.content_paste_rounded),
@@ -93,15 +95,15 @@ class NestSetupScreen extends ConsumerWidget {
             TextField(
               controller: ctrl.nestNameController,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Nest name',
-                helperText: 'Defaults are fine — you can change this later',
+              decoration: InputDecoration(
+                labelText: l10n.nestSetupNestName,
+                helperText: l10n.nestSetupNestHelper,
               ),
             ),
           if (!ui.joining) ...[
             const SizedBox(height: 8),
             Text(
-              'After you start, Nestly will offer an invite code so someone can join.',
+              l10n.nestSetupAfterStart,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.inkMuted,
                 fontWeight: FontWeight.w600,
@@ -125,19 +127,21 @@ class NestSetupScreen extends ConsumerWidget {
             ),
             child: ui.busy
                 ? Semantics(
-                    label: 'Working',
+                    label: l10n.authWorking,
                     child: const SizedBox(
                       width: 22,
                       height: 22,
                       child: NestShimmerCircle(size: 22),
                     ),
                   )
-                : Text(ui.joining ? 'Join nest' : 'Start nest'),
+                : Text(ui.joining ? l10n.nestSetupJoinTitle : l10n.nestSetupStart),
           ),
           TextButton(
             onPressed: ui.busy ? null : ctrl.toggleJoining,
             child: Text(
-              ui.joining ? 'Create a new nest instead' : 'Have an invite code?',
+              ui.joining
+                  ? l10n.nestSetupSwitchCreate
+                  : l10n.nestSetupSwitchJoin,
             ),
           ),
         ],
@@ -173,7 +177,7 @@ Future<void> _pasteInviteCode(BuildContext context, WidgetRef ref) async {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Clipboard is empty')));
+    ).showSnackBar(SnackBar(content: Text(context.l10n.clipboardEmpty)));
     return;
   }
   final code = normalizeInviteCode(pasted);
@@ -228,7 +232,9 @@ Future<void> _submit(BuildContext context, WidgetRef ref) async {
     ref.invalidate(nestInfoProvider);
   } catch (e, st) {
     debugPrint('Nest setup failed: $e\n$st');
-    ctrl.setError(friendlyAuthError(e));
+    ctrl.setError(
+      friendlyAuthError(e, context.mounted ? context.l10n : null),
+    );
   } finally {
     ctrl.setBusy(false);
   }

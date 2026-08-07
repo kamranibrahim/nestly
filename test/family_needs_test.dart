@@ -37,7 +37,7 @@ void main() {
 
     expect(summary.needs, hasLength(1));
     expect(summary.needs.first.kind, FamilyNeedKind.calendar);
-    expect(summary.needs.first.title, 'Quiet day');
+    expect(summary.needs.first.variant, FamilyNeedVariant.quietDay);
   });
 
   test('dinner shop CTA when meal planned with title', () {
@@ -57,8 +57,9 @@ void main() {
       isTrue,
     );
     final meal = summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.meals);
-    expect(meal.title, 'Dinner: Tacos');
-    expect(meal.actionLabel, 'Shop');
+    expect(meal.variant, FamilyNeedVariant.dinnerPlanned);
+    expect(meal.dinnerTitle, 'Tacos');
+    expect(meal.action, FamilyNeedAction.shop);
   });
 
   test('school due uses Done action', () {
@@ -74,7 +75,7 @@ void main() {
 
     final school =
         summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.school);
-    expect(school.actionLabel, 'Done');
+    expect(school.action, FamilyNeedAction.done);
   });
 
   test('vault expiring soon surfaces on Home needs', () {
@@ -91,8 +92,8 @@ void main() {
 
     final vault =
         summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.vault);
-    expect(vault.title, contains('expire'));
-    expect(vault.actionLabel, 'Review');
+    expect(vault.count, 2);
+    expect(vault.action, FamilyNeedAction.review);
   });
 
   test('caps needs list at five highest priority items', () {
@@ -132,8 +133,8 @@ void main() {
       hasLength(1),
     );
     expect(
-      withOpen.needs.firstWhere((n) => n.kind == FamilyNeedKind.shopping).title,
-      contains('left'),
+      withOpen.needs.firstWhere((n) => n.kind == FamilyNeedKind.shopping).variant,
+      FamilyNeedVariant.standard,
     );
 
     final restock = buildFamilyNeeds(
@@ -147,12 +148,12 @@ void main() {
       grocerySuggestions: 5,
     );
     expect(
-      restock.needs.firstWhere((n) => n.kind == FamilyNeedKind.shopping).title,
-      contains('Restock'),
+      restock.needs.firstWhere((n) => n.kind == FamilyNeedKind.shopping).variant,
+      FamilyNeedVariant.grocerySuggestions,
     );
   });
 
-  test('singular labels for one task and one bill', () {
+  test('singular counts for one task and one bill', () {
     final summary = buildFamilyNeeds(
       openTasks: 1,
       openShopping: 0,
@@ -164,12 +165,12 @@ void main() {
     );
 
     expect(
-      summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.tasks).title,
-      '1 open task',
+      summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.tasks).count,
+      1,
     );
     expect(
-      summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.bills).title,
-      '1 bill due soon',
+      summary.needs.firstWhere((n) => n.kind == FamilyNeedKind.bills).count,
+      1,
     );
   });
 

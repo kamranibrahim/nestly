@@ -9,9 +9,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../l10n/app_localizations.dart';
+import '../navigation/app_navigator.dart';
+import 'app_l10n.dart';
 import 'db/app_database.dart';
 import 'enums.dart';
-import '../navigation/app_navigator.dart';
 import 'repositories.dart';
 
 @pragma('vm:entry-point')
@@ -64,18 +66,19 @@ class NotificationService {
       final notification = message.notification;
       if (notification == null) return;
       final payload = NotificationIntent.fromMessageData(message.data)?.payload;
+      final l10n = await resolvedAppLocalizations(_db);
       await _local.show(
         id: notification.hashCode,
         title: notification.title,
         body: notification.body,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'nestly_general',
-            'Nestly',
-            channelDescription: 'Family reminders and updates',
+            l10n.notifChannelGeneral,
+            channelDescription: l10n.notifChannelGeneralDesc,
             importance: Importance.defaultImportance,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         payload: payload,
       );
@@ -102,12 +105,13 @@ class NotificationService {
   Future<void> rescheduleReminders() async {
     if (!_ready) return;
     await _local.cancelAll();
-    await _scheduleBillReminders();
-    await _scheduleCareReminders();
-    await _scheduleSchoolReminders();
-    await _scheduleEventReminders();
-    await _scheduleTaskReminders();
-    await _scheduleTomorrowPreview();
+    final l10n = await resolvedAppLocalizations(_db);
+    await _scheduleBillReminders(l10n);
+    await _scheduleCareReminders(l10n);
+    await _scheduleSchoolReminders(l10n);
+    await _scheduleEventReminders(l10n);
+    await _scheduleTaskReminders(l10n);
+    await _scheduleTomorrowPreview(l10n);
   }
 
   /// Kept for existing call sites.
@@ -142,7 +146,7 @@ class NotificationService {
     openNotificationIntent(intent);
   }
 
-  Future<void> _scheduleTomorrowPreview() async {
+  Future<void> _scheduleTomorrowPreview(AppLocalizations l10n) async {
     final enabled = await ExpenseRepository(_db).getTomorrowPreviewEnabled();
     if (!enabled) return;
 
@@ -199,27 +203,27 @@ class NotificationService {
         .length;
 
     final parts = <String>[];
-    if (billCount > 0) parts.add(_countLabel(billCount, 'bill'));
-    if (careCount > 0) parts.add(_countLabel(careCount, 'care task'));
-    if (schoolCount > 0) parts.add(_countLabel(schoolCount, 'school item'));
-    if (eventCount > 0) parts.add(_countLabel(eventCount, 'event'));
-    if (taskCount > 0) parts.add(_countLabel(taskCount, 'task'));
+    if (billCount > 0) parts.add(l10n.notifBillCount(billCount));
+    if (careCount > 0) parts.add(l10n.notifCareCount(careCount));
+    if (schoolCount > 0) parts.add(l10n.notifSchoolCount(schoolCount));
+    if (eventCount > 0) parts.add(l10n.notifEventCount(eventCount));
+    if (taskCount > 0) parts.add(l10n.notifTaskCount(taskCount));
     if (parts.isEmpty) return;
 
     final when = tz.TZDateTime.from(previewAt, tz.local);
     await _local.zonedSchedule(
       id: 4000,
-      title: 'Tomorrow in Nestly',
-      body: '${parts.join(', ')} due tomorrow',
+      title: l10n.notifTomorrowTitle,
+      body: l10n.notifTomorrowBody(parts.join(', ')),
       scheduledDate: when,
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           'nestly_preview',
-          'Tomorrow preview',
-          channelDescription: 'A quiet evening look at tomorrow',
+          l10n.notifChannelPreview,
+          channelDescription: l10n.notifChannelPreviewDesc,
           importance: Importance.defaultImportance,
         ),
-        iOS: DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
     );
@@ -229,11 +233,7 @@ class NotificationService {
     return !value.isBefore(start) && value.isBefore(end);
   }
 
-  String _countLabel(int count, String singular) {
-    return count == 1 ? '1 $singular' : '$count ${singular}s';
-  }
-
-  Future<void> _scheduleBillReminders() async {
+  Future<void> _scheduleBillReminders(AppLocalizations l10n) async {
     final bills = await BillRepository(_db).getUnpaidUpcoming();
     var i = 0;
     for (final bill in bills) {
@@ -242,17 +242,20 @@ class NotificationService {
       final when = tz.TZDateTime.from(remindAt, tz.local);
       await _local.zonedSchedule(
         id: 1000 + i,
-        title: 'Bill due tomorrow',
-        body: '${bill.title} · \$${bill.amount.toStringAsFixed(2)}',
+        title: l10n.notifBillDueTomorrow,
+        body: l10n.notifBillBody(
+          bill.title,
+          bill.amount.toStringAsFixed(2),
+        ),
         scheduledDate: when,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'nestly_bills',
-            'Bills',
-            channelDescription: 'Reminders before household bills are due',
+            l10n.notifChannelBills,
+            channelDescription: l10n.notifChannelBillsDesc,
             importance: Importance.high,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         payload: const NotificationIntent(
@@ -264,7 +267,7 @@ class NotificationService {
     }
   }
 
-  Future<void> _scheduleCareReminders() async {
+  Future<void> _scheduleCareReminders(AppLocalizations l10n) async {
     final now = DateTime.now();
     final endTomorrow = DateTime(now.year, now.month, now.day + 1, 23, 59, 59);
     final items =
@@ -292,20 +295,22 @@ class NotificationService {
       if (!remindAt.isAfter(now)) continue;
 
       final when = tz.TZDateTime.from(remindAt, tz.local);
-      final label = item.category == 'Elder' ? 'Elder care due' : 'Care due';
+      final label = item.category == 'Elder'
+          ? l10n.notifElderCareDue
+          : l10n.notifCareDue;
       await _local.zonedSchedule(
         id: 2000 + i,
         title: label,
         body: item.title,
         scheduledDate: when,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'nestly_care',
-            'Care',
-            channelDescription: 'Reminders for household and elder care',
+            l10n.notifChannelCare,
+            channelDescription: l10n.notifChannelCareDesc,
             importance: Importance.high,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         payload: const NotificationIntent(NotificationDestination.care).payload,
@@ -315,7 +320,7 @@ class NotificationService {
     }
   }
 
-  Future<void> _scheduleSchoolReminders() async {
+  Future<void> _scheduleSchoolReminders(AppLocalizations l10n) async {
     final now = DateTime.now();
     final endTomorrow = DateTime(now.year, now.month, now.day + 1, 23, 59, 59);
     final items =
@@ -346,17 +351,17 @@ class NotificationService {
       final when = tz.TZDateTime.from(remindAt, tz.local);
       await _local.zonedSchedule(
         id: 3000 + i,
-        title: 'School / pickup',
+        title: l10n.notifSchoolPickup,
         body: item.title,
         scheduledDate: when,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'nestly_school',
-            'School',
-            channelDescription: 'Reminders for school runs and activities',
+            l10n.notifChannelSchool,
+            channelDescription: l10n.notifChannelSchoolDesc,
             importance: Importance.high,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         payload: const NotificationIntent(
@@ -368,7 +373,7 @@ class NotificationService {
     }
   }
 
-  Future<void> _scheduleEventReminders() async {
+  Future<void> _scheduleEventReminders(AppLocalizations l10n) async {
     final now = DateTime.now();
     final horizon = now.add(const Duration(days: 3));
     final events =
@@ -395,17 +400,17 @@ class NotificationService {
       final when = tz.TZDateTime.from(remindAt, tz.local);
       await _local.zonedSchedule(
         id: 5000 + i,
-        title: 'Coming up',
+        title: l10n.notifComingUp,
         body: event.title,
         scheduledDate: when,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'nestly_events',
-            'Events',
-            channelDescription: 'Reminders before calendar events',
+            l10n.notifChannelEvents,
+            channelDescription: l10n.notifChannelEventsDesc,
             importance: Importance.high,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         payload: const NotificationIntent(
@@ -417,7 +422,7 @@ class NotificationService {
     }
   }
 
-  Future<void> _scheduleTaskReminders() async {
+  Future<void> _scheduleTaskReminders(AppLocalizations l10n) async {
     final now = DateTime.now();
     final tasks =
         await (_db.select(_db.tasks)
@@ -440,17 +445,17 @@ class NotificationService {
       final when = tz.TZDateTime.from(remindAt, tz.local);
       await _local.zonedSchedule(
         id: 6000 + i,
-        title: 'Task due',
+        title: l10n.notifTaskDue,
         body: task.title,
         scheduledDate: when,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'nestly_tasks',
-            'Tasks',
-            channelDescription: 'Reminders for open nest tasks',
+            l10n.notifChannelTasks,
+            channelDescription: l10n.notifChannelTasksDesc,
             importance: Importance.defaultImportance,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         payload: const NotificationIntent(
@@ -463,7 +468,7 @@ class NotificationService {
   }
 }
 
-/// Maps Nestly relative due labels to a calendar day (local midnight).
+/// Maps Casaio relative due labels to a calendar day (local midnight).
 DateTime? _dueDateForTaskLabel(String label, {required DateTime now}) {
   return TaskDueLabel.dueDateFor(label, now: now);
 }

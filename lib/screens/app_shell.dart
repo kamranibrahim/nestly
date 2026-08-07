@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/telemetry.dart';
+import '../l10n/l10n_ext.dart';
 import '../navigation/app_navigator.dart';
 import '../providers/providers.dart';
 import '../state/shell_ui.dart';
@@ -24,6 +26,8 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
+  DateTime? _lastExitBackAt;
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +56,33 @@ class _AppShellState extends ConsumerState<AppShell> {
     nestlyShellTabRequest.value = null;
   }
 
+  void _handleSystemBack() {
+    final index = ref.read(shellTabProvider);
+    if (index != 0) {
+      _lastExitBackAt = null;
+      ref.read(shellTabProvider.notifier).go(0);
+      return;
+    }
+
+    final now = DateTime.now();
+    final last = _lastExitBackAt;
+    if (last != null && now.difference(last) < const Duration(seconds: 2)) {
+      SystemNavigator.pop();
+      return;
+    }
+
+    _lastExitBackAt = now;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.pressBackAgainToExit),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final index = ref.watch(shellTabProvider);
@@ -69,7 +100,13 @@ class _AppShellState extends ConsumerState<AppShell> {
       MoreScreen(onOpenTab: go),
     ];
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleSystemBack();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.background,
       extendBody: true,
       body: AnimatedTabBody(index: index, children: pages),
@@ -80,7 +117,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: CircleIconButton(
           icon: Icons.add_rounded,
           size: 46,
-          semanticLabel: 'Add to Nestly',
+          semanticLabel: context.l10n.addToCasaio,
           onTap: () => _showAddSheet(context, go),
         ),
       ),
@@ -100,36 +137,36 @@ class _AppShellState extends ConsumerState<AppShell> {
             ),
             child: Semantics(
               container: true,
-              label: 'Main navigation',
+              label: context.l10n.navMain,
               child: Row(
                 children: [
                   _NavItem(
                     icon: Icons.home_rounded,
-                    label: 'Home',
+                    label: context.l10n.tabHome,
                     selected: index == 0,
                     onTap: () => go(0),
                   ),
                   _NavItem(
                     icon: Icons.calendar_month_rounded,
-                    label: 'Calendar',
+                    label: context.l10n.tabCalendar,
                     selected: index == 1,
                     onTap: () => go(1),
                   ),
                   _NavItem(
                     icon: Icons.checklist_rounded,
-                    label: 'Tasks',
+                    label: context.l10n.tabTasks,
                     selected: index == 2,
                     onTap: () => go(2),
                   ),
                   _NavItem(
                     icon: Icons.shopping_bag_rounded,
-                    label: 'Shop',
+                    label: context.l10n.tabShop,
                     selected: index == 3,
                     onTap: () => go(3),
                   ),
                   _NavItem(
                     icon: Icons.more_horiz_rounded,
-                    label: 'Nest',
+                    label: context.l10n.tabNest,
                     selected: index == 4,
                     onTap: () => go(4),
                   ),
@@ -139,6 +176,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -169,11 +207,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Add to Nestly',
-                  style: TextStyle(
+                  sheetContext.l10n.addToCasaio,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
@@ -184,7 +222,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               _AddOption(
                 icon: Icons.event_rounded,
                 color: AppColors.accent,
-                label: 'Event',
+                label: sheetContext.l10n.addEvent,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   go(1);
@@ -195,7 +233,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               _AddOption(
                 icon: Icons.check_circle_outline_rounded,
                 color: AppColors.mint,
-                label: 'Task',
+                label: sheetContext.l10n.addTask,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   go(2);
@@ -205,7 +243,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               _AddOption(
                 icon: Icons.shopping_bag_outlined,
                 color: AppColors.tileOrange,
-                label: 'Shopping item',
+                label: sheetContext.l10n.addShoppingItem,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   go(3);
@@ -216,7 +254,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               _AddOption(
                 icon: Icons.document_scanner_rounded,
                 color: AppColors.tilePink,
-                label: 'Scan receipt / invite',
+                label: sheetContext.l10n.addScan,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   // Sheet context is disposed after pop — use the shell.

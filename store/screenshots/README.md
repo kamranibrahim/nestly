@@ -1,4 +1,4 @@
-# Nestly App Store screenshots
+# Casaio App Store screenshots
 
 Generated marketing frames for **iPhone** at **1242 × 2688px**.
 

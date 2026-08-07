@@ -22,7 +22,7 @@ void main() {
   test('invite share text includes marketing URL and code', () {
     final text = inviteShareText(inviteCode: 'ABC123', nestName: 'Smith Nest');
     expect(text, contains('ABC123'));
-    expect(text, contains(nestlyInviteMarketingUrl));
+    expect(text, contains(casaioInviteMarketingUrl));
     expect(text, contains('Smith Nest'));
   });
 }

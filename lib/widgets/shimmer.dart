@@ -326,12 +326,12 @@ class BrandLoadingScaffold extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Semantics(
-                label: 'Nestly',
+                label: 'Casaio',
                 image: true,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
                   child: Image.asset(
-                    'assets/brand/logos/nestly-logo-lettermark.png',
+                    'assets/brand/logos/casaio-logo-mark-plain.png',
                     width: 72,
                     height: 72,
                     fit: BoxFit.cover,

@@ -16,6 +16,7 @@ import '../widgets/common.dart';
 import '../widgets/shimmer.dart';
 import '../widgets/sheet_form.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 
 final documentAiServiceProvider = Provider<DocumentAiService>((ref) {
   return DocumentAiService();
@@ -32,7 +33,7 @@ Future<void> startDocumentScanFlow(
   final user = ref.read(authStateProvider).valueOrNull;
   if (user == null) {
     messenger?.showSnackBar(
-      const SnackBar(content: Text('Sign in to scan documents.')),
+      SnackBar(content: Text(context.l10n.scanSignIn)),
     );
     return;
   }
@@ -51,7 +52,9 @@ Future<void> startDocumentScanFlow(
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Could not open the file picker: ${_friendlyError(e)}')),
+      SnackBar(
+        content: Text(context.l10n.scanPickerFailed(_friendlyError(e, context.l10n))),
+      ),
     );
     return;
   }
@@ -63,10 +66,8 @@ Future<void> startDocumentScanFlow(
   if (!context.mounted) return;
   if (bytes == null || bytes.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Could not read that file. Try a smaller JPEG/PNG or PDF.',
-        ),
+      SnackBar(
+        content: Text(context.l10n.scanReadFailed),
       ),
     );
     return;
@@ -74,8 +75,8 @@ Future<void> startDocumentScanFlow(
 
   if (bytes.length > 4 * 1024 * 1024) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('File is too large — keep photos/PDFs under ~4 MB.'),
+      SnackBar(
+        content: Text(context.l10n.scanTooLarge),
       ),
     );
     return;
@@ -87,21 +88,21 @@ Future<void> startDocumentScanFlow(
     context: context,
     barrierDismissible: false,
     useRootNavigator: true,
-    builder: (_) => const Center(
+    builder: (dialogContext) => Center(
       child: Card(
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 22,
                 height: 22,
                 child: NestShimmerCircle(size: 22),
               ),
-              SizedBox(width: 14),
+              const SizedBox(width: 14),
               Flexible(
-                child: Text('Reading document…\nUsually under a minute'),
+                child: Text(dialogContext.l10n.scanReading),
               ),
             ],
           ),
@@ -124,7 +125,7 @@ Future<void> startDocumentScanFlow(
     Navigator.of(context, rootNavigator: true).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_friendlyError(e)),
+        content: Text(_friendlyError(e, context.l10n)),
         duration: const Duration(seconds: 5),
       ),
     );
@@ -162,21 +163,27 @@ Future<String?> _pickScanHint(BuildContext context) {
             children: [
               sheetHandle(),
               const SizedBox(height: 10),
-              const Text(
-                'What are you scanning?',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              Text(
+                context.l10n.scanWhatScanning,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 6),
               const Text(
-                'A hint helps Nestly pick the right draft.',
+                'A hint helps Casaio pick the right draft.',
                 style: TextStyle(color: AppColors.inkSecondary),
               ),
               const SizedBox(height: 14),
-              for (final option in const [
-                (label: 'Receipt', hint: 'Store receipt — extract total as expense'),
-                (label: 'Invite / event', hint: 'Invitation or appointment — calendar event'),
-                (label: 'School notice', hint: 'School notice or sports schedule'),
-                (label: 'Bill', hint: 'Utility or service bill — save as bill with due date'),
+              for (final option in [
+                (label: context.l10n.scanReceipt, hint: context.l10n.scanReceiptHint),
+                (
+                  label: context.l10n.scanInviteEvent,
+                  hint: context.l10n.scanInviteHint,
+                ),
+                (
+                  label: context.l10n.scanSchoolNotice,
+                  hint: context.l10n.scanSchoolHint,
+                ),
+                (label: context.l10n.scanBillLabel, hint: context.l10n.scanBillHint),
                 (label: 'Other', hint: ''),
               ]) ...[
                 ListTile(
@@ -225,13 +232,32 @@ String _mimeFor(String? extension, String name) {
   };
 }
 
-String _friendlyError(Object e) {
-  if (e is DocumentAiException) return e.message;
-  final raw = '$e'
+String _friendlyError(Object e, AppLocalizations l10n) {
+  final raw = (e is DocumentAiException ? e.message : '$e')
       .replaceFirst(RegExp(r'^Bad state:\s*'), '')
       .replaceFirst(RegExp(r'^Exception:\s*'), '')
       .trim();
-  return raw.isEmpty ? 'Scan failed. Try again.' : raw;
+  switch (raw) {
+    case 'Sign in to scan documents.':
+      return l10n.scanSignIn;
+    case 'That file is too large. Use a photo or PDF under about 4 MB.':
+      return l10n.scanFileTooLargeAi;
+    case 'Scan returned an empty result. Try a clearer photo.':
+      return l10n.scanEmptyResult;
+    case 'Scan returned an unexpected response. Try another photo.':
+      return l10n.scanUnexpected;
+    case 'Scan timed out. Try a clearer photo or a smaller file.':
+      return l10n.scanTimedOut;
+    case 'Could not reach Vertex AI. Check your connection and try again.':
+      return l10n.scanReachFailed;
+    case 'AI quota reached for today. Try again later.':
+      return l10n.scanQuotaReached;
+  }
+  if (raw.contains('Firebase Blaze plan')) return l10n.scanNeedBlaze;
+  if (raw.contains('Vertex AI Gemini is not ready')) {
+    return l10n.scanVertexNotReady;
+  }
+  return raw.isEmpty ? l10n.scanFailed : raw;
 }
 
 class _DraftConfirmSheet extends ConsumerStatefulWidget {
@@ -367,7 +393,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
     final title = _title.text.trim();
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a title before saving')),
+        SnackBar(content: Text(context.l10n.scanNeedTitle)),
       );
       return;
     }
@@ -375,7 +401,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
       final amount = double.tryParse(_amount.text.trim());
       if (amount == null || amount < 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter a valid amount')),
+          SnackBar(content: Text(context.l10n.scanNeedAmount)),
         );
         return;
       }
@@ -441,10 +467,10 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
         SnackBar(
           content: Text(
             switch (_kind) {
-              ScanDraftKind.expense => 'Expense added',
-              ScanDraftKind.bill => 'Bill added',
-              ScanDraftKind.task => 'Task added',
-              ScanDraftKind.event => 'Event added',
+              ScanDraftKind.expense => context.l10n.scanExpenseAdded,
+              ScanDraftKind.bill => context.l10n.scanBillAdded,
+              ScanDraftKind.task => context.l10n.scanTaskAdded,
+              ScanDraftKind.event => context.l10n.scanEventAdded,
             },
           ),
         ),
@@ -452,7 +478,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save: ${_friendlyError(e)}')),
+        SnackBar(content: Text(context.l10n.scanSaveFailed(_friendlyError(e, context.l10n)))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -474,10 +500,10 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'Review scan',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                context.l10n.scanReview,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
             ),
             SoftPill(
@@ -502,9 +528,9 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
           NestCard(
             color: AppColors.tileYellow,
             bordered: false,
-            child: const Text(
-              'Low confidence — double-check the title, date, and amount before saving.',
-              style: TextStyle(fontWeight: FontWeight.w600, height: 1.35),
+            child: Text(
+              context.l10n.scanLowConfidence,
+              style: const TextStyle(fontWeight: FontWeight.w600, height: 1.35),
             ),
           ),
         ],
@@ -515,7 +541,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
           children: [
             for (final kind in ScanDraftKind.values)
               SoftPill(
-                label: kind.label,
+                label: kind.display(context.l10n),
                 selected: _kind == kind,
                 onTap: () => setState(() {
                   _kind = kind;
@@ -535,14 +561,14 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
         TextField(
           controller: _title,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Title'),
+          decoration: InputDecoration(labelText: context.l10n.commonTitle),
         ),
         if (_kind != ScanDraftKind.bill) ...[
           const SizedBox(height: 10),
           TextField(
             controller: _category,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Category'),
+            decoration: InputDecoration(labelText: context.l10n.commonCategory),
           ),
         ],
         if (_kind == ScanDraftKind.event) ...[
@@ -562,7 +588,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
                   ),
                 ),
                 SoftPill(
-                  label: _allDay ? 'All day' : 'Timed',
+                  label: _allDay ? context.l10n.commonAllDay : context.l10n.scanTimed,
                   selected: _allDay,
                   onTap: () => setState(() => _allDay = !_allDay),
                 ),
@@ -579,7 +605,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
                 Expanded(
                   child: Text(
                     _endsAt == null
-                        ? 'End time (optional)'
+                        ? context.l10n.scanEndTimeOptional
                         : (_allDay
                             ? DateFormat.yMMMEd().format(_endsAt!)
                             : DateFormat.yMMMEd().add_jm().format(_endsAt!)),
@@ -593,7 +619,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
                 ),
                 if (_endsAt != null)
                   IconButton(
-                    tooltip: 'Clear end',
+                    tooltip: context.l10n.scanClearEnd,
                     onPressed: () => setState(() => _endsAt = null),
                     icon: const Icon(Icons.close_rounded, size: 18),
                   ),
@@ -604,7 +630,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
           TextField(
             controller: _location,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Location'),
+            decoration: InputDecoration(labelText: context.l10n.commonLocation),
           ),
         ],
         if (_kind == ScanDraftKind.expense || _kind == ScanDraftKind.bill) ...[
@@ -613,7 +639,9 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
             controller: _amount,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: _kind == ScanDraftKind.bill ? 'Amount due' : 'Amount',
+              labelText: _kind == ScanDraftKind.bill
+                  ? context.l10n.scanAmountDue
+                  : context.l10n.commonAmount,
               prefixText: (d.currency == null || d.currency!.isEmpty)
                   ? '\$ '
                   : '${d.currency} ',
@@ -643,9 +671,9 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
         if ((_kind == ScanDraftKind.task || _kind == ScanDraftKind.expense) &&
             members.isNotEmpty) ...[
           const SizedBox(height: 10),
-          const Text(
-            'Assign to',
-            style: TextStyle(fontWeight: FontWeight.w700),
+          Text(
+            context.l10n.scanAssignTo,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Wrap(
@@ -655,7 +683,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
               for (final m in members)
                 SoftPill(
                   label:
-                      '${m.name.split(' ').first} · ${MemberRoles.normalize(m.role)}',
+                      '${m.name.split(' ').first} · ${localizedMemberRole(m.role, context.l10n)}',
                   selected: _assigneeId == m.id ||
                       (_assigneeId.isEmpty && m.id == defaultAssigneeId),
                   onTap: () => setState(() => _assigneeId = m.id),
@@ -668,7 +696,7 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
           controller: _notes,
           maxLines: 2,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Notes'),
+          decoration: InputDecoration(labelText: context.l10n.commonNotes),
         ),
         const SizedBox(height: 16),
         FilledButton(
@@ -680,15 +708,15 @@ class _DraftConfirmSheetState extends ConsumerState<_DraftConfirmSheet> {
                   child: NestShimmerCircle(size: 20),
                 )
               : Text(switch (_kind) {
-                  ScanDraftKind.expense => 'Add expense',
-                  ScanDraftKind.bill => 'Add bill',
-                  ScanDraftKind.task => 'Add task',
-                  ScanDraftKind.event => 'Add event',
+                  ScanDraftKind.expense => context.l10n.scanAddExpense,
+                  ScanDraftKind.bill => context.l10n.scanAddBill,
+                  ScanDraftKind.task => context.l10n.scanAddTask,
+                  ScanDraftKind.event => context.l10n.scanAddEvent,
                 }),
         ),
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Discard'),
+          child: Text(context.l10n.commonDiscard),
         ),
         const SizedBox(height: 4),
       ],

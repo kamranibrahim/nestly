@@ -13,6 +13,7 @@ import '../widgets/first_run_empty_card.dart';
 import '../widgets/motion.dart';
 import '../widgets/shimmer.dart';
 import '../data/sync_controller.dart';
+import '../l10n/l10n_ext.dart';
 
 class TasksScreen extends ConsumerWidget {
   const TasksScreen({super.key});
@@ -131,7 +132,7 @@ class TasksScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Tasks',
+                      context.l10n.screenTasks,
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -152,7 +153,7 @@ class TasksScreen extends ConsumerWidget {
                 loading: () =>
                     const NestLoadingSkeleton(itemCount: 5, hasTitle: true),
                 error: (error, _) =>
-                    const Center(child: Text('Could not load tasks.')),
+                    Center(child: Text(context.l10n.loadFailedTasks)),
                 data: (tasks) {
                   final assigneeFiltered = ui.assigneeFilterId == null
                       ? tasks
@@ -221,10 +222,10 @@ class TasksScreen extends ConsumerWidget {
                         child: TextField(
                           controller: controller.searchController,
                           onChanged: controller.setSearchQuery,
-                          decoration: const InputDecoration(
-                            hintText: 'Search tasks',
+                          decoration: InputDecoration(
+                            hintText: context.l10n.searchTasks,
                             border: InputBorder.none,
-                            prefixIcon: Icon(Icons.search_rounded),
+                            prefixIcon: const Icon(Icons.search_rounded),
                           ),
                         ),
                       ),
@@ -233,18 +234,17 @@ class TasksScreen extends ConsumerWidget {
                         FirstRunEmptyCard(
                           icon: Icons.add_task_rounded,
                           color: AppColors.mint,
-                          title: 'Add your first task',
-                          body:
-                              'Chores, reminders, and shared to-dos live here — tap to create one for the nest.',
-                          actionLabel: 'Add task',
+                          title: context.l10n.emptyTasksTitle,
+                          body: context.l10n.emptyTasksBody,
+                          actionLabel: context.l10n.homeAddTask,
                           onAction: () =>
                               TasksScreen.showTaskSheet(context, ref),
                         )
                       else if (filtered.isEmpty)
-                        const NestCard(
+                        NestCard(
                           child: Text(
-                            'No tasks match this search.',
-                            style: TextStyle(color: AppColors.inkMuted),
+                            context.l10n.tasksNoMatch,
+                            style: const TextStyle(color: AppColors.inkMuted),
                           ),
                         )
                       else if (open.isEmpty && done.isEmpty)
@@ -252,12 +252,14 @@ class TasksScreen extends ConsumerWidget {
                           icon: Icons.person_outline_rounded,
                           color: AppColors.mint,
                           title: filterMember == null
-                              ? 'No tasks here'
-                              : 'Nothing for ${filterMember.name.split(' ').first}',
+                              ? context.l10n.emptyTasksNone
+                              : context.l10n.emptyTasksNoneNamed(
+                                  filterMember.name.split(' ').first,
+                                ),
                           body: filterMember == null
-                              ? 'Try another filter or add a task.'
-                              : 'Tap All to see everyone, or add a task for them.',
-                          actionLabel: 'Add task',
+                              ? context.l10n.emptyTasksHint
+                              : context.l10n.emptyTasksHintNamed,
+                          actionLabel: context.l10n.homeAddTask,
                           onAction: () =>
                               TasksScreen.showTaskSheet(context, ref),
                         )
@@ -347,7 +349,7 @@ class _AssigneeFilterAvatar extends StatelessWidget {
       onTap: onTap,
       semanticLabel: selected
           ? '${member.name}, selected filter'
-          : 'Filter tasks for ${member.name}',
+          : context.l10n.tasksFilterFor(member.name),
       selected: selected,
       child: AnimatedContainer(
         duration: AppMotion.fast,
@@ -445,7 +447,7 @@ class _TaskSheetState extends State<_TaskSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              existing == null ? 'New task' : 'Edit task',
+              existing == null ? context.l10n.taskNew : context.l10n.taskEdit,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
@@ -453,7 +455,7 @@ class _TaskSheetState extends State<_TaskSheet> {
               controller: _controller,
               autofocus: existing == null,
               textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(hintText: 'What needs doing?'),
+              decoration: InputDecoration(hintText: context.l10n.hintTaskTitle),
               onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 8),
@@ -463,7 +465,7 @@ class _TaskSheetState extends State<_TaskSheet> {
               children: [
                 for (final due in TaskDueLabel.values)
                   SoftPill(
-                    label: due.label,
+                    label: due.display(context.l10n),
                     selected: _dueLabel == due.label,
                     onTap: () => setState(() => _dueLabel = due.label),
                   ),
@@ -478,7 +480,7 @@ class _TaskSheetState extends State<_TaskSheet> {
                   for (final member in widget.members)
                     SoftPill(
                       label:
-                          '${member.name.split(' ').first} · ${MemberRoles.normalize(member.role)}',
+                          '${member.name.split(' ').first} · ${localizedMemberRole(member.role, context.l10n)}',
                       selected: _assigneeId == member.id,
                       onTap: () => setState(() => _assigneeId = member.id),
                     ),
@@ -488,26 +490,30 @@ class _TaskSheetState extends State<_TaskSheet> {
             const SizedBox(height: 4),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text(
-                'Repeats',
-                style: TextStyle(fontWeight: FontWeight.w700),
+              title: Text(
+                context.l10n.taskRepeats,
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              subtitle: const Text(
-                'Stays open and rolls the due label when done',
-                style: TextStyle(fontSize: 12.5),
+              subtitle: Text(
+                context.l10n.taskHabitHint,
+                style: const TextStyle(fontSize: 12.5),
               ),
               value: _recurring,
               onChanged: (v) => setState(() => _recurring = v),
             ),
             FilledButton(
               onPressed: _submit,
-              child: Text(existing == null ? 'Add task' : 'Save changes'),
+              child: Text(
+                existing == null
+                    ? context.l10n.taskAdd
+                    : context.l10n.commonSaveChanges,
+              ),
             ),
             if (existing != null) ...[
               const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () => _submit(deleteTask: true),
-                child: const Text('Delete task'),
+                child: Text(context.l10n.deleteTask),
               ),
             ],
           ],
@@ -600,7 +606,9 @@ class _PastelTaskCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    task.recurring ? 'Repeats' : 'Open',
+                    task.recurring
+                        ? context.l10n.taskRepeats
+                        : context.l10n.taskOpen,
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 11,

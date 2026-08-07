@@ -1,48 +1,52 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/widgets.dart';
 
-String friendlyAuthError(Object error) {
+import '../l10n/app_localizations.dart';
+
+String friendlyAuthError(Object error, [AppLocalizations? l10n]) {
+  final t = l10n ?? lookupAppLocalizations(const Locale('en'));
   if (error is FirebaseAuthException) {
     switch (error.code) {
       case 'invalid-email':
-        return 'That email address looks invalid.';
+        return t.authErrorInvalidEmail;
       case 'user-disabled':
-        return 'This account has been disabled.';
+        return t.authErrorDisabled;
       case 'user-not-found':
       case 'wrong-password':
       case 'invalid-credential':
-        return 'Email or password is incorrect.';
+        return t.authErrorBadCredential;
       case 'email-already-in-use':
-        return 'An account already exists for that email.';
+        return t.authErrorEmailInUse;
       case 'weak-password':
-        return 'Use a password with at least 6 characters.';
+        return t.authErrorWeakPassword;
       case 'too-many-requests':
-        return 'Too many attempts. Try again in a few minutes.';
+        return t.authErrorTooMany;
       case 'network-request-failed':
-        return 'No network. Check your connection and try again.';
+        return t.authErrorNetwork;
       case 'operation-not-allowed':
-        return 'Email sign-in is not enabled yet for this project.';
+        return t.authErrorNotAllowed;
       case 'requires-recent-login':
-        return 'For security, enter your password again to continue.';
+        return t.authErrorRecentLogin;
       default:
-        return error.message ?? 'Something went wrong. Please try again.';
+        return error.message ?? t.authErrorGeneric;
     }
   }
 
   if (error is FirebaseException) {
     switch (error.code) {
       case 'permission-denied':
-        return 'Cloud access was denied. Sign out, sign in again, or check Firestore rules.';
+        return t.authErrorPermission;
       case 'unavailable':
       case 'deadline-exceeded':
-        return 'No network. Check your connection and try again.';
+        return t.authErrorNetwork;
       case 'not-found':
-        return 'That nest or invite was not found.';
+        return t.authErrorNotFound;
       case 'already-exists':
-        return 'That invite code is already in use. Try again.';
+        return t.authErrorAlreadyExists;
       default:
         return error.message?.isNotEmpty == true
             ? error.message!
-            : 'Something went wrong (${error.code}). Please try again.';
+            : t.authErrorGenericCode(error.code);
     }
   }
 
@@ -51,10 +55,10 @@ String friendlyAuthError(Object error) {
     return text.substring('Bad state: '.length);
   }
   if (text.contains('Invite code not found')) {
-    return 'That invite code was not found.';
+    return t.authErrorInviteMissing;
   }
   if (text.contains('Must be signed in')) {
-    return 'Please sign in again, then start your nest.';
+    return t.authErrorSignInAgain;
   }
   if (text.contains('Enter the email') ||
       text.contains('Fill in your current') ||
@@ -62,5 +66,5 @@ String friendlyAuthError(Object error) {
       text.contains("don't match")) {
     return text;
   }
-  return 'Something went wrong. Please try again.';
+  return t.authErrorGeneric;
 }
