@@ -1478,6 +1478,109 @@ class MealRepository {
         .where((s) => s.isNotEmpty)
         .toList();
   }
+
+  Stream<List<Recipe>> watchRecipes() {
+    return (_db.select(_db.recipes)
+          ..where((r) => r.deleted.equals(false))
+          ..orderBy([(r) => OrderingTerm(expression: r.title)]))
+        .watch();
+  }
+
+  Future<Recipe> addRecipe({
+    required String title,
+    String ingredients = '',
+    String notes = '',
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final id = _uuid.v4();
+    await _db
+        .into(_db.recipes)
+        .insert(
+          RecipesCompanion.insert(
+            id: id,
+            nestId: Value(nestId),
+            title: title.trim(),
+            ingredients: Value(ingredients.trim()),
+            notes: Value(notes.trim()),
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    return (_db.select(_db.recipes)..where((r) => r.id.equals(id)))
+        .getSingle();
+  }
+
+  Future<void> updateRecipe({
+    required String id,
+    required String title,
+    String ingredients = '',
+    String notes = '',
+  }) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return (_db.update(_db.recipes)..where((r) => r.id.equals(id))).write(
+      RecipesCompanion(
+        title: Value(trimmed),
+        ingredients: Value(ingredients.trim()),
+        notes: Value(notes.trim()),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> deleteRecipe(String id) {
+    return (_db.update(_db.recipes)..where((r) => r.id.equals(id))).write(
+      RecipesCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> applyRecipeToMealPlan({
+    required String recipeId,
+    required int weekday,
+    String mealType = 'Dinner',
+  }) async {
+    final recipe = await (_db.select(_db.recipes)
+          ..where((r) => r.id.equals(recipeId) & r.deleted.equals(false)))
+        .getSingleOrNull();
+    if (recipe == null) return;
+
+    final existing = await (_db.select(_db.mealPlans)
+          ..where(
+            (m) =>
+                m.deleted.equals(false) &
+                m.weekday.equals(weekday) &
+                m.mealType.equals(mealType),
+          ))
+        .get();
+
+    final primary = existing.isEmpty ? null : existing.first;
+    for (final extra in existing.skip(1)) {
+      await delete(extra.id);
+    }
+
+    await upsert(
+      id: primary?.id,
+      weekday: weekday,
+      title: recipe.title,
+      mealType: mealType,
+      ingredients: recipe.ingredients,
+    );
+  }
+
+  Future<Recipe> saveMealAsRecipe(MealPlan meal, {String notes = ''}) {
+    return addRecipe(
+      title: meal.title,
+      ingredients: meal.ingredients,
+      notes: notes,
+    );
+  }
 }
 
 class CareRepository {

@@ -431,6 +431,8 @@ class SyncService {
       await step(() => _pullTimeline(nestId));
       await step(() => _pushMeals(nestId));
       await step(() => _pullMeals(nestId));
+      await step(() => _pushRecipes(nestId));
+      await step(() => _pullRecipes(nestId));
       await step(() => _pushCare(nestId));
       await step(() => _pullCare(nestId));
       await step(() => _pushCareProfiles(nestId));
@@ -1289,6 +1291,72 @@ class SyncService {
               mealType: Value(data['mealType'] as String? ?? 'Dinner'),
               title: data['title'] as String? ?? '',
               ingredients: Value(data['ingredients'] as String? ?? ''),
+              dirty: const Value(false),
+              createdAt: Value(
+                (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushRecipes(String nestId) async {
+    final dirty = await (_db.select(
+      _db.recipes,
+    )..where((t) => t.dirty.equals(true))).get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('recipes')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'title': item.title,
+          'ingredients': item.ingredients,
+          'notes': item.notes,
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
+          'createdAt': Timestamp.fromDate(item.createdAt),
+        });
+      }
+      await (_db.update(_db.recipes)..where((t) => t.id.equals(item.id)))
+          .write(const RecipesCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullRecipes(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('recipes')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(
+        _db.recipes,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
+      if (local != null &&
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
+        continue;
+      }
+      await _db
+          .into(_db.recipes)
+          .insertOnConflictUpdate(
+            RecipesCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              title: data['title'] as String? ?? '',
+              ingredients: Value(data['ingredients'] as String? ?? ''),
+              notes: Value(data['notes'] as String? ?? ''),
               dirty: const Value(false),
               createdAt: Value(
                 (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,

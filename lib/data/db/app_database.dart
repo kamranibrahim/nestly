@@ -191,6 +191,22 @@ class TimelineEvents extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// Reusable recipe in the nest library (ingredients as comma/newline text).
+class Recipes extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get title => text()();
+  TextColumn get ingredients => text().withDefault(const Constant(''))();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// Weekly meal plan slot. weekday: 1=Mon … 7=Sun (DateTime.weekday).
 class MealPlans extends Table {
   TextColumn get id => text()();
@@ -321,6 +337,7 @@ class NestSettings extends Table {
     VaultDocuments,
     TimelineEvents,
     MealPlans,
+    Recipes,
     CareItems,
     CareProfiles,
     SchoolActivities,
@@ -332,7 +349,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -438,6 +455,9 @@ class AppDatabase extends _$AppDatabase {
           );
         }
       }
+      if (from < 17) {
+        await _createTableIfMissing(m, recipes);
+      }
     },
   );
 
@@ -542,6 +562,7 @@ class AppDatabase extends _$AppDatabase {
       b.deleteAll(vaultDocuments);
       b.deleteAll(timelineEvents);
       b.deleteAll(mealPlans);
+      b.deleteAll(recipes);
       b.deleteAll(careItems);
       b.deleteAll(careProfiles);
       b.deleteAll(schoolActivities);

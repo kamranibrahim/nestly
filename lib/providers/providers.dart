@@ -191,6 +191,10 @@ final mealsProvider = StreamProvider<List<MealPlan>>((ref) {
   return ref.watch(mealRepositoryProvider).watchAll();
 });
 
+final recipesProvider = StreamProvider<List<Recipe>>((ref) {
+  return ref.watch(mealRepositoryProvider).watchRecipes();
+});
+
 final careItemsProvider = StreamProvider<List<CareItem>>((ref) {
   return ref.watch(careRepositoryProvider).watchAll();
 });

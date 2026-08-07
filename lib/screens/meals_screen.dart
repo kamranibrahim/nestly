@@ -26,6 +26,7 @@ class MealsScreen extends ConsumerWidget {
     final ui = ref.watch(mealsUiProvider);
     final uiCtrl = ref.read(mealsUiProvider.notifier);
     final mealsAsync = ref.watch(mealsProvider);
+    final recipesAsync = ref.watch(recipesProvider);
     final today = DateTime.now().weekday;
 
     if (entry != MealsEntry.browse && uiCtrl.consumeEntry()) {
@@ -145,12 +146,130 @@ class MealsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                 ],
+              const SizedBox(height: 10),
+              SectionLabel(context.l10n.mealsRecipeLibrary),
+              recipesAsync.when(
+                loading: () => const NestLoadingSkeleton(itemCount: 2),
+                error: (_, _) => NestCard(
+                  child: Text(
+                    context.l10n.loadFailedMeals,
+                    style: const TextStyle(color: AppColors.inkMuted),
+                  ),
+                ),
+                data: (recipes) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: _recipeLibrarySection(
+                    context,
+                    ref,
+                    recipes: recipes,
+                    focusWeekday: ui.focusWeekday,
+                  ),
+                ),
+              ),
             ],
           );
         },
       ),
     );
   }
+}
+
+List<Widget> _recipeLibrarySection(
+  BuildContext context,
+  WidgetRef ref, {
+  required List<Recipe> recipes,
+  required int focusWeekday,
+}) {
+  final dayLabel = MealRepository.weekdays
+      .firstWhere((d) => d.$1 == focusWeekday)
+      .$2;
+  return [
+    NestCard(
+      onTap: () => _showRecipeSheet(context, ref),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Text(
+        '+ ${context.l10n.mealsAddRecipe}',
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+    if (recipes.isEmpty) ...[
+      const SizedBox(height: 6),
+      NestCard(
+        child: Text(
+          context.l10n.mealsNoRecipes,
+          style: const TextStyle(color: AppColors.inkMuted, height: 1.4),
+        ),
+      ),
+    ],
+    for (final recipe in recipes) ...[
+      const SizedBox(height: 6),
+      NestCard(
+        onTap: () => _showRecipeSheet(context, ref, existing: recipe),
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    recipe.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  if (recipe.ingredients.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      recipe.ingredients.replaceAll('\n', ', '),
+                      style: const TextStyle(
+                        color: AppColors.inkSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: '${context.l10n.mealsApplyRecipe} · $dayLabel',
+              onPressed: () async {
+                await ref.read(mealRepositoryProvider).applyRecipeToMealPlan(
+                      recipeId: recipe.id,
+                      weekday: focusWeekday,
+                    );
+                await syncAfterWrite(ref, context: context);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(context.l10n.mealsRecipeApplied)),
+                );
+              },
+              icon: const Icon(
+                Icons.playlist_add_check_rounded,
+                color: AppColors.primary,
+              ),
+            ),
+            IconButton(
+              tooltip: context.l10n.commonRemove,
+              onPressed: () async {
+                await ref.read(mealRepositoryProvider).deleteRecipe(recipe.id);
+                await syncAfterWrite(ref, context: context);
+              },
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.inkMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ];
 }
 
 Future<void> _handleEntry(
@@ -423,6 +542,17 @@ Future<void> _showMealSheet(
                   if (existing != null) ...[
                     const SizedBox(height: 8),
                     OutlinedButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await ref
+                            .read(mealRepositoryProvider)
+                            .saveMealAsRecipe(existing);
+                        await syncAfterWrite(ref, context: context);
+                      },
+                      child: Text(context.l10n.mealsSaveAsRecipe),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
                       onPressed: () => Navigator.pop(context, (
                         title: existing.title,
                         mealType: existing.mealType,
@@ -613,6 +743,138 @@ Future<int> _confirmAddIngredients(
     ),
   );
   return added;
+}
+
+Future<void> _showRecipeSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  Recipe? existing,
+}) async {
+  final result = await showModalBottomSheet<
+      ({String title, String ingredients, String notes, bool deleteRecipe})>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return OwnedControllers(
+        count: 3,
+        builder: (context, c) {
+          if (c[0].text.isEmpty && existing != null) {
+            c[0].text = existing.title;
+          }
+          if (c[1].text.isEmpty && existing != null) {
+            c[1].text = existing.ingredients;
+          }
+          if (c[2].text.isEmpty && existing != null) {
+            c[2].text = existing.notes;
+          }
+          return sheetBody(
+            context: context,
+            children: [
+              sheetHandle(),
+              const SizedBox(height: 6),
+              Text(
+                existing == null
+                    ? context.l10n.mealsAddRecipe
+                    : context.l10n.mealsEditRecipe,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: c[0],
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: context.l10n.hintDishName,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: c[1],
+                minLines: 2,
+                maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: context.l10n.hintIngredients,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: c[2],
+                minLines: 1,
+                maxLines: 3,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: context.l10n.hintRecipeNotes,
+                ),
+              ),
+              const SizedBox(height: 6),
+              FilledButton(
+                onPressed: () {
+                  final name = c[0].text.trim();
+                  if (name.isEmpty) {
+                    Navigator.pop(context);
+                    return;
+                  }
+                  Navigator.pop(context, (
+                    title: name,
+                    ingredients: c[1].text.trim(),
+                    notes: c[2].text.trim(),
+                    deleteRecipe: false,
+                  ));
+                },
+                child: Text(
+                  existing == null
+                      ? context.l10n.mealsSaveRecipe
+                      : context.l10n.commonSaveChanges,
+                ),
+              ),
+              if (existing != null) ...[
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context, (
+                    title: existing.title,
+                    ingredients: existing.ingredients,
+                    notes: existing.notes,
+                    deleteRecipe: true,
+                  )),
+                  child: Text(context.l10n.commonRemove),
+                ),
+              ],
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  if (result == null) return;
+  final repo = ref.read(mealRepositoryProvider);
+  if (result.deleteRecipe && existing != null) {
+    await repo.deleteRecipe(existing.id);
+  } else {
+    if (existing == null) {
+      await repo.addRecipe(
+        title: result.title,
+        ingredients: result.ingredients,
+        notes: result.notes,
+      );
+    } else {
+      await repo.updateRecipe(
+        id: existing.id,
+        title: result.title,
+        ingredients: result.ingredients,
+        notes: result.notes,
+      );
+    }
+  }
+  await syncAfterWrite(ref, context: context);
 }
 
 class _PlanDinnerWeekSheet extends StatefulWidget {

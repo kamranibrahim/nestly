@@ -4304,6 +4304,60 @@ abstract class AppLocalizations {
   /// **'Fill the nights you care about. Blank days stay empty.'**
   String get mealsPlanWeekBody;
 
+  /// No description provided for @mealsRecipeLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipe library'**
+  String get mealsRecipeLibrary;
+
+  /// No description provided for @mealsAddRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Add recipe'**
+  String get mealsAddRecipe;
+
+  /// No description provided for @mealsEditRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit recipe'**
+  String get mealsEditRecipe;
+
+  /// No description provided for @mealsSaveRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Save recipe'**
+  String get mealsSaveRecipe;
+
+  /// No description provided for @mealsApplyRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to this day'**
+  String get mealsApplyRecipe;
+
+  /// No description provided for @mealsSaveAsRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as recipe'**
+  String get mealsSaveAsRecipe;
+
+  /// No description provided for @mealsNoRecipes.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved recipes yet — save a meal slot or add one here.'**
+  String get mealsNoRecipes;
+
+  /// No description provided for @mealsRecipeApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipe applied'**
+  String get mealsRecipeApplied;
+
+  /// No description provided for @hintRecipeNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes (optional)'**
+  String get hintRecipeNotes;
+
   /// No description provided for @shopClearBoughtBody.
   ///
   /// In en, this message translates to:

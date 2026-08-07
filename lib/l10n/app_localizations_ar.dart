@@ -2458,6 +2458,34 @@ class AppLocalizationsAr extends AppLocalizations {
       'املأ الليالي التي تهمك. الأيام الفارغة تبقى فارغة.';
 
   @override
+  String get mealsRecipeLibrary => 'مكتبة الوصفات';
+
+  @override
+  String get mealsAddRecipe => 'إضافة وصفة';
+
+  @override
+  String get mealsEditRecipe => 'تعديل الوصفة';
+
+  @override
+  String get mealsSaveRecipe => 'حفظ الوصفة';
+
+  @override
+  String get mealsApplyRecipe => 'تطبيق على هذا اليوم';
+
+  @override
+  String get mealsSaveAsRecipe => 'حفظ كوصفة';
+
+  @override
+  String get mealsNoRecipes =>
+      'لا وصفات محفوظة بعد — احفظ وجبة أو أضف واحدة هنا.';
+
+  @override
+  String get mealsRecipeApplied => 'تم تطبيق الوصفة';
+
+  @override
+  String get hintRecipeNotes => 'ملاحظات (اختياري)';
+
+  @override
   String get shopClearBoughtBody =>
       'يزيل البقالة المشطوبة من هذه القائمة. يمكنك إعادة تخزين العادات لاحقًا.';
 

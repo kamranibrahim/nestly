@@ -7232,6 +7232,557 @@ class MealPlansCompanion extends UpdateCompanion<MealPlan> {
   }
 }
 
+class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecipesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ingredientsMeta = const VerificationMeta(
+    'ingredients',
+  );
+  @override
+  late final GeneratedColumn<String> ingredients = GeneratedColumn<String>(
+    'ingredients',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    title,
+    ingredients,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recipes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Recipe> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('ingredients')) {
+      context.handle(
+        _ingredientsMeta,
+        ingredients.isAcceptableOrUnknown(
+          data['ingredients']!,
+          _ingredientsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Recipe map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Recipe(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      ingredients: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ingredients'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RecipesTable createAlias(String alias) {
+    return $RecipesTable(attachedDatabase, alias);
+  }
+}
+
+class Recipe extends DataClass implements Insertable<Recipe> {
+  final String id;
+  final String? nestId;
+  final String title;
+  final String ingredients;
+  final String notes;
+  final bool dirty;
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const Recipe({
+    required this.id,
+    this.nestId,
+    required this.title,
+    required this.ingredients,
+    required this.notes,
+    required this.dirty,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
+    map['title'] = Variable<String>(title);
+    map['ingredients'] = Variable<String>(ingredients);
+    map['notes'] = Variable<String>(notes);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  RecipesCompanion toCompanion(bool nullToAbsent) {
+    return RecipesCompanion(
+      id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
+      title: Value(title),
+      ingredients: Value(ingredients),
+      notes: Value(notes),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Recipe.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Recipe(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
+      title: serializer.fromJson<String>(json['title']),
+      ingredients: serializer.fromJson<String>(json['ingredients']),
+      notes: serializer.fromJson<String>(json['notes']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
+      'title': serializer.toJson<String>(title),
+      'ingredients': serializer.toJson<String>(ingredients),
+      'notes': serializer.toJson<String>(notes),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Recipe copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    String? title,
+    String? ingredients,
+    String? notes,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => Recipe(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    title: title ?? this.title,
+    ingredients: ingredients ?? this.ingredients,
+    notes: notes ?? this.notes,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Recipe copyWithCompanion(RecipesCompanion data) {
+    return Recipe(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      title: data.title.present ? data.title.value : this.title,
+      ingredients: data.ingredients.present
+          ? data.ingredients.value
+          : this.ingredients,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Recipe(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('ingredients: $ingredients, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    title,
+    ingredients,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Recipe &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.title == this.title &&
+          other.ingredients == this.ingredients &&
+          other.notes == this.notes &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class RecipesCompanion extends UpdateCompanion<Recipe> {
+  final Value<String> id;
+  final Value<String?> nestId;
+  final Value<String> title;
+  final Value<String> ingredients;
+  final Value<String> notes;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const RecipesCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.ingredients = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecipesCompanion.insert({
+    required String id,
+    this.nestId = const Value.absent(),
+    required String title,
+    this.ingredients = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title);
+  static Insertable<Recipe> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<String>? title,
+    Expression<String>? ingredients,
+    Expression<String>? notes,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (title != null) 'title': title,
+      if (ingredients != null) 'ingredients': ingredients,
+      if (notes != null) 'notes': notes,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecipesCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? nestId,
+    Value<String>? title,
+    Value<String>? ingredients,
+    Value<String>? notes,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return RecipesCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      title: title ?? this.title,
+      ingredients: ingredients ?? this.ingredients,
+      notes: notes ?? this.notes,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (ingredients.present) {
+      map['ingredients'] = Variable<String>(ingredients.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecipesCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('ingredients: $ingredients, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CareItemsTable extends CareItems
     with TableInfo<$CareItemsTable, CareItem> {
   @override
@@ -10477,6 +11028,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VaultDocumentsTable vaultDocuments = $VaultDocumentsTable(this);
   late final $TimelineEventsTable timelineEvents = $TimelineEventsTable(this);
   late final $MealPlansTable mealPlans = $MealPlansTable(this);
+  late final $RecipesTable recipes = $RecipesTable(this);
   late final $CareItemsTable careItems = $CareItemsTable(this);
   late final $CareProfilesTable careProfiles = $CareProfilesTable(this);
   late final $SchoolActivitiesTable schoolActivities = $SchoolActivitiesTable(
@@ -10501,6 +11053,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     vaultDocuments,
     timelineEvents,
     mealPlans,
+    recipes,
     careItems,
     careProfiles,
     schoolActivities,
@@ -14296,6 +14849,278 @@ typedef $$MealPlansTableProcessedTableManager =
       MealPlan,
       PrefetchHooks Function()
     >;
+typedef $$RecipesTableCreateCompanionBuilder =
+    RecipesCompanion Function({
+      required String id,
+      Value<String?> nestId,
+      required String title,
+      Value<String> ingredients,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$RecipesTableUpdateCompanionBuilder =
+    RecipesCompanion Function({
+      Value<String> id,
+      Value<String?> nestId,
+      Value<String> title,
+      Value<String> ingredients,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$RecipesTableFilterComposer
+    extends Composer<_$AppDatabase, $RecipesTable> {
+  $$RecipesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecipesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecipesTable> {
+  $$RecipesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecipesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecipesTable> {
+  $$RecipesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$RecipesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecipesTable,
+          Recipe,
+          $$RecipesTableFilterComposer,
+          $$RecipesTableOrderingComposer,
+          $$RecipesTableAnnotationComposer,
+          $$RecipesTableCreateCompanionBuilder,
+          $$RecipesTableUpdateCompanionBuilder,
+          (Recipe, BaseReferences<_$AppDatabase, $RecipesTable, Recipe>),
+          Recipe,
+          PrefetchHooks Function()
+        > {
+  $$RecipesTableTableManager(_$AppDatabase db, $RecipesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecipesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecipesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecipesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> ingredients = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecipesCompanion(
+                id: id,
+                nestId: nestId,
+                title: title,
+                ingredients: ingredients,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> nestId = const Value.absent(),
+                required String title,
+                Value<String> ingredients = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecipesCompanion.insert(
+                id: id,
+                nestId: nestId,
+                title: title,
+                ingredients: ingredients,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecipesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecipesTable,
+      Recipe,
+      $$RecipesTableFilterComposer,
+      $$RecipesTableOrderingComposer,
+      $$RecipesTableAnnotationComposer,
+      $$RecipesTableCreateCompanionBuilder,
+      $$RecipesTableUpdateCompanionBuilder,
+      (Recipe, BaseReferences<_$AppDatabase, $RecipesTable, Recipe>),
+      Recipe,
+      PrefetchHooks Function()
+    >;
 typedef $$CareItemsTableCreateCompanionBuilder =
     CareItemsCompanion Function({
       required String id,
@@ -15897,6 +16722,8 @@ class $AppDatabaseManager {
       $$TimelineEventsTableTableManager(_db, _db.timelineEvents);
   $$MealPlansTableTableManager get mealPlans =>
       $$MealPlansTableTableManager(_db, _db.mealPlans);
+  $$RecipesTableTableManager get recipes =>
+      $$RecipesTableTableManager(_db, _db.recipes);
   $$CareItemsTableTableManager get careItems =>
       $$CareItemsTableTableManager(_db, _db.careItems);
   $$CareProfilesTableTableManager get careProfiles =>

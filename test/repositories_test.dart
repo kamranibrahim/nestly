@@ -264,6 +264,47 @@ void main() {
     expect(openNames, containsAll(['Tortillas', 'Avocado', 'Lime', 'Rice']));
   });
 
+  test('recipe library apply fills slot and soft-delete hides', () async {
+    final recipe = await meals.addRecipe(
+      title: 'Chicken curry',
+      ingredients: 'Chicken, Curry paste, Rice',
+    );
+
+    await meals.applyRecipeToMealPlan(
+      recipeId: recipe.id,
+      weekday: 3,
+      mealType: 'Dinner',
+    );
+
+    final wedMeals = await meals.watchForWeekday(3).first;
+    final dinner = wedMeals.firstWhere((m) => m.mealType == 'Dinner');
+    expect(dinner.title, 'Chicken curry');
+    expect(dinner.ingredients, contains('Chicken'));
+
+    final added = await meals.addIngredientsToShopping(dinner);
+    expect(added, greaterThan(0));
+
+    await meals.deleteRecipe(recipe.id);
+    final recipes = await meals.watchRecipes().first;
+    expect(recipes.any((r) => r.id == recipe.id), isFalse);
+  });
+
+  test('saveMealAsRecipe copies slot to library', () async {
+    await meals.upsert(
+      weekday: 5,
+      title: 'Taco night',
+      ingredients: 'Tortillas, Beef, Salsa',
+    );
+    final slot = (await meals.watchForWeekday(5).first).first;
+
+    final saved = await meals.saveMealAsRecipe(slot);
+    expect(saved.title, 'Taco night');
+    expect(saved.ingredients, contains('Tortillas'));
+
+    final library = await meals.watchRecipes().first;
+    expect(library.any((r) => r.id == saved.id), isTrue);
+  });
+
   test('vault expiry meta is listed as expiring soon', () async {
     final vault = VaultRepository(database);
     final doc = await vault.addLocalMeta(

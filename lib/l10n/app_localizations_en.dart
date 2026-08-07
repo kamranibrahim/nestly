@@ -2472,6 +2472,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'Fill the nights you care about. Blank days stay empty.';
 
   @override
+  String get mealsRecipeLibrary => 'Recipe library';
+
+  @override
+  String get mealsAddRecipe => 'Add recipe';
+
+  @override
+  String get mealsEditRecipe => 'Edit recipe';
+
+  @override
+  String get mealsSaveRecipe => 'Save recipe';
+
+  @override
+  String get mealsApplyRecipe => 'Apply to this day';
+
+  @override
+  String get mealsSaveAsRecipe => 'Save as recipe';
+
+  @override
+  String get mealsNoRecipes =>
+      'No saved recipes yet — save a meal slot or add one here.';
+
+  @override
+  String get mealsRecipeApplied => 'Recipe applied';
+
+  @override
+  String get hintRecipeNotes => 'Notes (optional)';
+
+  @override
   String get shopClearBoughtBody =>
       'Removes checked-off groceries from this list. You can still restock habits later.';
 
