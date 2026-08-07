@@ -366,11 +366,6 @@ class ExpensesScreen extends ConsumerWidget {
     WidgetRef ref, {
     required double current,
   }) async {
-    final controller = TextEditingController(
-      text: current == current.roundToDouble()
-          ? current.toStringAsFixed(0)
-          : current.toStringAsFixed(2),
-    );
     final result = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
@@ -378,72 +373,8 @@ class ExpensesScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return sheetBody(
-          context: context,
-          children: [
-            sheetHandle(),
-            const SizedBox(height: 6),
-            Text(
-              context.l10n.monthBudgetTitle,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              context.l10n.monthBudgetBody,
-              style: const TextStyle(color: AppColors.inkMuted),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: InputDecoration(
-                labelText: context.l10n.commonAmount,
-                prefixText: '\$ ',
-              ),
-              onSubmitted: (value) {
-                final parsed = double.tryParse(value.trim());
-                if (parsed != null && parsed > 0) {
-                  Navigator.pop(context, parsed);
-                }
-              },
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                for (final amount in const [
-                  1000.0,
-                  1500.0,
-                  1800.0,
-                  2500.0,
-                  3000.0,
-                ])
-                  SoftPill(
-                    label: NumberFormat.simpleCurrency().format(amount),
-                    selected: current == amount,
-                    onTap: () => Navigator.pop(context, amount),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            FilledButton(
-              onPressed: () {
-                final parsed = double.tryParse(controller.text.trim());
-                if (parsed == null || parsed <= 0) return;
-                Navigator.pop(context, parsed);
-              },
-              child: Text(context.l10n.saveBudget),
-            ),
-          ],
-        );
-      },
+      builder: (context) => _MonthBudgetSheet(current: current),
     );
-    controller.dispose();
     if (result == null) return;
     await ref.read(expenseRepositoryProvider).setMonthBudget(result);
     await syncAfterWrite(ref, context: context);
@@ -624,6 +555,97 @@ class _BillTile extends StatelessWidget {
           color: overdue ? AppColors.danger : AppColors.ink,
         ),
       ),
+    );
+  }
+}
+
+class _MonthBudgetSheet extends StatefulWidget {
+  const _MonthBudgetSheet({required this.current});
+
+  final double current;
+
+  @override
+  State<_MonthBudgetSheet> createState() => _MonthBudgetSheetState();
+}
+
+class _MonthBudgetSheetState extends State<_MonthBudgetSheet> {
+  late final TextEditingController _amount;
+
+  @override
+  void initState() {
+    super.initState();
+    final current = widget.current;
+    _amount = TextEditingController(
+      text: current == current.roundToDouble()
+          ? current.toStringAsFixed(0)
+          : current.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  void _submit([String? raw]) {
+    final parsed = double.tryParse((raw ?? _amount.text).trim());
+    if (parsed == null || parsed <= 0) return;
+    Navigator.pop(context, parsed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return sheetBody(
+      context: context,
+      children: [
+        sheetHandle(),
+        const SizedBox(height: 6),
+        Text(
+          context.l10n.monthBudgetTitle,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          context.l10n.monthBudgetBody,
+          style: const TextStyle(color: AppColors.inkMuted),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _amount,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: context.l10n.commonAmount,
+            prefixText: '\$ ',
+          ),
+          onSubmitted: _submit,
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final amount in const [
+              1000.0,
+              1500.0,
+              1800.0,
+              2500.0,
+              3000.0,
+            ])
+              SoftPill(
+                label: NumberFormat.simpleCurrency().format(amount),
+                selected: widget.current == amount,
+                onTap: () => Navigator.pop(context, amount),
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(context.l10n.saveBudget),
+        ),
+      ],
     );
   }
 }
