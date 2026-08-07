@@ -2,8 +2,10 @@
 
 > **Executor instructions**: Follow step by step. Run every verification before the next step. On STOP conditions, stop and report — do not improvise. When done, update the status row in `plans/README.md`.
 >
-> **Drift check (run first)**: `git diff --stat 0bba2e7..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/data/enums.dart lib/data/notification_service.dart lib/screens/tasks_screen.dart test/repositories_test.dart`
+> **Drift check (run first)**: `git diff --stat f044666..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/data/enums.dart lib/data/notification_service.dart lib/screens/tasks_screen.dart test/repositories_test.dart`
 > If in-scope files changed, re-read Current state excerpts before proceeding.
+>
+> **Advisor note (f044666)**: `app_database.dart` / `repositories.dart` / `auth_repository.dart` / `repositories_test.dart` unchanged since plan authoring. `tasks_screen.dart`, `notification_service.dart`, `family_needs.dart`, widget snapshot files, and `enums.dart` gained i18n/Casaio edits — re-read those before UI/reminder steps; schema/recurrence behavior in Current state is still accurate.
 
 ## Status
 
@@ -12,7 +14,7 @@
 - **Risk**: MED (schema + sync + reminder date math)
 - **Depends on**: none (Pillar 1 Wave 1; see [005](./005-phase1-family-os-foundation.md))
 - **Category**: direction
-- **Planned at**: commit `0bba2e7`, 2026-08-08
+- **Planned at**: commit `f044666`, 2026-08-08
 
 ## Why this matters
 

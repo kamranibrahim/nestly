@@ -13,7 +13,7 @@ Execute Wave 1 in order unless dependencies say otherwise.
 | 003 | UI state separation (Riverpod controllers) | P2 | L | — | DONE — see [003-ui-state-separation.md](./003-ui-state-separation.md) + `lib/state/` |
 | 004 | English + Arabic i18n | P1 | L | — | DONE — see [004-english-arabic-i18n.md](./004-english-arabic-i18n.md) |
 | 005 | Phase 1 — Family OS Foundation (Pillar 1 index) | P1 | multi-Q | — | DOC — [005-phase1-family-os-foundation.md](./005-phase1-family-os-foundation.md) |
-| 006 | Tasks: real recurrence + due dates | P1 | L | — | TODO — [006-tasks-recurrence-due-dates.md](./006-tasks-recurrence-due-dates.md) |
+| 006 | Tasks: real recurrence + due dates | P1 | L | — | IN PROGRESS — [006-tasks-recurrence-due-dates.md](./006-tasks-recurrence-due-dates.md) |
 | 007 | Calendar: agenda + recurring events | P1 | L | 006 preferred | TODO — [007-calendar-agenda-recurrence.md](./007-calendar-agenda-recurrence.md) |
 | 008 | Shopping: multi-list + sync habits | P1 | M | — | TODO — [008-shopping-multi-list-habits-sync.md](./008-shopping-multi-list-habits-sync.md) |
 | 009 | Meals: recipe library + templates | P1 | L | 008 optional | TODO — [009-meals-recipe-library-templates.md](./009-meals-recipe-library-templates.md) |
