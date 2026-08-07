@@ -2,16 +2,18 @@
 
 > **Executor instructions**: Follow step by step. Run every verification before the next step. On STOP conditions, stop and report. Update `plans/README.md` when done.
 >
-> **Drift check**: `git diff --stat 0bba2e7..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/data/enums.dart lib/state/calendar_ui.dart lib/screens/calendar_screen.dart lib/data/calendar_view_math.dart test/calendar_view_math_test.dart test/repositories_test.dart`
+> **Drift check**: `git diff --stat a47ef04..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/data/enums.dart lib/state/calendar_ui.dart lib/screens/calendar_screen.dart lib/data/calendar_view_math.dart test/calendar_view_math_test.dart test/repositories_test.dart`
+>
+> **Advisor note**: Base HEAD `a47ef04` (after 006). Live `schemaVersion` is **14** — this plan must bump to **15**. Prefer reuse of day arithmetic patterns from `lib/data/task_due.dart` where helpful; do not rewrite tasks.
 
 ## Status
 
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED
-- **Depends on**: preferably [006](./006-tasks-recurrence-due-dates.md) for shared day-cadence helpers (can proceed alone if you duplicate a tiny pure helper)
+- **Depends on**: [006](./006-tasks-recurrence-due-dates.md) DONE
 - **Category**: direction
-- **Planned at**: commit `0bba2e7`, 2026-08-08
+- **Planned at**: commit `a47ef04`, 2026-08-08
 
 ## Why this matters
 
