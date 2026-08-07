@@ -451,7 +451,7 @@ class AppDatabase extends _$AppDatabase {
         if (nestId != null && nestId.isNotEmpty) {
           await customStatement(
             'UPDATE grocery_habits SET nest_id = ? WHERE nest_id IS NULL',
-            [Variable.withString(nestId)],
+            [nestId],
           );
         }
       }
