@@ -14,7 +14,7 @@ Execute Wave 1 in order unless dependencies say otherwise.
 | 004 | English + Arabic i18n | P1 | L | — | DONE — see [004-english-arabic-i18n.md](./004-english-arabic-i18n.md) |
 | 005 | Phase 1 — Family OS Foundation (Pillar 1 index) | P1 | multi-Q | — | DOC — [005-phase1-family-os-foundation.md](./005-phase1-family-os-foundation.md) |
 | 006 | Tasks: real recurrence + due dates | P1 | L | — | DONE — [006-tasks-recurrence-due-dates.md](./006-tasks-recurrence-due-dates.md) (`advisor/006-tasks-recurrence-due-dates` @ `f28a79a`) |
-| 007 | Calendar: agenda + recurring events | P1 | L | 006 | IN PROGRESS — [007-calendar-agenda-recurrence.md](./007-calendar-agenda-recurrence.md) |
+| 007 | Calendar: agenda + recurring events | P1 | L | 006 | DONE — [007-calendar-agenda-recurrence.md](./007-calendar-agenda-recurrence.md) (`advisor/007-calendar-agenda-recurrence` @ `338a187`) |
 | 008 | Shopping: multi-list + sync habits | P1 | M | — | TODO — [008-shopping-multi-list-habits-sync.md](./008-shopping-multi-list-habits-sync.md) |
 | 009 | Meals: recipe library + templates | P1 | L | 008 optional | TODO — [009-meals-recipe-library-templates.md](./009-meals-recipe-library-templates.md) |
 | 010 | Expenses: recurring bills + charts | P1 | M | — | TODO — [010-expenses-recurring-bills-charts.md](./010-expenses-recurring-bills-charts.md) |
