@@ -31,7 +31,6 @@ Execute Wave 1 in order unless dependencies say otherwise.
 - Nest-scoped Firestore / Storage **rules** (P0 in 002) — skipped until explicitly requested; **higher risk once Pillar 2 ships presence/notes**.
 - Phase 2 AI assistant — after Phase 1 depth.
 - Pillar 1 **Wave 2** (photos, barcode, ICS, PDF, etc.) — listed in 005; no executor plans yet.
-- Pillar 2 executor slices `012`–`017` — write when selected.
 
 ## Dependency notes
 
