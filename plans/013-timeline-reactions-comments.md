@@ -1,17 +1,17 @@
 # Plan 013: Add timeline reactions and comments
 
-> **Drift check**: `git diff --stat <012-done-SHA>..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/screens/timeline_screen.dart test/`
+> **Drift check**: `git diff --stat e67b6ea..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/data/enums.dart lib/screens/timeline_screen.dart test/repositories_test.dart test/timeline_nav_test.dart`
 >
-> Depends on [012](./012-timeline-kinds-posts.md). Live schema after 012 should be 19 → bump to **20** (+21 if split tables).
+> **Advisor note**: Base `feature/phase1-pillar1` @ `e67b6ea` (012 merged). Live `schemaVersion` is **19** — bump to **20** for `TimelineReactions`. Prefer comments as `TimelineEvents` with `kind=comment` + `parentId` (already on schema). Do not implement pins UI, mentions, notes, polls, or presence.
 
 ## Status
 
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED
-- **Depends on**: 012
+- **Depends on**: [012](./012-timeline-kinds-posts.md) DONE
 - **Category**: direction
-- **Planned at**: commit `51dc7f8`, 2026-08-08 (refresh SHA after 012 lands)
+- **Planned at**: commit `e67b6ea`, 2026-08-08
 
 ## Why this matters
 
