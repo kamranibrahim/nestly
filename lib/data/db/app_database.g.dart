@@ -562,6 +562,27 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     requiredDuringInsert: false,
     defaultValue: const Constant('Today'),
   );
+  static const VerificationMeta _dueAtMeta = const VerificationMeta('dueAt');
+  @override
+  late final GeneratedColumn<DateTime> dueAt = GeneratedColumn<DateTime>(
+    'due_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cadenceDaysMeta = const VerificationMeta(
+    'cadenceDays',
+  );
+  @override
+  late final GeneratedColumn<int> cadenceDays = GeneratedColumn<int>(
+    'cadence_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _doneMeta = const VerificationMeta('done');
   @override
   late final GeneratedColumn<bool> done = GeneratedColumn<bool>(
@@ -649,6 +670,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     title,
     assigneeId,
     dueLabel,
+    dueAt,
+    cadenceDays,
     done,
     recurring,
     dirty,
@@ -697,6 +720,21 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
       context.handle(
         _dueLabelMeta,
         dueLabel.isAcceptableOrUnknown(data['due_label']!, _dueLabelMeta),
+      );
+    }
+    if (data.containsKey('due_at')) {
+      context.handle(
+        _dueAtMeta,
+        dueAt.isAcceptableOrUnknown(data['due_at']!, _dueAtMeta),
+      );
+    }
+    if (data.containsKey('cadence_days')) {
+      context.handle(
+        _cadenceDaysMeta,
+        cadenceDays.isAcceptableOrUnknown(
+          data['cadence_days']!,
+          _cadenceDaysMeta,
+        ),
       );
     }
     if (data.containsKey('done')) {
@@ -764,6 +802,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.string,
         data['${effectivePrefix}due_label'],
       )!,
+      dueAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_at'],
+      ),
+      cadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cadence_days'],
+      )!,
       done: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}done'],
@@ -803,6 +849,8 @@ class Task extends DataClass implements Insertable<Task> {
   final String title;
   final String assigneeId;
   final String dueLabel;
+  final DateTime? dueAt;
+  final int cadenceDays;
   final bool done;
   final bool recurring;
   final bool dirty;
@@ -815,6 +863,8 @@ class Task extends DataClass implements Insertable<Task> {
     required this.title,
     required this.assigneeId,
     required this.dueLabel,
+    this.dueAt,
+    required this.cadenceDays,
     required this.done,
     required this.recurring,
     required this.dirty,
@@ -832,6 +882,10 @@ class Task extends DataClass implements Insertable<Task> {
     map['title'] = Variable<String>(title);
     map['assignee_id'] = Variable<String>(assigneeId);
     map['due_label'] = Variable<String>(dueLabel);
+    if (!nullToAbsent || dueAt != null) {
+      map['due_at'] = Variable<DateTime>(dueAt);
+    }
+    map['cadence_days'] = Variable<int>(cadenceDays);
     map['done'] = Variable<bool>(done);
     map['recurring'] = Variable<bool>(recurring);
     map['dirty'] = Variable<bool>(dirty);
@@ -850,6 +904,10 @@ class Task extends DataClass implements Insertable<Task> {
       title: Value(title),
       assigneeId: Value(assigneeId),
       dueLabel: Value(dueLabel),
+      dueAt: dueAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueAt),
+      cadenceDays: Value(cadenceDays),
       done: Value(done),
       recurring: Value(recurring),
       dirty: Value(dirty),
@@ -870,6 +928,8 @@ class Task extends DataClass implements Insertable<Task> {
       title: serializer.fromJson<String>(json['title']),
       assigneeId: serializer.fromJson<String>(json['assigneeId']),
       dueLabel: serializer.fromJson<String>(json['dueLabel']),
+      dueAt: serializer.fromJson<DateTime?>(json['dueAt']),
+      cadenceDays: serializer.fromJson<int>(json['cadenceDays']),
       done: serializer.fromJson<bool>(json['done']),
       recurring: serializer.fromJson<bool>(json['recurring']),
       dirty: serializer.fromJson<bool>(json['dirty']),
@@ -887,6 +947,8 @@ class Task extends DataClass implements Insertable<Task> {
       'title': serializer.toJson<String>(title),
       'assigneeId': serializer.toJson<String>(assigneeId),
       'dueLabel': serializer.toJson<String>(dueLabel),
+      'dueAt': serializer.toJson<DateTime?>(dueAt),
+      'cadenceDays': serializer.toJson<int>(cadenceDays),
       'done': serializer.toJson<bool>(done),
       'recurring': serializer.toJson<bool>(recurring),
       'dirty': serializer.toJson<bool>(dirty),
@@ -902,6 +964,8 @@ class Task extends DataClass implements Insertable<Task> {
     String? title,
     String? assigneeId,
     String? dueLabel,
+    Value<DateTime?> dueAt = const Value.absent(),
+    int? cadenceDays,
     bool? done,
     bool? recurring,
     bool? dirty,
@@ -914,6 +978,8 @@ class Task extends DataClass implements Insertable<Task> {
     title: title ?? this.title,
     assigneeId: assigneeId ?? this.assigneeId,
     dueLabel: dueLabel ?? this.dueLabel,
+    dueAt: dueAt.present ? dueAt.value : this.dueAt,
+    cadenceDays: cadenceDays ?? this.cadenceDays,
     done: done ?? this.done,
     recurring: recurring ?? this.recurring,
     dirty: dirty ?? this.dirty,
@@ -930,6 +996,10 @@ class Task extends DataClass implements Insertable<Task> {
           ? data.assigneeId.value
           : this.assigneeId,
       dueLabel: data.dueLabel.present ? data.dueLabel.value : this.dueLabel,
+      dueAt: data.dueAt.present ? data.dueAt.value : this.dueAt,
+      cadenceDays: data.cadenceDays.present
+          ? data.cadenceDays.value
+          : this.cadenceDays,
       done: data.done.present ? data.done.value : this.done,
       recurring: data.recurring.present ? data.recurring.value : this.recurring,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
@@ -947,6 +1017,8 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('title: $title, ')
           ..write('assigneeId: $assigneeId, ')
           ..write('dueLabel: $dueLabel, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('done: $done, ')
           ..write('recurring: $recurring, ')
           ..write('dirty: $dirty, ')
@@ -964,6 +1036,8 @@ class Task extends DataClass implements Insertable<Task> {
     title,
     assigneeId,
     dueLabel,
+    dueAt,
+    cadenceDays,
     done,
     recurring,
     dirty,
@@ -980,6 +1054,8 @@ class Task extends DataClass implements Insertable<Task> {
           other.title == this.title &&
           other.assigneeId == this.assigneeId &&
           other.dueLabel == this.dueLabel &&
+          other.dueAt == this.dueAt &&
+          other.cadenceDays == this.cadenceDays &&
           other.done == this.done &&
           other.recurring == this.recurring &&
           other.dirty == this.dirty &&
@@ -994,6 +1070,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> title;
   final Value<String> assigneeId;
   final Value<String> dueLabel;
+  final Value<DateTime?> dueAt;
+  final Value<int> cadenceDays;
   final Value<bool> done;
   final Value<bool> recurring;
   final Value<bool> dirty;
@@ -1007,6 +1085,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.title = const Value.absent(),
     this.assigneeId = const Value.absent(),
     this.dueLabel = const Value.absent(),
+    this.dueAt = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
     this.done = const Value.absent(),
     this.recurring = const Value.absent(),
     this.dirty = const Value.absent(),
@@ -1021,6 +1101,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     required String title,
     this.assigneeId = const Value.absent(),
     this.dueLabel = const Value.absent(),
+    this.dueAt = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
     this.done = const Value.absent(),
     this.recurring = const Value.absent(),
     this.dirty = const Value.absent(),
@@ -1036,6 +1118,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? title,
     Expression<String>? assigneeId,
     Expression<String>? dueLabel,
+    Expression<DateTime>? dueAt,
+    Expression<int>? cadenceDays,
     Expression<bool>? done,
     Expression<bool>? recurring,
     Expression<bool>? dirty,
@@ -1050,6 +1134,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (title != null) 'title': title,
       if (assigneeId != null) 'assignee_id': assigneeId,
       if (dueLabel != null) 'due_label': dueLabel,
+      if (dueAt != null) 'due_at': dueAt,
+      if (cadenceDays != null) 'cadence_days': cadenceDays,
       if (done != null) 'done': done,
       if (recurring != null) 'recurring': recurring,
       if (dirty != null) 'dirty': dirty,
@@ -1066,6 +1152,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String>? title,
     Value<String>? assigneeId,
     Value<String>? dueLabel,
+    Value<DateTime?>? dueAt,
+    Value<int>? cadenceDays,
     Value<bool>? done,
     Value<bool>? recurring,
     Value<bool>? dirty,
@@ -1080,6 +1168,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       title: title ?? this.title,
       assigneeId: assigneeId ?? this.assigneeId,
       dueLabel: dueLabel ?? this.dueLabel,
+      dueAt: dueAt ?? this.dueAt,
+      cadenceDays: cadenceDays ?? this.cadenceDays,
       done: done ?? this.done,
       recurring: recurring ?? this.recurring,
       dirty: dirty ?? this.dirty,
@@ -1107,6 +1197,12 @@ class TasksCompanion extends UpdateCompanion<Task> {
     }
     if (dueLabel.present) {
       map['due_label'] = Variable<String>(dueLabel.value);
+    }
+    if (dueAt.present) {
+      map['due_at'] = Variable<DateTime>(dueAt.value);
+    }
+    if (cadenceDays.present) {
+      map['cadence_days'] = Variable<int>(cadenceDays.value);
     }
     if (done.present) {
       map['done'] = Variable<bool>(done.value);
@@ -1140,6 +1236,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('title: $title, ')
           ..write('assigneeId: $assigneeId, ')
           ..write('dueLabel: $dueLabel, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('done: $done, ')
           ..write('recurring: $recurring, ')
           ..write('dirty: $dirty, ')
@@ -2392,6 +2490,30 @@ class $CalendarEventsTable extends CalendarEvents
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _recurrenceMeta = const VerificationMeta(
+    'recurrence',
+  );
+  @override
+  late final GeneratedColumn<String> recurrence = GeneratedColumn<String>(
+    'recurrence',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none'),
+  );
+  static const VerificationMeta _recurrenceUntilMeta = const VerificationMeta(
+    'recurrenceUntil',
+  );
+  @override
+  late final GeneratedColumn<DateTime> recurrenceUntil =
+      GeneratedColumn<DateTime>(
+        'recurrence_until',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
   late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
@@ -2455,6 +2577,8 @@ class $CalendarEventsTable extends CalendarEvents
     startsAt,
     endsAt,
     allDay,
+    recurrence,
+    recurrenceUntil,
     dirty,
     deleted,
     createdAt,
@@ -2529,6 +2653,21 @@ class $CalendarEventsTable extends CalendarEvents
         allDay.isAcceptableOrUnknown(data['all_day']!, _allDayMeta),
       );
     }
+    if (data.containsKey('recurrence')) {
+      context.handle(
+        _recurrenceMeta,
+        recurrence.isAcceptableOrUnknown(data['recurrence']!, _recurrenceMeta),
+      );
+    }
+    if (data.containsKey('recurrence_until')) {
+      context.handle(
+        _recurrenceUntilMeta,
+        recurrenceUntil.isAcceptableOrUnknown(
+          data['recurrence_until']!,
+          _recurrenceUntilMeta,
+        ),
+      );
+    }
     if (data.containsKey('dirty')) {
       context.handle(
         _dirtyMeta,
@@ -2598,6 +2737,14 @@ class $CalendarEventsTable extends CalendarEvents
         DriftSqlType.bool,
         data['${effectivePrefix}all_day'],
       )!,
+      recurrence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence'],
+      )!,
+      recurrenceUntil: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recurrence_until'],
+      ),
       dirty: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
@@ -2633,6 +2780,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
   final DateTime startsAt;
   final DateTime? endsAt;
   final bool allDay;
+  final String recurrence;
+  final DateTime? recurrenceUntil;
   final bool dirty;
   final bool deleted;
   final DateTime createdAt;
@@ -2647,6 +2796,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     required this.startsAt,
     this.endsAt,
     required this.allDay,
+    required this.recurrence,
+    this.recurrenceUntil,
     required this.dirty,
     required this.deleted,
     required this.createdAt,
@@ -2670,6 +2821,10 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       map['ends_at'] = Variable<DateTime>(endsAt);
     }
     map['all_day'] = Variable<bool>(allDay);
+    map['recurrence'] = Variable<String>(recurrence);
+    if (!nullToAbsent || recurrenceUntil != null) {
+      map['recurrence_until'] = Variable<DateTime>(recurrenceUntil);
+    }
     map['dirty'] = Variable<bool>(dirty);
     map['deleted'] = Variable<bool>(deleted);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -2694,6 +2849,10 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           ? const Value.absent()
           : Value(endsAt),
       allDay: Value(allDay),
+      recurrence: Value(recurrence),
+      recurrenceUntil: recurrenceUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenceUntil),
       dirty: Value(dirty),
       deleted: Value(deleted),
       createdAt: Value(createdAt),
@@ -2716,6 +2875,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       startsAt: serializer.fromJson<DateTime>(json['startsAt']),
       endsAt: serializer.fromJson<DateTime?>(json['endsAt']),
       allDay: serializer.fromJson<bool>(json['allDay']),
+      recurrence: serializer.fromJson<String>(json['recurrence']),
+      recurrenceUntil: serializer.fromJson<DateTime?>(json['recurrenceUntil']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deleted: serializer.fromJson<bool>(json['deleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -2735,6 +2896,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       'startsAt': serializer.toJson<DateTime>(startsAt),
       'endsAt': serializer.toJson<DateTime?>(endsAt),
       'allDay': serializer.toJson<bool>(allDay),
+      'recurrence': serializer.toJson<String>(recurrence),
+      'recurrenceUntil': serializer.toJson<DateTime?>(recurrenceUntil),
       'dirty': serializer.toJson<bool>(dirty),
       'deleted': serializer.toJson<bool>(deleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -2752,6 +2915,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     DateTime? startsAt,
     Value<DateTime?> endsAt = const Value.absent(),
     bool? allDay,
+    String? recurrence,
+    Value<DateTime?> recurrenceUntil = const Value.absent(),
     bool? dirty,
     bool? deleted,
     DateTime? createdAt,
@@ -2766,6 +2931,10 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     startsAt: startsAt ?? this.startsAt,
     endsAt: endsAt.present ? endsAt.value : this.endsAt,
     allDay: allDay ?? this.allDay,
+    recurrence: recurrence ?? this.recurrence,
+    recurrenceUntil: recurrenceUntil.present
+        ? recurrenceUntil.value
+        : this.recurrenceUntil,
     dirty: dirty ?? this.dirty,
     deleted: deleted ?? this.deleted,
     createdAt: createdAt ?? this.createdAt,
@@ -2782,6 +2951,12 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       startsAt: data.startsAt.present ? data.startsAt.value : this.startsAt,
       endsAt: data.endsAt.present ? data.endsAt.value : this.endsAt,
       allDay: data.allDay.present ? data.allDay.value : this.allDay,
+      recurrence: data.recurrence.present
+          ? data.recurrence.value
+          : this.recurrence,
+      recurrenceUntil: data.recurrenceUntil.present
+          ? data.recurrenceUntil.value
+          : this.recurrenceUntil,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -2801,6 +2976,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           ..write('startsAt: $startsAt, ')
           ..write('endsAt: $endsAt, ')
           ..write('allDay: $allDay, ')
+          ..write('recurrence: $recurrence, ')
+          ..write('recurrenceUntil: $recurrenceUntil, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -2820,6 +2997,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     startsAt,
     endsAt,
     allDay,
+    recurrence,
+    recurrenceUntil,
     dirty,
     deleted,
     createdAt,
@@ -2838,6 +3017,8 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           other.startsAt == this.startsAt &&
           other.endsAt == this.endsAt &&
           other.allDay == this.allDay &&
+          other.recurrence == this.recurrence &&
+          other.recurrenceUntil == this.recurrenceUntil &&
           other.dirty == this.dirty &&
           other.deleted == this.deleted &&
           other.createdAt == this.createdAt &&
@@ -2854,6 +3035,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
   final Value<DateTime> startsAt;
   final Value<DateTime?> endsAt;
   final Value<bool> allDay;
+  final Value<String> recurrence;
+  final Value<DateTime?> recurrenceUntil;
   final Value<bool> dirty;
   final Value<bool> deleted;
   final Value<DateTime> createdAt;
@@ -2869,6 +3052,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     this.startsAt = const Value.absent(),
     this.endsAt = const Value.absent(),
     this.allDay = const Value.absent(),
+    this.recurrence = const Value.absent(),
+    this.recurrenceUntil = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2885,6 +3070,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     required DateTime startsAt,
     this.endsAt = const Value.absent(),
     this.allDay = const Value.absent(),
+    this.recurrence = const Value.absent(),
+    this.recurrenceUntil = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2903,6 +3090,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     Expression<DateTime>? startsAt,
     Expression<DateTime>? endsAt,
     Expression<bool>? allDay,
+    Expression<String>? recurrence,
+    Expression<DateTime>? recurrenceUntil,
     Expression<bool>? dirty,
     Expression<bool>? deleted,
     Expression<DateTime>? createdAt,
@@ -2919,6 +3108,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
       if (startsAt != null) 'starts_at': startsAt,
       if (endsAt != null) 'ends_at': endsAt,
       if (allDay != null) 'all_day': allDay,
+      if (recurrence != null) 'recurrence': recurrence,
+      if (recurrenceUntil != null) 'recurrence_until': recurrenceUntil,
       if (dirty != null) 'dirty': dirty,
       if (deleted != null) 'deleted': deleted,
       if (createdAt != null) 'created_at': createdAt,
@@ -2937,6 +3128,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     Value<DateTime>? startsAt,
     Value<DateTime?>? endsAt,
     Value<bool>? allDay,
+    Value<String>? recurrence,
+    Value<DateTime?>? recurrenceUntil,
     Value<bool>? dirty,
     Value<bool>? deleted,
     Value<DateTime>? createdAt,
@@ -2953,6 +3146,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
       startsAt: startsAt ?? this.startsAt,
       endsAt: endsAt ?? this.endsAt,
       allDay: allDay ?? this.allDay,
+      recurrence: recurrence ?? this.recurrence,
+      recurrenceUntil: recurrenceUntil ?? this.recurrenceUntil,
       dirty: dirty ?? this.dirty,
       deleted: deleted ?? this.deleted,
       createdAt: createdAt ?? this.createdAt,
@@ -2991,6 +3186,12 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     if (allDay.present) {
       map['all_day'] = Variable<bool>(allDay.value);
     }
+    if (recurrence.present) {
+      map['recurrence'] = Variable<String>(recurrence.value);
+    }
+    if (recurrenceUntil.present) {
+      map['recurrence_until'] = Variable<DateTime>(recurrenceUntil.value);
+    }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
@@ -3021,6 +3222,8 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
           ..write('startsAt: $startsAt, ')
           ..write('endsAt: $endsAt, ')
           ..write('allDay: $allDay, ')
+          ..write('recurrence: $recurrence, ')
+          ..write('recurrenceUntil: $recurrenceUntil, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -3927,6 +4130,18 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _cadenceDaysMeta = const VerificationMeta(
+    'cadenceDays',
+  );
+  @override
+  late final GeneratedColumn<int> cadenceDays = GeneratedColumn<int>(
+    'cadence_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _paidMeta = const VerificationMeta('paid');
   @override
   late final GeneratedColumn<bool> paid = GeneratedColumn<bool>(
@@ -3999,6 +4214,7 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     title,
     amount,
     dueAt,
+    cadenceDays,
     paid,
     dirty,
     deleted,
@@ -4051,6 +4267,15 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
       );
     } else if (isInserting) {
       context.missing(_dueAtMeta);
+    }
+    if (data.containsKey('cadence_days')) {
+      context.handle(
+        _cadenceDaysMeta,
+        cadenceDays.isAcceptableOrUnknown(
+          data['cadence_days']!,
+          _cadenceDaysMeta,
+        ),
+      );
     }
     if (data.containsKey('paid')) {
       context.handle(
@@ -4111,6 +4336,10 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}due_at'],
       )!,
+      cadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cadence_days'],
+      )!,
       paid: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}paid'],
@@ -4146,6 +4375,7 @@ class Bill extends DataClass implements Insertable<Bill> {
   final String title;
   final double amount;
   final DateTime dueAt;
+  final int cadenceDays;
   final bool paid;
   final bool dirty;
   final bool deleted;
@@ -4157,6 +4387,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     required this.title,
     required this.amount,
     required this.dueAt,
+    required this.cadenceDays,
     required this.paid,
     required this.dirty,
     required this.deleted,
@@ -4173,6 +4404,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     map['title'] = Variable<String>(title);
     map['amount'] = Variable<double>(amount);
     map['due_at'] = Variable<DateTime>(dueAt);
+    map['cadence_days'] = Variable<int>(cadenceDays);
     map['paid'] = Variable<bool>(paid);
     map['dirty'] = Variable<bool>(dirty);
     map['deleted'] = Variable<bool>(deleted);
@@ -4190,6 +4422,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       title: Value(title),
       amount: Value(amount),
       dueAt: Value(dueAt),
+      cadenceDays: Value(cadenceDays),
       paid: Value(paid),
       dirty: Value(dirty),
       deleted: Value(deleted),
@@ -4209,6 +4442,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       title: serializer.fromJson<String>(json['title']),
       amount: serializer.fromJson<double>(json['amount']),
       dueAt: serializer.fromJson<DateTime>(json['dueAt']),
+      cadenceDays: serializer.fromJson<int>(json['cadenceDays']),
       paid: serializer.fromJson<bool>(json['paid']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deleted: serializer.fromJson<bool>(json['deleted']),
@@ -4225,6 +4459,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       'title': serializer.toJson<String>(title),
       'amount': serializer.toJson<double>(amount),
       'dueAt': serializer.toJson<DateTime>(dueAt),
+      'cadenceDays': serializer.toJson<int>(cadenceDays),
       'paid': serializer.toJson<bool>(paid),
       'dirty': serializer.toJson<bool>(dirty),
       'deleted': serializer.toJson<bool>(deleted),
@@ -4239,6 +4474,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     String? title,
     double? amount,
     DateTime? dueAt,
+    int? cadenceDays,
     bool? paid,
     bool? dirty,
     bool? deleted,
@@ -4250,6 +4486,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     title: title ?? this.title,
     amount: amount ?? this.amount,
     dueAt: dueAt ?? this.dueAt,
+    cadenceDays: cadenceDays ?? this.cadenceDays,
     paid: paid ?? this.paid,
     dirty: dirty ?? this.dirty,
     deleted: deleted ?? this.deleted,
@@ -4263,6 +4500,9 @@ class Bill extends DataClass implements Insertable<Bill> {
       title: data.title.present ? data.title.value : this.title,
       amount: data.amount.present ? data.amount.value : this.amount,
       dueAt: data.dueAt.present ? data.dueAt.value : this.dueAt,
+      cadenceDays: data.cadenceDays.present
+          ? data.cadenceDays.value
+          : this.cadenceDays,
       paid: data.paid.present ? data.paid.value : this.paid,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
@@ -4279,6 +4519,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           ..write('title: $title, ')
           ..write('amount: $amount, ')
           ..write('dueAt: $dueAt, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('paid: $paid, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
@@ -4295,6 +4536,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     title,
     amount,
     dueAt,
+    cadenceDays,
     paid,
     dirty,
     deleted,
@@ -4310,6 +4552,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           other.title == this.title &&
           other.amount == this.amount &&
           other.dueAt == this.dueAt &&
+          other.cadenceDays == this.cadenceDays &&
           other.paid == this.paid &&
           other.dirty == this.dirty &&
           other.deleted == this.deleted &&
@@ -4323,6 +4566,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
   final Value<String> title;
   final Value<double> amount;
   final Value<DateTime> dueAt;
+  final Value<int> cadenceDays;
   final Value<bool> paid;
   final Value<bool> dirty;
   final Value<bool> deleted;
@@ -4335,6 +4579,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.title = const Value.absent(),
     this.amount = const Value.absent(),
     this.dueAt = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
     this.paid = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
@@ -4348,6 +4593,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     required String title,
     required double amount,
     required DateTime dueAt,
+    this.cadenceDays = const Value.absent(),
     this.paid = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
@@ -4364,6 +4610,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Expression<String>? title,
     Expression<double>? amount,
     Expression<DateTime>? dueAt,
+    Expression<int>? cadenceDays,
     Expression<bool>? paid,
     Expression<bool>? dirty,
     Expression<bool>? deleted,
@@ -4377,6 +4624,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       if (title != null) 'title': title,
       if (amount != null) 'amount': amount,
       if (dueAt != null) 'due_at': dueAt,
+      if (cadenceDays != null) 'cadence_days': cadenceDays,
       if (paid != null) 'paid': paid,
       if (dirty != null) 'dirty': dirty,
       if (deleted != null) 'deleted': deleted,
@@ -4392,6 +4640,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Value<String>? title,
     Value<double>? amount,
     Value<DateTime>? dueAt,
+    Value<int>? cadenceDays,
     Value<bool>? paid,
     Value<bool>? dirty,
     Value<bool>? deleted,
@@ -4405,6 +4654,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       title: title ?? this.title,
       amount: amount ?? this.amount,
       dueAt: dueAt ?? this.dueAt,
+      cadenceDays: cadenceDays ?? this.cadenceDays,
       paid: paid ?? this.paid,
       dirty: dirty ?? this.dirty,
       deleted: deleted ?? this.deleted,
@@ -4431,6 +4681,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     }
     if (dueAt.present) {
       map['due_at'] = Variable<DateTime>(dueAt.value);
+    }
+    if (cadenceDays.present) {
+      map['cadence_days'] = Variable<int>(cadenceDays.value);
     }
     if (paid.present) {
       map['paid'] = Variable<bool>(paid.value);
@@ -4461,6 +4714,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
           ..write('title: $title, ')
           ..write('amount: $amount, ')
           ..write('dueAt: $dueAt, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('paid: $paid, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
@@ -7029,6 +7283,557 @@ class MealPlansCompanion extends UpdateCompanion<MealPlan> {
   }
 }
 
+class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecipesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ingredientsMeta = const VerificationMeta(
+    'ingredients',
+  );
+  @override
+  late final GeneratedColumn<String> ingredients = GeneratedColumn<String>(
+    'ingredients',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    title,
+    ingredients,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recipes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Recipe> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('ingredients')) {
+      context.handle(
+        _ingredientsMeta,
+        ingredients.isAcceptableOrUnknown(
+          data['ingredients']!,
+          _ingredientsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Recipe map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Recipe(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      ingredients: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ingredients'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $RecipesTable createAlias(String alias) {
+    return $RecipesTable(attachedDatabase, alias);
+  }
+}
+
+class Recipe extends DataClass implements Insertable<Recipe> {
+  final String id;
+  final String? nestId;
+  final String title;
+  final String ingredients;
+  final String notes;
+  final bool dirty;
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const Recipe({
+    required this.id,
+    this.nestId,
+    required this.title,
+    required this.ingredients,
+    required this.notes,
+    required this.dirty,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
+    map['title'] = Variable<String>(title);
+    map['ingredients'] = Variable<String>(ingredients);
+    map['notes'] = Variable<String>(notes);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  RecipesCompanion toCompanion(bool nullToAbsent) {
+    return RecipesCompanion(
+      id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
+      title: Value(title),
+      ingredients: Value(ingredients),
+      notes: Value(notes),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Recipe.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Recipe(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
+      title: serializer.fromJson<String>(json['title']),
+      ingredients: serializer.fromJson<String>(json['ingredients']),
+      notes: serializer.fromJson<String>(json['notes']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
+      'title': serializer.toJson<String>(title),
+      'ingredients': serializer.toJson<String>(ingredients),
+      'notes': serializer.toJson<String>(notes),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Recipe copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    String? title,
+    String? ingredients,
+    String? notes,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => Recipe(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    title: title ?? this.title,
+    ingredients: ingredients ?? this.ingredients,
+    notes: notes ?? this.notes,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Recipe copyWithCompanion(RecipesCompanion data) {
+    return Recipe(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      title: data.title.present ? data.title.value : this.title,
+      ingredients: data.ingredients.present
+          ? data.ingredients.value
+          : this.ingredients,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Recipe(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('ingredients: $ingredients, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    title,
+    ingredients,
+    notes,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Recipe &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.title == this.title &&
+          other.ingredients == this.ingredients &&
+          other.notes == this.notes &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class RecipesCompanion extends UpdateCompanion<Recipe> {
+  final Value<String> id;
+  final Value<String?> nestId;
+  final Value<String> title;
+  final Value<String> ingredients;
+  final Value<String> notes;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const RecipesCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.ingredients = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecipesCompanion.insert({
+    required String id,
+    this.nestId = const Value.absent(),
+    required String title,
+    this.ingredients = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title);
+  static Insertable<Recipe> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<String>? title,
+    Expression<String>? ingredients,
+    Expression<String>? notes,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (title != null) 'title': title,
+      if (ingredients != null) 'ingredients': ingredients,
+      if (notes != null) 'notes': notes,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecipesCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? nestId,
+    Value<String>? title,
+    Value<String>? ingredients,
+    Value<String>? notes,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return RecipesCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      title: title ?? this.title,
+      ingredients: ingredients ?? this.ingredients,
+      notes: notes ?? this.notes,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (ingredients.present) {
+      map['ingredients'] = Variable<String>(ingredients.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecipesCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('title: $title, ')
+          ..write('ingredients: $ingredients, ')
+          ..write('notes: $notes, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CareItemsTable extends CareItems
     with TableInfo<$CareItemsTable, CareItem> {
   @override
@@ -9285,6 +10090,15 @@ class $GroceryHabitsTable extends GroceryHabits
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -9341,6 +10155,34 @@ class $GroceryHabitsTable extends GroceryHabits
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -9356,11 +10198,14 @@ class $GroceryHabitsTable extends GroceryHabits
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    nestId,
     name,
     category,
     buyCount,
     cadenceDays,
     lastBoughtAt,
+    dirty,
+    deleted,
     updatedAt,
   ];
   @override
@@ -9379,6 +10224,12 @@ class $GroceryHabitsTable extends GroceryHabits
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -9420,6 +10271,18 @@ class $GroceryHabitsTable extends GroceryHabits
     } else if (isInserting) {
       context.missing(_lastBoughtAtMeta);
     }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -9439,6 +10302,10 @@ class $GroceryHabitsTable extends GroceryHabits
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -9459,6 +10326,14 @@ class $GroceryHabitsTable extends GroceryHabits
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_bought_at'],
       )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -9475,6 +10350,7 @@ class $GroceryHabitsTable extends GroceryHabits
 class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
   /// Normalized lowercase name key.
   final String id;
+  final String? nestId;
   final String name;
   final String category;
   final int buyCount;
@@ -9482,25 +10358,35 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
   /// Learned restock interval in days (updated from purchase gaps).
   final int cadenceDays;
   final DateTime lastBoughtAt;
+  final bool dirty;
+  final bool deleted;
   final DateTime updatedAt;
   const GroceryHabit({
     required this.id,
+    this.nestId,
     required this.name,
     required this.category,
     required this.buyCount,
     required this.cadenceDays,
     required this.lastBoughtAt,
+    required this.dirty,
+    required this.deleted,
     required this.updatedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
     map['name'] = Variable<String>(name);
     map['category'] = Variable<String>(category);
     map['buy_count'] = Variable<int>(buyCount);
     map['cadence_days'] = Variable<int>(cadenceDays);
     map['last_bought_at'] = Variable<DateTime>(lastBoughtAt);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -9508,11 +10394,16 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
   GroceryHabitsCompanion toCompanion(bool nullToAbsent) {
     return GroceryHabitsCompanion(
       id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
       name: Value(name),
       category: Value(category),
       buyCount: Value(buyCount),
       cadenceDays: Value(cadenceDays),
       lastBoughtAt: Value(lastBoughtAt),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
       updatedAt: Value(updatedAt),
     );
   }
@@ -9524,11 +10415,14 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return GroceryHabit(
       id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
       name: serializer.fromJson<String>(json['name']),
       category: serializer.fromJson<String>(json['category']),
       buyCount: serializer.fromJson<int>(json['buyCount']),
       cadenceDays: serializer.fromJson<int>(json['cadenceDays']),
       lastBoughtAt: serializer.fromJson<DateTime>(json['lastBoughtAt']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -9537,35 +10431,45 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
       'name': serializer.toJson<String>(name),
       'category': serializer.toJson<String>(category),
       'buyCount': serializer.toJson<int>(buyCount),
       'cadenceDays': serializer.toJson<int>(cadenceDays),
       'lastBoughtAt': serializer.toJson<DateTime>(lastBoughtAt),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
 
   GroceryHabit copyWith({
     String? id,
+    Value<String?> nestId = const Value.absent(),
     String? name,
     String? category,
     int? buyCount,
     int? cadenceDays,
     DateTime? lastBoughtAt,
+    bool? dirty,
+    bool? deleted,
     DateTime? updatedAt,
   }) => GroceryHabit(
     id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
     name: name ?? this.name,
     category: category ?? this.category,
     buyCount: buyCount ?? this.buyCount,
     cadenceDays: cadenceDays ?? this.cadenceDays,
     lastBoughtAt: lastBoughtAt ?? this.lastBoughtAt,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   GroceryHabit copyWithCompanion(GroceryHabitsCompanion data) {
     return GroceryHabit(
       id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
       name: data.name.present ? data.name.value : this.name,
       category: data.category.present ? data.category.value : this.category,
       buyCount: data.buyCount.present ? data.buyCount.value : this.buyCount,
@@ -9575,6 +10479,8 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
       lastBoughtAt: data.lastBoughtAt.present
           ? data.lastBoughtAt.value
           : this.lastBoughtAt,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -9583,11 +10489,14 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
   String toString() {
     return (StringBuffer('GroceryHabit(')
           ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('buyCount: $buyCount, ')
           ..write('cadenceDays: $cadenceDays, ')
           ..write('lastBoughtAt: $lastBoughtAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -9596,11 +10505,14 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
   @override
   int get hashCode => Object.hash(
     id,
+    nestId,
     name,
     category,
     buyCount,
     cadenceDays,
     lastBoughtAt,
+    dirty,
+    deleted,
     updatedAt,
   );
   @override
@@ -9608,40 +10520,52 @@ class GroceryHabit extends DataClass implements Insertable<GroceryHabit> {
       identical(this, other) ||
       (other is GroceryHabit &&
           other.id == this.id &&
+          other.nestId == this.nestId &&
           other.name == this.name &&
           other.category == this.category &&
           other.buyCount == this.buyCount &&
           other.cadenceDays == this.cadenceDays &&
           other.lastBoughtAt == this.lastBoughtAt &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
           other.updatedAt == this.updatedAt);
 }
 
 class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
   final Value<String> id;
+  final Value<String?> nestId;
   final Value<String> name;
   final Value<String> category;
   final Value<int> buyCount;
   final Value<int> cadenceDays;
   final Value<DateTime> lastBoughtAt;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const GroceryHabitsCompanion({
     this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
     this.name = const Value.absent(),
     this.category = const Value.absent(),
     this.buyCount = const Value.absent(),
     this.cadenceDays = const Value.absent(),
     this.lastBoughtAt = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   GroceryHabitsCompanion.insert({
     required String id,
+    this.nestId = const Value.absent(),
     required String name,
     this.category = const Value.absent(),
     this.buyCount = const Value.absent(),
     this.cadenceDays = const Value.absent(),
     required DateTime lastBoughtAt,
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -9649,21 +10573,27 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
        lastBoughtAt = Value(lastBoughtAt);
   static Insertable<GroceryHabit> custom({
     Expression<String>? id,
+    Expression<String>? nestId,
     Expression<String>? name,
     Expression<String>? category,
     Expression<int>? buyCount,
     Expression<int>? cadenceDays,
     Expression<DateTime>? lastBoughtAt,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
       if (name != null) 'name': name,
       if (category != null) 'category': category,
       if (buyCount != null) 'buy_count': buyCount,
       if (cadenceDays != null) 'cadence_days': cadenceDays,
       if (lastBoughtAt != null) 'last_bought_at': lastBoughtAt,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -9671,21 +10601,27 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
 
   GroceryHabitsCompanion copyWith({
     Value<String>? id,
+    Value<String?>? nestId,
     Value<String>? name,
     Value<String>? category,
     Value<int>? buyCount,
     Value<int>? cadenceDays,
     Value<DateTime>? lastBoughtAt,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
   }) {
     return GroceryHabitsCompanion(
       id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
       name: name ?? this.name,
       category: category ?? this.category,
       buyCount: buyCount ?? this.buyCount,
       cadenceDays: cadenceDays ?? this.cadenceDays,
       lastBoughtAt: lastBoughtAt ?? this.lastBoughtAt,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -9696,6 +10632,9 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -9712,6 +10651,12 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
     if (lastBoughtAt.present) {
       map['last_bought_at'] = Variable<DateTime>(lastBoughtAt.value);
     }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -9725,11 +10670,14 @@ class GroceryHabitsCompanion extends UpdateCompanion<GroceryHabit> {
   String toString() {
     return (StringBuffer('GroceryHabitsCompanion(')
           ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
           ..write('name: $name, ')
           ..write('category: $category, ')
           ..write('buyCount: $buyCount, ')
           ..write('cadenceDays: $cadenceDays, ')
           ..write('lastBoughtAt: $lastBoughtAt, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -10131,6 +11079,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VaultDocumentsTable vaultDocuments = $VaultDocumentsTable(this);
   late final $TimelineEventsTable timelineEvents = $TimelineEventsTable(this);
   late final $MealPlansTable mealPlans = $MealPlansTable(this);
+  late final $RecipesTable recipes = $RecipesTable(this);
   late final $CareItemsTable careItems = $CareItemsTable(this);
   late final $CareProfilesTable careProfiles = $CareProfilesTable(this);
   late final $SchoolActivitiesTable schoolActivities = $SchoolActivitiesTable(
@@ -10155,6 +11104,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     vaultDocuments,
     timelineEvents,
     mealPlans,
+    recipes,
     careItems,
     careProfiles,
     schoolActivities,
@@ -10429,6 +11379,8 @@ typedef $$TasksTableCreateCompanionBuilder =
       required String title,
       Value<String> assigneeId,
       Value<String> dueLabel,
+      Value<DateTime?> dueAt,
+      Value<int> cadenceDays,
       Value<bool> done,
       Value<bool> recurring,
       Value<bool> dirty,
@@ -10444,6 +11396,8 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> assigneeId,
       Value<String> dueLabel,
+      Value<DateTime?> dueAt,
+      Value<int> cadenceDays,
       Value<bool> done,
       Value<bool> recurring,
       Value<bool> dirty,
@@ -10483,6 +11437,16 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<String> get dueLabel => $composableBuilder(
     column: $table.dueLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueAt => $composableBuilder(
+    column: $table.dueAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10551,6 +11515,16 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get dueAt => $composableBuilder(
+    column: $table.dueAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get done => $composableBuilder(
     column: $table.done,
     builder: (column) => ColumnOrderings(column),
@@ -10608,6 +11582,14 @@ class $$TasksTableAnnotationComposer
   GeneratedColumn<String> get dueLabel =>
       $composableBuilder(column: $table.dueLabel, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get dueAt =>
+      $composableBuilder(column: $table.dueAt, builder: (column) => column);
+
+  GeneratedColumn<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get done =>
       $composableBuilder(column: $table.done, builder: (column) => column);
 
@@ -10660,6 +11642,8 @@ class $$TasksTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> assigneeId = const Value.absent(),
                 Value<String> dueLabel = const Value.absent(),
+                Value<DateTime?> dueAt = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
@@ -10673,6 +11657,8 @@ class $$TasksTableTableManager
                 title: title,
                 assigneeId: assigneeId,
                 dueLabel: dueLabel,
+                dueAt: dueAt,
+                cadenceDays: cadenceDays,
                 done: done,
                 recurring: recurring,
                 dirty: dirty,
@@ -10688,6 +11674,8 @@ class $$TasksTableTableManager
                 required String title,
                 Value<String> assigneeId = const Value.absent(),
                 Value<String> dueLabel = const Value.absent(),
+                Value<DateTime?> dueAt = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<bool> recurring = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
@@ -10701,6 +11689,8 @@ class $$TasksTableTableManager
                 title: title,
                 assigneeId: assigneeId,
                 dueLabel: dueLabel,
+                dueAt: dueAt,
+                cadenceDays: cadenceDays,
                 done: done,
                 recurring: recurring,
                 dirty: dirty,
@@ -11541,6 +12531,8 @@ typedef $$CalendarEventsTableCreateCompanionBuilder =
       required DateTime startsAt,
       Value<DateTime?> endsAt,
       Value<bool> allDay,
+      Value<String> recurrence,
+      Value<DateTime?> recurrenceUntil,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -11558,6 +12550,8 @@ typedef $$CalendarEventsTableUpdateCompanionBuilder =
       Value<DateTime> startsAt,
       Value<DateTime?> endsAt,
       Value<bool> allDay,
+      Value<String> recurrence,
+      Value<DateTime?> recurrenceUntil,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -11616,6 +12610,16 @@ class $$CalendarEventsTableFilterComposer
 
   ColumnFilters<bool> get allDay => $composableBuilder(
     column: $table.allDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get recurrenceUntil => $composableBuilder(
+    column: $table.recurrenceUntil,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11694,6 +12698,16 @@ class $$CalendarEventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get recurrenceUntil => $composableBuilder(
+    column: $table.recurrenceUntil,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get dirty => $composableBuilder(
     column: $table.dirty,
     builder: (column) => ColumnOrderings(column),
@@ -11751,6 +12765,16 @@ class $$CalendarEventsTableAnnotationComposer
   GeneratedColumn<bool> get allDay =>
       $composableBuilder(column: $table.allDay, builder: (column) => column);
 
+  GeneratedColumn<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get recurrenceUntil => $composableBuilder(
+    column: $table.recurrenceUntil,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
@@ -11806,6 +12830,8 @@ class $$CalendarEventsTableTableManager
                 Value<DateTime> startsAt = const Value.absent(),
                 Value<DateTime?> endsAt = const Value.absent(),
                 Value<bool> allDay = const Value.absent(),
+                Value<String> recurrence = const Value.absent(),
+                Value<DateTime?> recurrenceUntil = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -11821,6 +12847,8 @@ class $$CalendarEventsTableTableManager
                 startsAt: startsAt,
                 endsAt: endsAt,
                 allDay: allDay,
+                recurrence: recurrence,
+                recurrenceUntil: recurrenceUntil,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,
@@ -11838,6 +12866,8 @@ class $$CalendarEventsTableTableManager
                 required DateTime startsAt,
                 Value<DateTime?> endsAt = const Value.absent(),
                 Value<bool> allDay = const Value.absent(),
+                Value<String> recurrence = const Value.absent(),
+                Value<DateTime?> recurrenceUntil = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -11853,6 +12883,8 @@ class $$CalendarEventsTableTableManager
                 startsAt: startsAt,
                 endsAt: endsAt,
                 allDay: allDay,
+                recurrence: recurrence,
+                recurrenceUntil: recurrenceUntil,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,
@@ -12338,6 +13370,7 @@ typedef $$BillsTableCreateCompanionBuilder =
       required String title,
       required double amount,
       required DateTime dueAt,
+      Value<int> cadenceDays,
       Value<bool> paid,
       Value<bool> dirty,
       Value<bool> deleted,
@@ -12352,6 +13385,7 @@ typedef $$BillsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<double> amount,
       Value<DateTime> dueAt,
+      Value<int> cadenceDays,
       Value<bool> paid,
       Value<bool> dirty,
       Value<bool> deleted,
@@ -12390,6 +13424,11 @@ class $$BillsTableFilterComposer extends Composer<_$AppDatabase, $BillsTable> {
 
   ColumnFilters<DateTime> get dueAt => $composableBuilder(
     column: $table.dueAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12453,6 +13492,11 @@ class $$BillsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get paid => $composableBuilder(
     column: $table.paid,
     builder: (column) => ColumnOrderings(column),
@@ -12503,6 +13547,11 @@ class $$BillsTableAnnotationComposer
   GeneratedColumn<DateTime> get dueAt =>
       $composableBuilder(column: $table.dueAt, builder: (column) => column);
 
+  GeneratedColumn<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get paid =>
       $composableBuilder(column: $table.paid, builder: (column) => column);
 
@@ -12552,6 +13601,7 @@ class $$BillsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<double> amount = const Value.absent(),
                 Value<DateTime> dueAt = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
@@ -12564,6 +13614,7 @@ class $$BillsTableTableManager
                 title: title,
                 amount: amount,
                 dueAt: dueAt,
+                cadenceDays: cadenceDays,
                 paid: paid,
                 dirty: dirty,
                 deleted: deleted,
@@ -12578,6 +13629,7 @@ class $$BillsTableTableManager
                 required String title,
                 required double amount,
                 required DateTime dueAt,
+                Value<int> cadenceDays = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
@@ -12590,6 +13642,7 @@ class $$BillsTableTableManager
                 title: title,
                 amount: amount,
                 dueAt: dueAt,
+                cadenceDays: cadenceDays,
                 paid: paid,
                 dirty: dirty,
                 deleted: deleted,
@@ -13868,6 +14921,278 @@ typedef $$MealPlansTableProcessedTableManager =
       MealPlan,
       PrefetchHooks Function()
     >;
+typedef $$RecipesTableCreateCompanionBuilder =
+    RecipesCompanion Function({
+      required String id,
+      Value<String?> nestId,
+      required String title,
+      Value<String> ingredients,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$RecipesTableUpdateCompanionBuilder =
+    RecipesCompanion Function({
+      Value<String> id,
+      Value<String?> nestId,
+      Value<String> title,
+      Value<String> ingredients,
+      Value<String> notes,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$RecipesTableFilterComposer
+    extends Composer<_$AppDatabase, $RecipesTable> {
+  $$RecipesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecipesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecipesTable> {
+  $$RecipesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecipesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecipesTable> {
+  $$RecipesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get ingredients => $composableBuilder(
+    column: $table.ingredients,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$RecipesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecipesTable,
+          Recipe,
+          $$RecipesTableFilterComposer,
+          $$RecipesTableOrderingComposer,
+          $$RecipesTableAnnotationComposer,
+          $$RecipesTableCreateCompanionBuilder,
+          $$RecipesTableUpdateCompanionBuilder,
+          (Recipe, BaseReferences<_$AppDatabase, $RecipesTable, Recipe>),
+          Recipe,
+          PrefetchHooks Function()
+        > {
+  $$RecipesTableTableManager(_$AppDatabase db, $RecipesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecipesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecipesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecipesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> ingredients = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecipesCompanion(
+                id: id,
+                nestId: nestId,
+                title: title,
+                ingredients: ingredients,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> nestId = const Value.absent(),
+                required String title,
+                Value<String> ingredients = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecipesCompanion.insert(
+                id: id,
+                nestId: nestId,
+                title: title,
+                ingredients: ingredients,
+                notes: notes,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecipesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecipesTable,
+      Recipe,
+      $$RecipesTableFilterComposer,
+      $$RecipesTableOrderingComposer,
+      $$RecipesTableAnnotationComposer,
+      $$RecipesTableCreateCompanionBuilder,
+      $$RecipesTableUpdateCompanionBuilder,
+      (Recipe, BaseReferences<_$AppDatabase, $RecipesTable, Recipe>),
+      Recipe,
+      PrefetchHooks Function()
+    >;
 typedef $$CareItemsTableCreateCompanionBuilder =
     CareItemsCompanion Function({
       required String id,
@@ -14941,22 +16266,28 @@ typedef $$SchoolActivitiesTableProcessedTableManager =
 typedef $$GroceryHabitsTableCreateCompanionBuilder =
     GroceryHabitsCompanion Function({
       required String id,
+      Value<String?> nestId,
       required String name,
       Value<String> category,
       Value<int> buyCount,
       Value<int> cadenceDays,
       required DateTime lastBoughtAt,
+      Value<bool> dirty,
+      Value<bool> deleted,
       Value<DateTime> updatedAt,
       Value<int> rowid,
     });
 typedef $$GroceryHabitsTableUpdateCompanionBuilder =
     GroceryHabitsCompanion Function({
       Value<String> id,
+      Value<String?> nestId,
       Value<String> name,
       Value<String> category,
       Value<int> buyCount,
       Value<int> cadenceDays,
       Value<DateTime> lastBoughtAt,
+      Value<bool> dirty,
+      Value<bool> deleted,
       Value<DateTime> updatedAt,
       Value<int> rowid,
     });
@@ -14972,6 +16303,11 @@ class $$GroceryHabitsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15000,6 +16336,16 @@ class $$GroceryHabitsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -15017,6 +16363,11 @@ class $$GroceryHabitsTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -15045,6 +16396,16 @@ class $$GroceryHabitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -15062,6 +16423,9 @@ class $$GroceryHabitsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -15081,6 +16445,12 @@ class $$GroceryHabitsTableAnnotationComposer
     column: $table.lastBoughtAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -15118,40 +16488,52 @@ class $$GroceryHabitsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<int> buyCount = const Value.absent(),
                 Value<int> cadenceDays = const Value.absent(),
                 Value<DateTime> lastBoughtAt = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GroceryHabitsCompanion(
                 id: id,
+                nestId: nestId,
                 name: name,
                 category: category,
                 buyCount: buyCount,
                 cadenceDays: cadenceDays,
                 lastBoughtAt: lastBoughtAt,
+                dirty: dirty,
+                deleted: deleted,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> nestId = const Value.absent(),
                 required String name,
                 Value<String> category = const Value.absent(),
                 Value<int> buyCount = const Value.absent(),
                 Value<int> cadenceDays = const Value.absent(),
                 required DateTime lastBoughtAt,
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GroceryHabitsCompanion.insert(
                 id: id,
+                nestId: nestId,
                 name: name,
                 category: category,
                 buyCount: buyCount,
                 cadenceDays: cadenceDays,
                 lastBoughtAt: lastBoughtAt,
+                dirty: dirty,
+                deleted: deleted,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -15412,6 +16794,8 @@ class $AppDatabaseManager {
       $$TimelineEventsTableTableManager(_db, _db.timelineEvents);
   $$MealPlansTableTableManager get mealPlans =>
       $$MealPlansTableTableManager(_db, _db.mealPlans);
+  $$RecipesTableTableManager get recipes =>
+      $$RecipesTableTableManager(_db, _db.recipes);
   $$CareItemsTableTableManager get careItems =>
       $$CareItemsTableTableManager(_db, _db.careItems);
   $$CareProfilesTableTableManager get careProfiles =>

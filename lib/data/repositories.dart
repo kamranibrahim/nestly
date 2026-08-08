@@ -1,10 +1,12 @@
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
+import 'calendar_view_math.dart';
 import 'db/app_database.dart';
 import 'enums.dart';
 import 'home_tips.dart';
 import 'member_roles.dart';
+import 'task_due.dart';
 
 class TaskRepository {
   TaskRepository(this._db);
@@ -35,10 +37,17 @@ class TaskRepository {
     final now = DateTime.now();
 
     if (markingDone && task.recurring) {
-      final nextLabel = nextDueLabel(task.dueLabel);
+      final cadence = effectiveTaskCadenceDays(
+        recurring: task.recurring,
+        cadenceDays: task.cadenceDays,
+      );
+      final base = task.dueAt ?? now;
+      final nextDue = advanceDueAt(base, cadence);
+      final nextLabel = dueLabelForDueAt(nextDue, now: now);
       await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
         TasksCompanion(
           done: const Value(false),
+          dueAt: Value(nextDue),
           dueLabel: Value(nextLabel),
           dirty: const Value(true),
           updatedAt: Value(now),
@@ -67,7 +76,7 @@ class TaskRepository {
     }
   }
 
-  /// Advances recurring chore labels without a full calendar cadence.
+  /// Legacy label cycle — prefer [advanceDueAt] on [Task.dueAt].
   static String nextDueLabel(String current) =>
       TaskDueLabel.parse(current).next.label;
 
@@ -75,11 +84,23 @@ class TaskRepository {
     required String title,
     String assigneeId = '',
     String dueLabel = 'Today',
+    DateTime? dueAt,
     bool recurring = false,
+    int cadenceDays = 0,
     String? nestId,
   }) async {
     final now = DateTime.now();
     final resolvedNest = nestId ?? await _db.getMeta('nestId');
+    final resolvedDue = resolveTaskDueAt(
+      dueAt: dueAt,
+      dueLabel: dueLabel,
+      now: now,
+    );
+    final resolvedCadence = effectiveTaskCadenceDays(
+      recurring: recurring,
+      cadenceDays: cadenceDays,
+    );
+    final resolvedLabel = dueLabelForDueAt(resolvedDue, now: now);
     await _db
         .into(_db.tasks)
         .insert(
@@ -88,7 +109,9 @@ class TaskRepository {
             nestId: Value(resolvedNest),
             title: title.trim(),
             assigneeId: Value(assigneeId),
-            dueLabel: Value(dueLabel),
+            dueLabel: Value(resolvedLabel),
+            dueAt: Value(resolvedDue),
+            cadenceDays: Value(resolvedCadence),
             recurring: Value(recurring),
             dirty: const Value(true),
             createdAt: Value(now),
@@ -102,16 +125,31 @@ class TaskRepository {
     required String title,
     String assigneeId = '',
     String dueLabel = 'Today',
+    DateTime? dueAt,
     bool recurring = false,
+    int cadenceDays = 0,
   }) {
+    final now = DateTime.now();
+    final resolvedDue = resolveTaskDueAt(
+      dueAt: dueAt,
+      dueLabel: dueLabel,
+      now: now,
+    );
+    final resolvedCadence = effectiveTaskCadenceDays(
+      recurring: recurring,
+      cadenceDays: cadenceDays,
+    );
+    final resolvedLabel = dueLabelForDueAt(resolvedDue, now: now);
     return (_db.update(_db.tasks)..where((t) => t.id.equals(id))).write(
       TasksCompanion(
         title: Value(title.trim()),
         assigneeId: Value(assigneeId),
-        dueLabel: Value(dueLabel),
+        dueLabel: Value(resolvedLabel),
+        dueAt: Value(resolvedDue),
+        cadenceDays: Value(resolvedCadence),
         recurring: Value(recurring),
         dirty: const Value(true),
-        updatedAt: Value(DateTime.now()),
+        updatedAt: Value(now),
       ),
     );
   }
@@ -136,6 +174,111 @@ class ShoppingRepository {
 
   static String normalizeName(String name) =>
       name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+  Stream<List<ShoppingList>> watchLists() {
+    return (_db.select(_db.shoppingLists)
+          ..where((l) => l.deleted.equals(false))
+          ..orderBy([
+            (l) => OrderingTerm(
+              expression: l.id.equals(defaultListId),
+              mode: OrderingMode.desc,
+            ),
+            (l) => OrderingTerm(expression: l.createdAt),
+          ]))
+        .watch();
+  }
+
+  Future<void> ensureDefaultList({String? nestId}) async {
+    final existing =
+        await (_db.select(_db.shoppingLists)
+              ..where((l) => l.id.equals(defaultListId)))
+            .getSingleOrNull();
+    if (existing != null) {
+      if (existing.deleted) {
+        final now = DateTime.now();
+        await (_db.update(_db.shoppingLists)
+              ..where((l) => l.id.equals(defaultListId)))
+            .write(
+          ShoppingListsCompanion(
+            deleted: const Value(false),
+            dirty: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+      return;
+    }
+    final now = DateTime.now();
+    final resolvedNest = nestId ?? await _db.getMeta('nestId');
+    await _db.into(_db.shoppingLists).insert(
+          ShoppingListsCompanion.insert(
+            id: defaultListId,
+            nestId: Value(resolvedNest),
+            name: 'Groceries',
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  Future<ShoppingList> addList({
+    required String name,
+    String? nestId,
+  }) async {
+    await ensureDefaultList(nestId: nestId);
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('List name cannot be empty');
+    }
+    final now = DateTime.now();
+    final resolvedNest = nestId ?? await _db.getMeta('nestId');
+    final id = _uuid.v4();
+    await _db.into(_db.shoppingLists).insert(
+          ShoppingListsCompanion.insert(
+            id: id,
+            nestId: Value(resolvedNest),
+            name: trimmed,
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    return (_db.select(_db.shoppingLists)..where((l) => l.id.equals(id)))
+        .getSingle();
+  }
+
+  Future<void> renameList(String id, String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    await (_db.update(_db.shoppingLists)..where((l) => l.id.equals(id))).write(
+      ShoppingListsCompanion(
+        name: Value(trimmed),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> softDeleteList(String id) async {
+    if (id == defaultListId) return;
+    final now = DateTime.now();
+    await (_db.update(_db.shoppingLists)..where((l) => l.id.equals(id))).write(
+      ShoppingListsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+    await (_db.update(_db.shoppingItems)..where((i) => i.listId.equals(id)))
+        .write(
+      ShoppingItemsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
 
   Stream<List<ShoppingItem>> watchItems({String listId = defaultListId}) {
     return (_db.select(_db.shoppingItems)
@@ -162,6 +305,7 @@ class ShoppingRepository {
   /// Habits ready to restock: bought 2+ times, past learned cadence, not open.
   Stream<List<GroceryHabit>> watchSuggestions({String listId = defaultListId}) {
     return _db.select(_db.groceryHabits).watch().asyncMap((habits) async {
+      final nestId = await _db.getMeta('nestId');
       final open =
           await (_db.select(_db.shoppingItems)..where(
                 (i) =>
@@ -174,6 +318,13 @@ class ShoppingRepository {
       final now = DateTime.now();
       final due =
           habits.where((h) {
+            if (h.deleted) return false;
+            if (nestId != null &&
+                nestId.isNotEmpty &&
+                h.nestId != null &&
+                h.nestId != nestId) {
+              return false;
+            }
             if (h.buyCount < 2) return false;
             if (openNames.contains(h.id)) return false;
             final staleDays = h.cadenceDays.clamp(2, 60);
@@ -229,6 +380,7 @@ class ShoppingRepository {
     final key = normalizeName(item.name);
     if (key.isEmpty) return;
     final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
     final existing = await (_db.select(
       _db.groceryHabits,
     )..where((h) => h.id.equals(key))).getSingleOrNull();
@@ -238,11 +390,13 @@ class ShoppingRepository {
           .insert(
             GroceryHabitsCompanion.insert(
               id: key,
+              nestId: Value(nestId),
               name: item.name.trim(),
               category: Value(item.category),
               buyCount: const Value(1),
               cadenceDays: const Value(7),
               lastBoughtAt: now,
+              dirty: const Value(true),
               updatedAt: Value(now),
             ),
           );
@@ -258,11 +412,13 @@ class ShoppingRepository {
         _db.groceryHabits,
       )..where((h) => h.id.equals(key))).write(
         GroceryHabitsCompanion(
+          nestId: nestId != null ? Value(nestId) : const Value.absent(),
           name: Value(item.name.trim()),
           category: Value(item.category),
           buyCount: Value(nextCount),
           cadenceDays: Value(cadence),
           lastBoughtAt: Value(now),
+          dirty: const Value(true),
           updatedAt: Value(now),
         ),
       );
@@ -331,8 +487,11 @@ class ShoppingRepository {
         );
   }
 
-  Future<void> addSuggestion(GroceryHabit habit) {
-    return addItem(name: habit.name, category: habit.category);
+  Future<void> addSuggestion(
+    GroceryHabit habit, {
+    String listId = defaultListId,
+  }) {
+    return addItem(name: habit.name, category: habit.category, listId: listId);
   }
 
   Future<void> updateItem({
@@ -397,6 +556,39 @@ class EventRepository {
   final AppDatabase _db;
   static const _uuid = Uuid();
 
+  RecurringEventAnchor _anchor(CalendarEvent event) => RecurringEventAnchor(
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        allDay: event.allDay,
+        recurrence: EventRecurrence.parse(event.recurrence),
+        recurrenceUntil: event.recurrenceUntil,
+      );
+
+  CalendarEvent _withOccurrence(CalendarEvent master, EventOccurrence occ) =>
+      master.copyWith(
+        startsAt: occ.startsAt,
+        endsAt: Value(occ.endsAt),
+      );
+
+  List<CalendarEvent> expandInRange(
+    List<CalendarEvent> events,
+    DateTime rangeStart,
+    DateTime rangeEnd,
+  ) {
+    final expanded = <CalendarEvent>[];
+    for (final event in events) {
+      for (final occ in expandRecurringEvent(
+        _anchor(event),
+        rangeStart,
+        rangeEnd,
+      )) {
+        expanded.add(_withOccurrence(event, occ));
+      }
+    }
+    expanded.sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    return expanded;
+  }
+
   Stream<List<CalendarEvent>> watchAll() {
     return (_db.select(_db.calendarEvents)
           ..where((e) => e.deleted.equals(false))
@@ -427,6 +619,8 @@ class EventRepository {
     bool allDay = false,
     DateTime? endsAt,
     String? nestId,
+    EventRecurrence recurrence = EventRecurrence.none,
+    DateTime? recurrenceUntil,
   }) async {
     final now = DateTime.now();
     final resolvedNest = nestId ?? await _db.getMeta('nestId');
@@ -443,6 +637,8 @@ class EventRepository {
             startsAt: startsAt,
             endsAt: Value(endsAt),
             allDay: Value(allDay),
+            recurrence: Value(recurrence.storage),
+            recurrenceUntil: Value(recurrenceUntil),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -459,6 +655,8 @@ class EventRepository {
     String? location,
     bool allDay = false,
     DateTime? endsAt,
+    EventRecurrence recurrence = EventRecurrence.none,
+    DateTime? recurrenceUntil,
   }) {
     return (_db.update(
       _db.calendarEvents,
@@ -471,6 +669,8 @@ class EventRepository {
         startsAt: Value(startsAt),
         endsAt: Value(endsAt),
         allDay: Value(allDay),
+        recurrence: Value(recurrence.storage),
+        recurrenceUntil: Value(recurrenceUntil),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
@@ -746,11 +946,31 @@ class BillRepository {
   }
 
   Future<void> togglePaid(Bill bill) {
+    final now = DateTime.now();
+    if (!bill.paid) {
+      if (bill.cadenceDays >= 1) {
+        return (_db.update(_db.bills)..where((b) => b.id.equals(bill.id))).write(
+          BillsCompanion(
+            dueAt: Value(advanceDueAt(bill.dueAt, bill.cadenceDays)),
+            paid: const Value(false),
+            dirty: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+      return (_db.update(_db.bills)..where((b) => b.id.equals(bill.id))).write(
+        BillsCompanion(
+          paid: const Value(true),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+    }
     return (_db.update(_db.bills)..where((b) => b.id.equals(bill.id))).write(
       BillsCompanion(
-        paid: Value(!bill.paid),
+        paid: const Value(false),
         dirty: const Value(true),
-        updatedAt: Value(DateTime.now()),
+        updatedAt: Value(now),
       ),
     );
   }
@@ -759,6 +979,7 @@ class BillRepository {
     required String title,
     required double amount,
     required DateTime dueAt,
+    int cadenceDays = 0,
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
@@ -771,6 +992,7 @@ class BillRepository {
             title: title.trim(),
             amount: amount,
             dueAt: dueAt,
+            cadenceDays: Value(cadenceDays.clamp(0, 365)),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -783,6 +1005,7 @@ class BillRepository {
     required String title,
     required double amount,
     required DateTime dueAt,
+    int cadenceDays = 0,
   }) {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return Future.value();
@@ -791,6 +1014,7 @@ class BillRepository {
         title: Value(trimmed),
         amount: Value(amount),
         dueAt: Value(dueAt),
+        cadenceDays: Value(cadenceDays.clamp(0, 365)),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
@@ -1277,6 +1501,109 @@ class MealRepository {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
+  }
+
+  Stream<List<Recipe>> watchRecipes() {
+    return (_db.select(_db.recipes)
+          ..where((r) => r.deleted.equals(false))
+          ..orderBy([(r) => OrderingTerm(expression: r.title)]))
+        .watch();
+  }
+
+  Future<Recipe> addRecipe({
+    required String title,
+    String ingredients = '',
+    String notes = '',
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final id = _uuid.v4();
+    await _db
+        .into(_db.recipes)
+        .insert(
+          RecipesCompanion.insert(
+            id: id,
+            nestId: Value(nestId),
+            title: title.trim(),
+            ingredients: Value(ingredients.trim()),
+            notes: Value(notes.trim()),
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+    return (_db.select(_db.recipes)..where((r) => r.id.equals(id)))
+        .getSingle();
+  }
+
+  Future<void> updateRecipe({
+    required String id,
+    required String title,
+    String ingredients = '',
+    String notes = '',
+  }) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return (_db.update(_db.recipes)..where((r) => r.id.equals(id))).write(
+      RecipesCompanion(
+        title: Value(trimmed),
+        ingredients: Value(ingredients.trim()),
+        notes: Value(notes.trim()),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> deleteRecipe(String id) {
+    return (_db.update(_db.recipes)..where((r) => r.id.equals(id))).write(
+      RecipesCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> applyRecipeToMealPlan({
+    required String recipeId,
+    required int weekday,
+    String mealType = 'Dinner',
+  }) async {
+    final recipe = await (_db.select(_db.recipes)
+          ..where((r) => r.id.equals(recipeId) & r.deleted.equals(false)))
+        .getSingleOrNull();
+    if (recipe == null) return;
+
+    final existing = await (_db.select(_db.mealPlans)
+          ..where(
+            (m) =>
+                m.deleted.equals(false) &
+                m.weekday.equals(weekday) &
+                m.mealType.equals(mealType),
+          ))
+        .get();
+
+    final primary = existing.isEmpty ? null : existing.first;
+    for (final extra in existing.skip(1)) {
+      await delete(extra.id);
+    }
+
+    await upsert(
+      id: primary?.id,
+      weekday: weekday,
+      title: recipe.title,
+      mealType: mealType,
+      ingredients: recipe.ingredients,
+    );
+  }
+
+  Future<Recipe> saveMealAsRecipe(MealPlan meal, {String notes = ''}) {
+    return addRecipe(
+      title: meal.title,
+      ingredients: meal.ingredients,
+      notes: notes,
+    );
   }
 }
 

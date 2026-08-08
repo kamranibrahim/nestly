@@ -678,6 +678,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarTitle => 'Family calendar';
 
   @override
+  String get calendarTitleAgenda => 'Agenda';
+
+  @override
+  String get calendarBrowseMonth => 'Month';
+
+  @override
+  String get calendarBrowseWeek => 'Week';
+
+  @override
+  String get calendarBrowseAgenda => 'Agenda';
+
+  @override
+  String get calendarAgendaUpcoming => 'Next 7 days';
+
+  @override
+  String get eventRecurrence => 'Repeats';
+
+  @override
+  String get eventRecurrenceNone => 'Does not repeat';
+
+  @override
+  String get eventRecurrenceDaily => 'Every day';
+
+  @override
+  String get eventRecurrenceWeekly => 'Every week';
+
+  @override
+  String get eventRecurrenceMonthly => 'Every month';
+
+  @override
+  String get eventRecurrenceUntil => 'Repeat until (optional)';
+
+  @override
+  String get calendarEditSeriesHint =>
+      'Changes apply to the whole repeating series.';
+
+  @override
   String get homeTodaySnapshot => 'Today snapshot';
 
   @override
@@ -1534,6 +1571,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addBillShort => 'Add bill';
+
+  @override
+  String get billRepeats => 'Repeats';
+
+  @override
+  String get billCadenceNone => 'One-time';
+
+  @override
+  String billRepeatsCadence(String cadence) {
+    return 'Repeats · $cadence';
+  }
 
   @override
   String get saveBudget => 'Save budget';
@@ -2435,6 +2483,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'Fill the nights you care about. Blank days stay empty.';
 
   @override
+  String get mealsRecipeLibrary => 'Recipe library';
+
+  @override
+  String get mealsAddRecipe => 'Add recipe';
+
+  @override
+  String get mealsEditRecipe => 'Edit recipe';
+
+  @override
+  String get mealsSaveRecipe => 'Save recipe';
+
+  @override
+  String get mealsApplyRecipe => 'Apply to this day';
+
+  @override
+  String get mealsSaveAsRecipe => 'Save as recipe';
+
+  @override
+  String get mealsNoRecipes =>
+      'No saved recipes yet — save a meal slot or add one here.';
+
+  @override
+  String get mealsRecipeApplied => 'Recipe applied';
+
+  @override
+  String get hintRecipeNotes => 'Notes (optional)';
+
+  @override
   String get shopClearBoughtBody =>
       'Removes checked-off groceries from this list. You can still restock habits later.';
 
@@ -2468,6 +2544,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shopBasedOnUsual => 'Based on what you usually buy';
 
   @override
+  String get shopNewList => 'New list';
+
+  @override
+  String get shopListNameHint => 'List name';
+
+  @override
+  String get shopCreateList => 'Create list';
+
+  @override
+  String get shopRenameList => 'Rename list';
+
+  @override
+  String get shopDeleteList => 'Delete list';
+
+  @override
+  String get shopDeleteListBody =>
+      'Removes this list and its items from your nest.';
+
+  @override
+  String get shopEmptyListTitle => 'This list is empty';
+
+  @override
+  String get shopEmptyListBody => 'Add items for this store or occasion.';
+
+  @override
+  String get shopRestock => 'Restock';
+
+  @override
   String get tasksNoMatch => 'No tasks match this search.';
 
   @override
@@ -2482,7 +2586,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskEdit => 'Edit task';
 
   @override
-  String get taskHabitHint => 'Stays open and rolls the due label when done';
+  String get taskHabitHint => 'Stays open and advances the due date when done';
 
   @override
   String get taskAdd => 'Add task';
@@ -2541,6 +2645,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get taskRepeats => 'Repeats';
+
+  @override
+  String get taskPickDate => 'Pick date';
+
+  @override
+  String get taskCadenceDaily => 'Every day';
+
+  @override
+  String get taskCadenceWeekly => 'Every week';
+
+  @override
+  String get taskCadenceBiweekly => 'Every 2 weeks';
+
+  @override
+  String get taskCadenceMonthly => 'Every month';
+
+  @override
+  String taskCadenceEveryDays(int days) {
+    return 'Every $days days';
+  }
+
+  @override
+  String taskRepeatsCadence(String cadence) {
+    return 'Repeats · $cadence';
+  }
 
   @override
   String get taskOpen => 'Open';

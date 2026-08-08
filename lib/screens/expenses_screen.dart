@@ -13,6 +13,7 @@ import '../widgets/common.dart';
 import '../widgets/first_run_empty_card.dart';
 import '../widgets/sheet_form.dart';
 import '../widgets/shimmer.dart';
+import '../data/task_due.dart';
 import '../data/sync_controller.dart';
 import '../l10n/l10n_ext.dart';
 
@@ -125,19 +126,10 @@ class ExpensesScreen extends ConsumerWidget {
             const SizedBox(height: 6),
             SectionLabel(context.l10n.expensesByCategory),
             NestCard(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final row in categoryTotals.take(6))
-                    SoftPill(
-                      label:
-                          '${ExpenseCategory.parse(row.category).display(context.l10n)} · ${currency.format(row.total)}',
-                      selected: false,
-                      background: AppColors.surfaceMuted,
-                    ),
-                ],
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+              child: _CategorySpendBars(
+                totals: categoryTotals,
+                currency: currency,
               ),
             ),
           ],
@@ -366,11 +358,6 @@ class ExpensesScreen extends ConsumerWidget {
     WidgetRef ref, {
     required double current,
   }) async {
-    final controller = TextEditingController(
-      text: current == current.roundToDouble()
-          ? current.toStringAsFixed(0)
-          : current.toStringAsFixed(2),
-    );
     final result = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
@@ -378,72 +365,8 @@ class ExpensesScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return sheetBody(
-          context: context,
-          children: [
-            sheetHandle(),
-            const SizedBox(height: 6),
-            Text(
-              context.l10n.monthBudgetTitle,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              context.l10n.monthBudgetBody,
-              style: const TextStyle(color: AppColors.inkMuted),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: InputDecoration(
-                labelText: context.l10n.commonAmount,
-                prefixText: '\$ ',
-              ),
-              onSubmitted: (value) {
-                final parsed = double.tryParse(value.trim());
-                if (parsed != null && parsed > 0) {
-                  Navigator.pop(context, parsed);
-                }
-              },
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                for (final amount in const [
-                  1000.0,
-                  1500.0,
-                  1800.0,
-                  2500.0,
-                  3000.0,
-                ])
-                  SoftPill(
-                    label: NumberFormat.simpleCurrency().format(amount),
-                    selected: current == amount,
-                    onTap: () => Navigator.pop(context, amount),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            FilledButton(
-              onPressed: () {
-                final parsed = double.tryParse(controller.text.trim());
-                if (parsed == null || parsed <= 0) return;
-                Navigator.pop(context, parsed);
-              },
-              child: Text(context.l10n.saveBudget),
-            ),
-          ],
-        );
-      },
+      builder: (context) => _MonthBudgetSheet(current: current),
     );
-    controller.dispose();
     if (result == null) return;
     await ref.read(expenseRepositoryProvider).setMonthBudget(result);
     await syncAfterWrite(ref, context: context);
@@ -528,7 +451,7 @@ class ExpensesScreen extends ConsumerWidget {
   }) async {
     final result =
         await showModalBottomSheet<
-          ({String title, double amount, DateTime dueAt, bool deleteBill})
+          ({String title, double amount, DateTime dueAt, int cadenceDays, bool deleteBill})
         >(
           context: context,
           isScrollControlled: true,
@@ -557,6 +480,7 @@ class ExpensesScreen extends ConsumerWidget {
             title: result.title,
             amount: result.amount,
             dueAt: result.dueAt,
+            cadenceDays: result.cadenceDays,
           );
     } else {
       await ref
@@ -566,6 +490,7 @@ class ExpensesScreen extends ConsumerWidget {
             title: result.title,
             amount: result.amount,
             dueAt: result.dueAt,
+            cadenceDays: result.cadenceDays,
           );
     }
     await ref.read(notificationServiceProvider).rescheduleBillReminders();
@@ -611,7 +536,7 @@ class _BillTile extends StatelessWidget {
         ),
       ),
       subtitle: Text(
-        ExpensesScreen._dueLabel(bill, context.l10n),
+        _billSubtitle(context),
         style: TextStyle(
           fontWeight: overdue ? FontWeight.w700 : FontWeight.w500,
           color: overdue ? AppColors.danger : AppColors.inkMuted,
@@ -624,6 +549,179 @@ class _BillTile extends StatelessWidget {
           color: overdue ? AppColors.danger : AppColors.ink,
         ),
       ),
+    );
+  }
+
+  String _billSubtitle(BuildContext context) {
+    final due = ExpensesScreen._dueLabel(bill, context.l10n);
+    if (bill.cadenceDays < 1) return due;
+    final cadence = formatTaskCadence(bill.cadenceDays, context.l10n);
+    return '${context.l10n.billRepeatsCadence(cadence)} · $due';
+  }
+}
+
+class _CategorySpendBars extends StatelessWidget {
+  const _CategorySpendBars({
+    required this.totals,
+    required this.currency,
+  });
+
+  final List<({String category, double total})> totals;
+  final NumberFormat currency;
+
+  static Color _colorFor(String category) {
+    return switch (ExpenseCategory.parse(category)) {
+      ExpenseCategory.groceries => AppColors.tileGreen,
+      ExpenseCategory.transport => AppColors.tileBlue,
+      ExpenseCategory.kids => AppColors.tilePink,
+      ExpenseCategory.home => AppColors.tileOrange,
+      ExpenseCategory.dining => AppColors.tileYellow,
+      ExpenseCategory.health => AppColors.tileTeal,
+      ExpenseCategory.general => AppColors.accent,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = totals.take(6).toList();
+    if (rows.isEmpty) return const SizedBox.shrink();
+    final maxTotal = rows.first.total <= 0 ? 1.0 : rows.first.total;
+
+    return Column(
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      ExpenseCategory.parse(rows[i].category).display(
+                        context.l10n,
+                      ),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    currency.format(rows[i].total),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppColors.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: (rows[i].total / maxTotal).clamp(0.06, 1.0),
+                  minHeight: 6,
+                  backgroundColor: AppColors.surfaceMuted,
+                  color: _colorFor(rows[i].category),
+                ),
+              ),
+            ],
+          ),
+          if (i != rows.length - 1) const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _MonthBudgetSheet extends StatefulWidget {
+  const _MonthBudgetSheet({required this.current});
+
+  final double current;
+
+  @override
+  State<_MonthBudgetSheet> createState() => _MonthBudgetSheetState();
+}
+
+class _MonthBudgetSheetState extends State<_MonthBudgetSheet> {
+  late final TextEditingController _amount;
+
+  @override
+  void initState() {
+    super.initState();
+    final current = widget.current;
+    _amount = TextEditingController(
+      text: current == current.roundToDouble()
+          ? current.toStringAsFixed(0)
+          : current.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  void _submit([String? raw]) {
+    final parsed = double.tryParse((raw ?? _amount.text).trim());
+    if (parsed == null || parsed <= 0) return;
+    Navigator.pop(context, parsed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return sheetBody(
+      context: context,
+      children: [
+        sheetHandle(),
+        const SizedBox(height: 6),
+        Text(
+          context.l10n.monthBudgetTitle,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          context.l10n.monthBudgetBody,
+          style: const TextStyle(color: AppColors.inkMuted),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _amount,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: context.l10n.commonAmount,
+            prefixText: '\$ ',
+          ),
+          onSubmitted: _submit,
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final amount in const [
+              1000.0,
+              1500.0,
+              1800.0,
+              2500.0,
+              3000.0,
+            ])
+              SoftPill(
+                label: NumberFormat.simpleCurrency().format(amount),
+                selected: widget.current == amount,
+                onTap: () => Navigator.pop(context, amount),
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(context.l10n.saveBudget),
+        ),
+      ],
     );
   }
 }
@@ -786,6 +884,9 @@ class _BillSheetState extends State<_BillSheet> {
   late final TextEditingController _title;
   late final TextEditingController _amount;
   late DateTime _dueAt;
+  late int _cadenceDays;
+
+  static const _cadenceOptions = [0, 7, 14, 30];
 
   @override
   void initState() {
@@ -803,6 +904,7 @@ class _BillSheetState extends State<_BillSheet> {
     _dueAt =
         existing?.dueAt ??
         DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
+    _cadenceDays = existing?.cadenceDays ?? 0;
   }
 
   @override
@@ -823,6 +925,7 @@ class _BillSheetState extends State<_BillSheet> {
       title: name,
       amount: parsed ?? 0,
       dueAt: _dueAt,
+      cadenceDays: _cadenceDays,
       deleteBill: deleteBill,
     ));
   }
@@ -864,6 +967,26 @@ class _BillSheetState extends State<_BillSheet> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(labelText: context.l10n.commonAmount),
           onSubmitted: (_) => _submit(),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          context.l10n.billRepeats,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final days in _cadenceOptions)
+              SoftPill(
+                label: days == 0
+                    ? context.l10n.billCadenceNone
+                    : formatTaskCadence(days, context.l10n),
+                selected: _cadenceDays == days,
+                onTap: () => setState(() => _cadenceDays = days),
+              ),
+          ],
         ),
         const SizedBox(height: 10),
         SoftPill(

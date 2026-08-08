@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import 'db/app_database.dart';
 import 'repositories.dart';
+import 'task_due.dart';
 
 /// Polished App Store showcase content for a real nest.
 /// Writes local Drift rows as dirty so [SyncService.syncAll] pushes to Firestore.
@@ -181,11 +182,14 @@ class ShowcaseSeedService {
       ]);
 
       b.insertAll(_db.bills, [
-        _bill('Electricity', 64.20, today.add(const Duration(days: 3)), now),
-        _bill('Internet', 49.99, today.add(const Duration(days: 5)), now),
+        _bill('Electricity', 64.20, today.add(const Duration(days: 3)), now,
+            cadenceDays: 30),
+        _bill('Internet', 49.99, today.add(const Duration(days: 5)), now,
+            cadenceDays: 30),
         _bill('Water', 22.50, today.subtract(const Duration(days: 2)), now,
             paid: true),
-        _bill('Rent', 1450, today.add(const Duration(days: 8)), now),
+        _bill('Rent', 1450, today.add(const Duration(days: 8)), now,
+            cadenceDays: 30),
       ]);
 
       b.insertAll(_db.emergencyEntries, [
@@ -427,12 +431,20 @@ class ShowcaseSeedService {
     DateTime now, {
     bool done = false,
     bool recurring = false,
+    int cadenceDays = 0,
   }) {
+    final dueAt = resolveTaskDueAt(dueLabel: dueLabel, now: now);
+    final resolvedCadence = effectiveTaskCadenceDays(
+      recurring: recurring,
+      cadenceDays: cadenceDays,
+    );
     return TasksCompanion.insert(
       id: 'task-${_uuid.v4().substring(0, 8)}',
       title: title,
       assigneeId: Value(assigneeId),
-      dueLabel: Value(dueLabel),
+      dueLabel: Value(dueLabelForDueAt(dueAt, now: now)),
+      dueAt: Value(dueAt),
+      cadenceDays: Value(resolvedCadence),
       done: Value(done),
       recurring: Value(recurring),
       dirty: const Value(true),
@@ -515,12 +527,14 @@ class ShowcaseSeedService {
     DateTime dueAt,
     DateTime now, {
     bool paid = false,
+    int cadenceDays = 0,
   }) {
     return BillsCompanion.insert(
       id: 'bill-${_uuid.v4().substring(0, 8)}',
       title: title,
       amount: amount,
       dueAt: dueAt,
+      cadenceDays: Value(cadenceDays),
       paid: Value(paid),
       dirty: const Value(true),
       createdAt: Value(now),

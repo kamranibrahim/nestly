@@ -5,7 +5,25 @@ library;
 // Calendar
 // ---------------------------------------------------------------------------
 
-enum CalendarBrowseMode { month, week }
+enum CalendarBrowseMode { month, week, agenda }
+
+enum EventRecurrence {
+  none('none'),
+  daily('daily'),
+  weekly('weekly'),
+  monthly('monthly');
+
+  const EventRecurrence(this.storage);
+  final String storage;
+
+  static EventRecurrence parse(String raw) {
+    final value = raw.trim().toLowerCase();
+    for (final r in values) {
+      if (r.storage == value || r.name == value) return r;
+    }
+    return none;
+  }
+}
 
 enum CalendarMemberFilter {
   all('All'),

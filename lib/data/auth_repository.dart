@@ -11,6 +11,7 @@ import 'enums.dart';
 import 'invite_code.dart';
 import 'nest_home_widget.dart';
 import 'repositories.dart';
+import 'task_due.dart';
 import 'telemetry.dart';
 
 class NestInfo {
@@ -412,6 +413,8 @@ class SyncService {
       await step(() => _pullTasks(nestId));
       await step(() => _pushShopping(nestId));
       await step(() => _pullShopping(nestId));
+      await step(() => _pushGroceryHabits(nestId));
+      await step(() => _pullGroceryHabits(nestId));
       await step(() => _pushEvents(nestId));
       await step(() => _pullEvents(nestId));
       await step(() => _pushExpenses(nestId));
@@ -428,6 +431,8 @@ class SyncService {
       await step(() => _pullTimeline(nestId));
       await step(() => _pushMeals(nestId));
       await step(() => _pullMeals(nestId));
+      await step(() => _pushRecipes(nestId));
+      await step(() => _pullRecipes(nestId));
       await step(() => _pushCare(nestId));
       await step(() => _pullCare(nestId));
       await step(() => _pushCareProfiles(nestId));
@@ -482,6 +487,10 @@ class SyncService {
           'title': task.title,
           'assigneeId': task.assigneeId,
           'dueLabel': task.dueLabel,
+          'dueAt': task.dueAt != null
+              ? Timestamp.fromDate(task.dueAt!)
+              : null,
+          'cadenceDays': task.cadenceDays,
           'done': task.done,
           'recurring': task.recurring,
           'updatedAt': Timestamp.fromDate(task.updatedAt),
@@ -515,6 +524,20 @@ class SyncService {
           )) {
         continue;
       }
+      final dueLabelRaw = data['dueLabel'] as String? ?? 'Today';
+      final recurring = data['recurring'] as bool? ?? false;
+      final cadenceRaw = data['cadenceDays'] as int? ?? 0;
+      final cadenceDays = effectiveTaskCadenceDays(
+        recurring: recurring,
+        cadenceDays: cadenceRaw,
+      );
+      final dueAtRemote = (data['dueAt'] as Timestamp?)?.toDate();
+      final resolvedDue = resolveTaskDueAt(
+        dueAt: dueAtRemote,
+        dueLabel: dueLabelRaw,
+        now: remoteUpdated,
+      );
+      final dueLabel = dueLabelForDueAt(resolvedDue, now: remoteUpdated);
       await _db
           .into(_db.tasks)
           .insertOnConflictUpdate(
@@ -523,9 +546,11 @@ class SyncService {
               nestId: Value(nestId),
               title: data['title'] as String? ?? '',
               assigneeId: Value(data['assigneeId'] as String? ?? 'dad'),
-              dueLabel: Value(data['dueLabel'] as String? ?? 'Today'),
+              dueLabel: Value(dueLabel),
+              dueAt: Value(resolvedDue),
+              cadenceDays: Value(cadenceDays),
               done: Value(data['done'] as bool? ?? false),
-              recurring: Value(data['recurring'] as bool? ?? false),
+              recurring: Value(recurring),
               dirty: const Value(false),
               deleted: const Value(false),
               createdAt: Value(
@@ -656,6 +681,74 @@ class SyncService {
     }
   }
 
+  Future<void> _pushGroceryHabits(String nestId) async {
+    final dirty = await (_db.select(
+      _db.groceryHabits,
+    )..where((t) => t.dirty.equals(true))).get();
+    for (final habit in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('groceryHabits')
+          .doc(habit.id);
+      if (habit.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'name': habit.name,
+          'category': habit.category,
+          'buyCount': habit.buyCount,
+          'cadenceDays': habit.cadenceDays,
+          'lastBoughtAt': Timestamp.fromDate(habit.lastBoughtAt),
+          'updatedAt': Timestamp.fromDate(habit.updatedAt),
+        });
+      }
+      await (_db.update(_db.groceryHabits)..where((t) => t.id.equals(habit.id)))
+          .write(const GroceryHabitsCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullGroceryHabits(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('groceryHabits')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(
+        _db.groceryHabits,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
+      if (local != null &&
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
+        continue;
+      }
+      await _db
+          .into(_db.groceryHabits)
+          .insertOnConflictUpdate(
+            GroceryHabitsCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              name: data['name'] as String? ?? '',
+              category: Value(data['category'] as String? ?? 'General'),
+              buyCount: Value(data['buyCount'] as int? ?? 0),
+              cadenceDays: Value(data['cadenceDays'] as int? ?? 7),
+              lastBoughtAt:
+                  (data['lastBoughtAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              dirty: const Value(false),
+              deleted: const Value(false),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
   Future<void> _pushEvents(String nestId) async {
     final dirty = await (_db.select(
       _db.calendarEvents,
@@ -679,6 +772,10 @@ class SyncService {
               ? null
               : Timestamp.fromDate(event.endsAt!),
           'allDay': event.allDay,
+          'recurrence': event.recurrence,
+          'recurrenceUntil': event.recurrenceUntil == null
+              ? null
+              : Timestamp.fromDate(event.recurrenceUntil!),
           'updatedAt': Timestamp.fromDate(event.updatedAt),
           'createdAt': Timestamp.fromDate(event.createdAt),
         });
@@ -724,6 +821,10 @@ class SyncService {
                   (data['startsAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
               endsAt: Value((data['endsAt'] as Timestamp?)?.toDate()),
               allDay: Value(data['allDay'] as bool? ?? false),
+              recurrence: Value(data['recurrence'] as String? ?? 'none'),
+              recurrenceUntil: Value(
+                (data['recurrenceUntil'] as Timestamp?)?.toDate(),
+              ),
               dirty: const Value(false),
               createdAt: Value(
                 (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
@@ -823,6 +924,7 @@ class SyncService {
           'title': item.title,
           'amount': item.amount,
           'dueAt': Timestamp.fromDate(item.dueAt),
+          'cadenceDays': item.cadenceDays,
           'paid': item.paid,
           'updatedAt': Timestamp.fromDate(item.updatedAt),
           'createdAt': Timestamp.fromDate(item.createdAt),
@@ -864,6 +966,7 @@ class SyncService {
               title: data['title'] as String? ?? '',
               amount: (data['amount'] as num?)?.toDouble() ?? 0,
               dueAt: (data['dueAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              cadenceDays: Value(data['cadenceDays'] as int? ?? 0),
               paid: Value(data['paid'] as bool? ?? false),
               dirty: const Value(false),
               createdAt: Value(
@@ -1190,6 +1293,72 @@ class SyncService {
               mealType: Value(data['mealType'] as String? ?? 'Dinner'),
               title: data['title'] as String? ?? '',
               ingredients: Value(data['ingredients'] as String? ?? ''),
+              dirty: const Value(false),
+              createdAt: Value(
+                (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,
+              ),
+              updatedAt: Value(remoteUpdated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushRecipes(String nestId) async {
+    final dirty = await (_db.select(
+      _db.recipes,
+    )..where((t) => t.dirty.equals(true))).get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('recipes')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'title': item.title,
+          'ingredients': item.ingredients,
+          'notes': item.notes,
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
+          'createdAt': Timestamp.fromDate(item.createdAt),
+        });
+      }
+      await (_db.update(_db.recipes)..where((t) => t.id.equals(item.id)))
+          .write(const RecipesCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullRecipes(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('recipes')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final remoteUpdated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final local = await (_db.select(
+        _db.recipes,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
+      if (local != null &&
+          _shouldKeepLocal(
+            dirty: local.dirty,
+            localUpdated: local.updatedAt,
+            remoteUpdated: remoteUpdated,
+          )) {
+        continue;
+      }
+      await _db
+          .into(_db.recipes)
+          .insertOnConflictUpdate(
+            RecipesCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              title: data['title'] as String? ?? '',
+              ingredients: Value(data['ingredients'] as String? ?? ''),
+              notes: Value(data['notes'] as String? ?? ''),
               dirty: const Value(false),
               createdAt: Value(
                 (data['createdAt'] as Timestamp?)?.toDate() ?? remoteUpdated,

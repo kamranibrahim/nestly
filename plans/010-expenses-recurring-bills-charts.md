@@ -2,16 +2,18 @@
 
 > **Executor instructions**: Follow step by step. Verify each step. Update `plans/README.md` when done.
 >
-> **Drift check**: `git diff --stat 0bba2e7..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/data/notification_service.dart lib/screens/expenses_screen.dart pubspec.yaml test/repositories_test.dart`
+> **Drift check**: `git diff --stat c1ae67e..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/data/notification_service.dart lib/screens/expenses_screen.dart pubspec.yaml test/repositories_test.dart`
+>
+> **Advisor note**: Base HEAD `c1ae67e` (after 009 + grocery migration bind fix). Live `schemaVersion` is **17** — bump to **18** for bill `cadenceDays`. Reuse `advanceDueAt` from `lib/data/task_due.dart`. Prefer custom bar rows (no new chart package). Month budget sheet already uses StatefulWidget-owned controllers — keep that pattern for bill sheets.
 
 ## Status
 
 - **Priority**: P1
 - **Effort**: M
 - **Risk**: LOW–MED
-- **Depends on**: none (Wave 1 last domain slice)
+- **Depends on**: [009](./009-meals-recipe-library-templates.md) DONE (Wave 1 sequencing)
 - **Category**: direction
-- **Planned at**: commit `0bba2e7`, 2026-08-08
+- **Planned at**: commit `c1ae67e`, 2026-08-08
 
 ## Why this matters
 

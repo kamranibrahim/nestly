@@ -672,6 +672,43 @@ class AppLocalizationsAr extends AppLocalizations {
   String get calendarTitle => 'تقويم العائلة';
 
   @override
+  String get calendarTitleAgenda => 'جدول الأعمال';
+
+  @override
+  String get calendarBrowseMonth => 'شهر';
+
+  @override
+  String get calendarBrowseWeek => 'أسبوع';
+
+  @override
+  String get calendarBrowseAgenda => 'جدول';
+
+  @override
+  String get calendarAgendaUpcoming => 'الأيام السبعة القادمة';
+
+  @override
+  String get eventRecurrence => 'يتكرر';
+
+  @override
+  String get eventRecurrenceNone => 'لا يتكرر';
+
+  @override
+  String get eventRecurrenceDaily => 'كل يوم';
+
+  @override
+  String get eventRecurrenceWeekly => 'كل أسبوع';
+
+  @override
+  String get eventRecurrenceMonthly => 'كل شهر';
+
+  @override
+  String get eventRecurrenceUntil => 'التكرار حتى (اختياري)';
+
+  @override
+  String get calendarEditSeriesHint =>
+      'تُطبَّق التغييرات على السلسلة المتكررة بالكامل.';
+
+  @override
   String get homeTodaySnapshot => 'لمحة اليوم';
 
   @override
@@ -1523,6 +1560,17 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addBillShort => 'فاتورة';
+
+  @override
+  String get billRepeats => 'تتكرر';
+
+  @override
+  String get billCadenceNone => 'مرة واحدة';
+
+  @override
+  String billRepeatsCadence(String cadence) {
+    return 'تتكرر · $cadence';
+  }
 
   @override
   String get saveBudget => 'حفظ الميزانية';
@@ -2421,6 +2469,34 @@ class AppLocalizationsAr extends AppLocalizations {
       'املأ الليالي التي تهمك. الأيام الفارغة تبقى فارغة.';
 
   @override
+  String get mealsRecipeLibrary => 'مكتبة الوصفات';
+
+  @override
+  String get mealsAddRecipe => 'إضافة وصفة';
+
+  @override
+  String get mealsEditRecipe => 'تعديل الوصفة';
+
+  @override
+  String get mealsSaveRecipe => 'حفظ الوصفة';
+
+  @override
+  String get mealsApplyRecipe => 'تطبيق على هذا اليوم';
+
+  @override
+  String get mealsSaveAsRecipe => 'حفظ كوصفة';
+
+  @override
+  String get mealsNoRecipes =>
+      'لا وصفات محفوظة بعد — احفظ وجبة أو أضف واحدة هنا.';
+
+  @override
+  String get mealsRecipeApplied => 'تم تطبيق الوصفة';
+
+  @override
+  String get hintRecipeNotes => 'ملاحظات (اختياري)';
+
+  @override
   String get shopClearBoughtBody =>
       'يزيل البقالة المشطوبة من هذه القائمة. يمكنك إعادة تخزين العادات لاحقًا.';
 
@@ -2454,6 +2530,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shopBasedOnUsual => 'بناءً على ما تشتريه عادةً';
 
   @override
+  String get shopNewList => 'قائمة جديدة';
+
+  @override
+  String get shopListNameHint => 'اسم القائمة';
+
+  @override
+  String get shopCreateList => 'إنشاء قائمة';
+
+  @override
+  String get shopRenameList => 'إعادة تسمية القائمة';
+
+  @override
+  String get shopDeleteList => 'حذف القائمة';
+
+  @override
+  String get shopDeleteListBody => 'تزيل هذه القائمة وعناصرها من العش.';
+
+  @override
+  String get shopEmptyListTitle => 'هذه القائمة فارغة';
+
+  @override
+  String get shopEmptyListBody => 'أضف عناصر لهذا المتجر أو المناسبة.';
+
+  @override
+  String get shopRestock => 'إعادة تخزين';
+
+  @override
   String get tasksNoMatch => 'لا مهام تطابق هذا البحث.';
 
   @override
@@ -2468,7 +2571,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get taskEdit => 'تعديل المهمة';
 
   @override
-  String get taskHabitHint => 'تبقى مفتوحة وتُرحّل تسمية الاستحقاق عند الإنجاز';
+  String get taskHabitHint => 'تبقى مفتوحة ويُرحّل تاريخ الاستحقاق عند الإنجاز';
 
   @override
   String get taskAdd => 'إضافة مهمة';
@@ -2526,6 +2629,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get taskRepeats => 'تتكرر';
+
+  @override
+  String get taskPickDate => 'اختر تاريخًا';
+
+  @override
+  String get taskCadenceDaily => 'كل يوم';
+
+  @override
+  String get taskCadenceWeekly => 'كل أسبوع';
+
+  @override
+  String get taskCadenceBiweekly => 'كل أسبوعين';
+
+  @override
+  String get taskCadenceMonthly => 'كل شهر';
+
+  @override
+  String taskCadenceEveryDays(int days) {
+    return 'كل $days أيام';
+  }
+
+  @override
+  String taskRepeatsCadence(String cadence) {
+    return 'تتكرر · $cadence';
+  }
 
   @override
   String get taskOpen => 'مفتوحة';

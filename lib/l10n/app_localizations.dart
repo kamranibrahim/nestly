@@ -1268,6 +1268,78 @@ abstract class AppLocalizations {
   /// **'Family calendar'**
   String get calendarTitle;
 
+  /// No description provided for @calendarTitleAgenda.
+  ///
+  /// In en, this message translates to:
+  /// **'Agenda'**
+  String get calendarTitleAgenda;
+
+  /// No description provided for @calendarBrowseMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get calendarBrowseMonth;
+
+  /// No description provided for @calendarBrowseWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get calendarBrowseWeek;
+
+  /// No description provided for @calendarBrowseAgenda.
+  ///
+  /// In en, this message translates to:
+  /// **'Agenda'**
+  String get calendarBrowseAgenda;
+
+  /// No description provided for @calendarAgendaUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 7 days'**
+  String get calendarAgendaUpcoming;
+
+  /// No description provided for @eventRecurrence.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats'**
+  String get eventRecurrence;
+
+  /// No description provided for @eventRecurrenceNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Does not repeat'**
+  String get eventRecurrenceNone;
+
+  /// No description provided for @eventRecurrenceDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get eventRecurrenceDaily;
+
+  /// No description provided for @eventRecurrenceWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every week'**
+  String get eventRecurrenceWeekly;
+
+  /// No description provided for @eventRecurrenceMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every month'**
+  String get eventRecurrenceMonthly;
+
+  /// No description provided for @eventRecurrenceUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat until (optional)'**
+  String get eventRecurrenceUntil;
+
+  /// No description provided for @calendarEditSeriesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes apply to the whole repeating series.'**
+  String get calendarEditSeriesHint;
+
   /// No description provided for @homeTodaySnapshot.
   ///
   /// In en, this message translates to:
@@ -2671,6 +2743,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add bill'**
   String get addBillShort;
+
+  /// No description provided for @billRepeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats'**
+  String get billRepeats;
+
+  /// No description provided for @billCadenceNone.
+  ///
+  /// In en, this message translates to:
+  /// **'One-time'**
+  String get billCadenceNone;
+
+  /// No description provided for @billRepeatsCadence.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats · {cadence}'**
+  String billRepeatsCadence(String cadence);
 
   /// No description provided for @saveBudget.
   ///
@@ -4232,6 +4322,60 @@ abstract class AppLocalizations {
   /// **'Fill the nights you care about. Blank days stay empty.'**
   String get mealsPlanWeekBody;
 
+  /// No description provided for @mealsRecipeLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipe library'**
+  String get mealsRecipeLibrary;
+
+  /// No description provided for @mealsAddRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Add recipe'**
+  String get mealsAddRecipe;
+
+  /// No description provided for @mealsEditRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit recipe'**
+  String get mealsEditRecipe;
+
+  /// No description provided for @mealsSaveRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Save recipe'**
+  String get mealsSaveRecipe;
+
+  /// No description provided for @mealsApplyRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to this day'**
+  String get mealsApplyRecipe;
+
+  /// No description provided for @mealsSaveAsRecipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as recipe'**
+  String get mealsSaveAsRecipe;
+
+  /// No description provided for @mealsNoRecipes.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved recipes yet — save a meal slot or add one here.'**
+  String get mealsNoRecipes;
+
+  /// No description provided for @mealsRecipeApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipe applied'**
+  String get mealsRecipeApplied;
+
+  /// No description provided for @hintRecipeNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes (optional)'**
+  String get hintRecipeNotes;
+
   /// No description provided for @shopClearBoughtBody.
   ///
   /// In en, this message translates to:
@@ -4280,6 +4424,60 @@ abstract class AppLocalizations {
   /// **'Based on what you usually buy'**
   String get shopBasedOnUsual;
 
+  /// No description provided for @shopNewList.
+  ///
+  /// In en, this message translates to:
+  /// **'New list'**
+  String get shopNewList;
+
+  /// No description provided for @shopListNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'List name'**
+  String get shopListNameHint;
+
+  /// No description provided for @shopCreateList.
+  ///
+  /// In en, this message translates to:
+  /// **'Create list'**
+  String get shopCreateList;
+
+  /// No description provided for @shopRenameList.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename list'**
+  String get shopRenameList;
+
+  /// No description provided for @shopDeleteList.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete list'**
+  String get shopDeleteList;
+
+  /// No description provided for @shopDeleteListBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes this list and its items from your nest.'**
+  String get shopDeleteListBody;
+
+  /// No description provided for @shopEmptyListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This list is empty'**
+  String get shopEmptyListTitle;
+
+  /// No description provided for @shopEmptyListBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add items for this store or occasion.'**
+  String get shopEmptyListBody;
+
+  /// No description provided for @shopRestock.
+  ///
+  /// In en, this message translates to:
+  /// **'Restock'**
+  String get shopRestock;
+
   /// No description provided for @tasksNoMatch.
   ///
   /// In en, this message translates to:
@@ -4307,7 +4505,7 @@ abstract class AppLocalizations {
   /// No description provided for @taskHabitHint.
   ///
   /// In en, this message translates to:
-  /// **'Stays open and rolls the due label when done'**
+  /// **'Stays open and advances the due date when done'**
   String get taskHabitHint;
 
   /// No description provided for @taskAdd.
@@ -4411,6 +4609,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Repeats'**
   String get taskRepeats;
+
+  /// No description provided for @taskPickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick date'**
+  String get taskPickDate;
+
+  /// No description provided for @taskCadenceDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get taskCadenceDaily;
+
+  /// No description provided for @taskCadenceWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every week'**
+  String get taskCadenceWeekly;
+
+  /// No description provided for @taskCadenceBiweekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 2 weeks'**
+  String get taskCadenceBiweekly;
+
+  /// No description provided for @taskCadenceMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every month'**
+  String get taskCadenceMonthly;
+
+  /// No description provided for @taskCadenceEveryDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {days} days'**
+  String taskCadenceEveryDays(int days);
+
+  /// No description provided for @taskRepeatsCadence.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats · {cadence}'**
+  String taskRepeatsCadence(String cadence);
 
   /// No description provided for @taskOpen.
   ///

@@ -197,7 +197,7 @@ class NotificationService {
         .length;
     final taskCount = tasks
         .where((t) {
-          final due = _dueDateForTaskLabel(t.dueLabel, now: previewAt);
+          final due = _dueDateForTask(t, now: previewAt);
           return due != null && _isSameDayWindow(due, targetDay, nextDay);
         })
         .length;
@@ -432,7 +432,7 @@ class NotificationService {
 
     var i = 0;
     for (final task in tasks) {
-      final dueDay = _dueDateForTaskLabel(task.dueLabel, now: now);
+      final dueDay = _dueDateForTask(task, now: now);
       if (dueDay == null) continue;
       var remindAt = DateTime(dueDay.year, dueDay.month, dueDay.day, 9);
       if (!remindAt.isAfter(now)) {
@@ -468,7 +468,11 @@ class NotificationService {
   }
 }
 
-/// Maps Casaio relative due labels to a calendar day (local midnight).
-DateTime? _dueDateForTaskLabel(String label, {required DateTime now}) {
-  return TaskDueLabel.dueDateFor(label, now: now);
+/// Maps a task to its calendar due day, preferring [Task.dueAt].
+DateTime? _dueDateForTask(Task task, {required DateTime now}) {
+  if (task.dueAt != null) {
+    final d = task.dueAt!;
+    return DateTime(d.year, d.month, d.day);
+  }
+  return TaskDueLabel.dueDateFor(task.dueLabel, now: now);
 }

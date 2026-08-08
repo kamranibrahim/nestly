@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/calendar_view_math.dart';
+import 'package:nestly/data/enums.dart';
 
 void main() {
   group('startOfWeekSunday / endOfWeekSaturday', () {
@@ -60,5 +61,69 @@ void main() {
       isSameCalendarDay(DateTime(2026, 7, 29), DateTime(2026, 7, 30)),
       isFalse,
     );
+  });
+
+  group('expandRecurringEvent', () {
+    final rangeStart = DateTime(2026, 7, 1);
+    final rangeEnd = DateTime(2026, 7, 31);
+
+    test('none yields a single instance when in range', () {
+      final occ = expandRecurringEvent(
+        RecurringEventAnchor(startsAt: DateTime(2026, 7, 15, 10)),
+        rangeStart,
+        rangeEnd,
+      );
+      expect(occ, hasLength(1));
+      expect(occ.first.startsAt, DateTime(2026, 7, 15, 10));
+    });
+
+    test('none yields empty when outside range', () {
+      final occ = expandRecurringEvent(
+        RecurringEventAnchor(startsAt: DateTime(2026, 8, 1)),
+        rangeStart,
+        rangeEnd,
+      );
+      expect(occ, isEmpty);
+    });
+
+    test('weekly Monday event across four weeks yields four instances', () {
+      final anchor = RecurringEventAnchor(
+        startsAt: DateTime(2026, 7, 6, 9), // Monday
+        recurrence: EventRecurrence.weekly,
+      );
+      final occ = expandRecurringEvent(anchor, rangeStart, rangeEnd);
+      expect(occ, hasLength(4));
+      expect(occ.map((o) => o.startsAt.day).toList(), [6, 13, 20, 27]);
+    });
+
+    test('daily expands across July', () {
+      final anchor = RecurringEventAnchor(
+        startsAt: DateTime(2026, 7, 1),
+        allDay: true,
+        recurrence: EventRecurrence.daily,
+      );
+      final occ = expandRecurringEvent(anchor, rangeStart, rangeEnd);
+      expect(occ, hasLength(31));
+    });
+
+    test('monthly expands on same day-of-month', () {
+      final anchor = RecurringEventAnchor(
+        startsAt: DateTime(2026, 5, 15, 14),
+        recurrence: EventRecurrence.monthly,
+      );
+      final occ = expandRecurringEvent(anchor, rangeStart, rangeEnd);
+      expect(occ.map((o) => o.startsAt.day).toList(), [15]);
+    });
+
+    test('recurrenceUntil stops expansion', () {
+      final anchor = RecurringEventAnchor(
+        startsAt: DateTime(2026, 7, 6, 9),
+        recurrence: EventRecurrence.weekly,
+        recurrenceUntil: DateTime(2026, 7, 20),
+      );
+      final occ = expandRecurringEvent(anchor, rangeStart, rangeEnd);
+      expect(occ, hasLength(3));
+      expect(occ.last.startsAt.day, 20);
+    });
   });
 }

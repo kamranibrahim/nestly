@@ -1,9 +1,9 @@
 # Plan 005: Phase 1 — Family OS Foundation (Pillar 1 active)
 
 > **Type**: DOC / product roadmap index.  
-> **Active scope**: Phase 1 **Pillar 1 — Core Household Experience** only.  
-> Other pillars / Phase 2 are out of scope until requested.  
-> Grounded in `PROJECT_IMPLEMENTATION.md` and commit `0bba2e7`.
+> **Active scope**: Phase 1 **Pillar 1 — Core Household Experience**.  
+> **Pillar 2** (Family Collaboration): see [011-phase1-pillar2-family-collaboration.md](./011-phase1-pillar2-family-collaboration.md).  
+> Grounded in `PROJECT_IMPLEMENTATION.md` and commit `0bba2e7` (Wave 1 executors 006–010 DONE).
 
 ## Status
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/enums.dart';
+import '../data/repositories.dart';
 
 export '../data/enums.dart' show ShoppingCategory, ShoppingListFilter;
 
@@ -10,24 +11,28 @@ export '../data/enums.dart' show ShoppingCategory, ShoppingListFilter;
 /// by the screen so the widget itself can stay a plain [ConsumerWidget].
 class ShoppingUiState {
   const ShoppingUiState({
+    this.selectedListId = ShoppingRepository.defaultListId,
     this.addCategory = ShoppingCategory.general,
     this.searchQuery = '',
     this.filterCategory = ShoppingListFilter.all,
     this.boughtExpanded = false,
   });
 
+  final String selectedListId;
   final ShoppingCategory addCategory;
   final String searchQuery;
   final ShoppingListFilter filterCategory;
   final bool boughtExpanded;
 
   ShoppingUiState copyWith({
+    String? selectedListId,
     ShoppingCategory? addCategory,
     String? searchQuery,
     ShoppingListFilter? filterCategory,
     bool? boughtExpanded,
   }) {
     return ShoppingUiState(
+      selectedListId: selectedListId ?? this.selectedListId,
       addCategory: addCategory ?? this.addCategory,
       searchQuery: searchQuery ?? this.searchQuery,
       filterCategory: filterCategory ?? this.filterCategory,
@@ -42,6 +47,10 @@ class ShoppingUiController extends StateNotifier<ShoppingUiState> {
   final addController = TextEditingController();
   final searchController = TextEditingController();
   final addFocus = FocusNode();
+
+  void setSelectedListId(String listId) {
+    state = state.copyWith(selectedListId: listId);
+  }
 
   void setAddCategory(ShoppingCategory category) {
     state = state.copyWith(addCategory: category);

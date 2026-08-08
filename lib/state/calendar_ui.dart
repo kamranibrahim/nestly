@@ -60,9 +60,11 @@ class CalendarUiController extends StateNotifier<CalendarUiState> {
 
   void shiftBrowse(int delta) {
     state = state.copyWith(
-      selected: state.mode == CalendarBrowseMode.month
-          ? shiftMonth(state.selected, delta)
-          : shiftWeek(state.selected, delta),
+      selected: switch (state.mode) {
+        CalendarBrowseMode.month => shiftMonth(state.selected, delta),
+        CalendarBrowseMode.week => shiftWeek(state.selected, delta),
+        CalendarBrowseMode.agenda => shiftDay(state.selected, delta),
+      },
     );
   }
 

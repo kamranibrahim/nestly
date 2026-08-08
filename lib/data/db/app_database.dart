@@ -3,6 +3,9 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../enums.dart';
+import '../task_due.dart';
+
 part 'app_database.g.dart';
 
 class NestMembers extends Table {
@@ -25,6 +28,8 @@ class Tasks extends Table {
   TextColumn get title => text()();
   TextColumn get assigneeId => text().withDefault(const Constant('dad'))();
   TextColumn get dueLabel => text().withDefault(const Constant('Today'))();
+  DateTimeColumn get dueAt => dateTime().nullable()();
+  IntColumn get cadenceDays => integer().withDefault(const Constant(0))();
   BoolColumn get done => boolean().withDefault(const Constant(false))();
   BoolColumn get recurring => boolean().withDefault(const Constant(false))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
@@ -77,6 +82,8 @@ class CalendarEvents extends Table {
   DateTimeColumn get startsAt => dateTime()();
   DateTimeColumn get endsAt => dateTime().nullable()();
   BoolColumn get allDay => boolean().withDefault(const Constant(false))();
+  TextColumn get recurrence => text().withDefault(const Constant('none'))();
+  DateTimeColumn get recurrenceUntil => dateTime().nullable()();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -117,6 +124,7 @@ class Bills extends Table {
   TextColumn get title => text()();
   RealColumn get amount => real()();
   DateTimeColumn get dueAt => dateTime()();
+  IntColumn get cadenceDays => integer().withDefault(const Constant(0))();
   BoolColumn get paid => boolean().withDefault(const Constant(false))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -179,6 +187,22 @@ class TimelineEvents extends Table {
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Reusable recipe in the nest library (ingredients as comma/newline text).
+class Recipes extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get title => text()();
+  TextColumn get ingredients => text().withDefault(const Constant(''))();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -266,10 +290,11 @@ class SchoolActivities extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// Local-only recurring grocery memory (device-side; not synced).
+/// Recurring grocery memory synced per nest (LWW on updatedAt).
 class GroceryHabits extends Table {
   /// Normalized lowercase name key.
   TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
   TextColumn get name => text()();
   TextColumn get category => text().withDefault(const Constant('General'))();
   IntColumn get buyCount => integer().withDefault(const Constant(0))();
@@ -277,6 +302,8 @@ class GroceryHabits extends Table {
   /// Learned restock interval in days (updated from purchase gaps).
   IntColumn get cadenceDays => integer().withDefault(const Constant(7))();
   DateTimeColumn get lastBoughtAt => dateTime()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -311,6 +338,7 @@ class NestSettings extends Table {
     VaultDocuments,
     TimelineEvents,
     MealPlans,
+    Recipes,
     CareItems,
     CareProfiles,
     SchoolActivities,
@@ -322,7 +350,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -403,8 +431,62 @@ class AppDatabase extends _$AppDatabase {
           nestSettings.tomorrowPreviewEnabled,
         );
       }
+      if (from < 14) {
+        await _addColumnIfMissing(m, tasks, tasks.dueAt);
+        await _addColumnIfMissing(m, tasks, tasks.cadenceDays);
+        await _backfillTaskDueAtAndCadence();
+      }
+      if (from < 15) {
+        await _addColumnIfMissing(m, calendarEvents, calendarEvents.recurrence);
+        await _addColumnIfMissing(
+          m,
+          calendarEvents,
+          calendarEvents.recurrenceUntil,
+        );
+      }
+      if (from < 16) {
+        await _addColumnIfMissing(m, groceryHabits, groceryHabits.nestId);
+        await _addColumnIfMissing(m, groceryHabits, groceryHabits.dirty);
+        await _addColumnIfMissing(m, groceryHabits, groceryHabits.deleted);
+        final nestId = await getMeta('nestId');
+        if (nestId != null && nestId.isNotEmpty) {
+          await customStatement(
+            'UPDATE grocery_habits SET nest_id = ? WHERE nest_id IS NULL',
+            [nestId],
+          );
+        }
+      }
+      if (from < 17) {
+        await _createTableIfMissing(m, recipes);
+      }
+      if (from < 18) {
+        await _addColumnIfMissing(m, bills, bills.cadenceDays);
+      }
     },
   );
+
+  Future<void> _backfillTaskDueAtAndCadence() async {
+    final now = DateTime.now();
+    final rows = await select(tasks).get();
+    for (final task in rows) {
+      final resolvedDue = task.dueAt ??
+          TaskDueLabel.dueDateFor(task.dueLabel, now: now) ??
+          DateTime(now.year, now.month, now.day);
+      final cadence = task.recurring && task.cadenceDays == 0
+          ? 7
+          : task.cadenceDays;
+      final label = dueLabelForDueAt(resolvedDue, now: now);
+      await (update(tasks)..where((t) => t.id.equals(task.id))).write(
+        TasksCompanion(
+          dueAt: task.dueAt == null ? Value(resolvedDue) : const Value.absent(),
+          cadenceDays: cadence != task.cadenceDays
+              ? Value(cadence)
+              : const Value.absent(),
+          dueLabel: label != task.dueLabel ? Value(label) : const Value.absent(),
+        ),
+      );
+    }
+  }
 
   Future<bool> _tableExists(String tableName) async {
     final row = await customSelect(
@@ -484,6 +566,7 @@ class AppDatabase extends _$AppDatabase {
       b.deleteAll(vaultDocuments);
       b.deleteAll(timelineEvents);
       b.deleteAll(mealPlans);
+      b.deleteAll(recipes);
       b.deleteAll(careItems);
       b.deleteAll(careProfiles);
       b.deleteAll(schoolActivities);
@@ -523,12 +606,14 @@ class AppDatabase extends _$AppDatabase {
     await _seedTimeline();
 
     await batch((b) {
+      final today = DateTime(now.year, now.month, now.day);
       b.insertAll(tasks, [
         TasksCompanion.insert(
           id: 'task-1',
           title: 'Buy groceries',
           assigneeId: const Value('dad'),
           dueLabel: const Value('Today'),
+          dueAt: Value(today),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),
@@ -538,6 +623,7 @@ class AppDatabase extends _$AppDatabase {
           title: 'Pack soccer kit',
           assigneeId: const Value('ayaan'),
           dueLabel: const Value('Today'),
+          dueAt: Value(today),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),
@@ -547,8 +633,10 @@ class AppDatabase extends _$AppDatabase {
           title: 'Water plants',
           assigneeId: const Value('noor'),
           dueLabel: const Value('Today'),
+          dueAt: Value(today),
           done: const Value(true),
           recurring: const Value(true),
+          cadenceDays: const Value(7),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),
@@ -558,7 +646,9 @@ class AppDatabase extends _$AppDatabase {
           title: 'Clean kitchen',
           assigneeId: const Value('mom'),
           dueLabel: const Value('Tomorrow'),
+          dueAt: Value(today.add(const Duration(days: 1))),
           recurring: const Value(true),
+          cadenceDays: const Value(7),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),
@@ -568,6 +658,7 @@ class AppDatabase extends _$AppDatabase {
           title: 'Pay internet bill',
           assigneeId: const Value('dad'),
           dueLabel: const Value('Fri'),
+          dueAt: Value(today.add(const Duration(days: 5))),
           dirty: const Value(false),
           createdAt: Value(now),
           updatedAt: Value(now),

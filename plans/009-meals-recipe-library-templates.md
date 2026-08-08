@@ -2,16 +2,18 @@
 
 > **Executor instructions**: Follow step by step. Verify each step. Update `plans/README.md` when done.
 >
-> **Drift check**: `git diff --stat 0bba2e7..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/screens/meals_screen.dart test/repositories_test.dart`
+> **Drift check**: `git diff --stat 0683aa2..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/screens/meals_screen.dart test/repositories_test.dart`
+>
+> **Advisor note**: Base HEAD `0683aa2` (after 008). Live `schemaVersion` is **16** — bump to **17** for `Recipes`. Keep ingredient → shopping on default groceries list. Do not touch shopping multi-list / task / calendar recurrence beyond compile fixes.
 
 ## Status
 
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: LOW–MED
-- **Depends on**: [008](./008-shopping-multi-list-habits-sync.md) optional (ingredient → list); can target `list-groceries` if 008 not done
+- **Depends on**: [008](./008-shopping-multi-list-habits-sync.md) DONE
 - **Category**: direction
-- **Planned at**: commit `0bba2e7`, 2026-08-08
+- **Planned at**: commit `0683aa2`, 2026-08-08
 
 ## Why this matters
 

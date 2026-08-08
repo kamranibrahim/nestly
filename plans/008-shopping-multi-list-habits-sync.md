@@ -2,16 +2,18 @@
 
 > **Executor instructions**: Follow step by step. Verify each step. Update `plans/README.md` when done.
 >
-> **Drift check**: `git diff --stat 0bba2e7..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/screens/shopping_screen.dart lib/state/ test/repositories_test.dart`
+> **Drift check**: `git diff --stat 38522c8..HEAD -- lib/data/db/app_database.dart lib/data/repositories.dart lib/data/auth_repository.dart lib/screens/shopping_screen.dart lib/state/ test/repositories_test.dart`
+>
+> **Advisor note**: Base HEAD `38522c8` (after 006/007 + budget-sheet fix). Live `schemaVersion` is **15** — bump to **16** if habits need nest sync columns. Do not touch tasks/calendar recurrence.
 
 ## Status
 
 - **Priority**: P1
 - **Effort**: M
 - **Risk**: MED (habits currently local-only; syncing changes privacy/device assumptions)
-- **Depends on**: none (after 006/007 preferred for sequencing only)
+- **Depends on**: [007](./007-calendar-agenda-recurrence.md) DONE (sequencing)
 - **Category**: direction
-- **Planned at**: commit `0bba2e7`, 2026-08-08
+- **Planned at**: commit `38522c8`, 2026-08-08
 
 ## Why this matters
 

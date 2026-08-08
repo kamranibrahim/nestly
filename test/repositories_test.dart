@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
+import 'package:nestly/data/enums.dart';
 import 'package:nestly/data/repositories.dart';
 import 'package:nestly/data/vault_upload_status.dart';
 
@@ -48,10 +49,12 @@ void main() {
   });
 
   test('tasks can be updated for assignee due and recurring', () async {
+    final dueToday = DateTime(2026, 8, 8);
+    final dueTomorrow = DateTime(2026, 8, 9);
     await tasks.addTask(
       title: 'Walk dog',
       assigneeId: 'dad',
-      dueLabel: 'Today',
+      dueAt: dueToday,
       recurring: false,
     );
     final added = (await tasks.watchAll().first)
@@ -61,31 +64,50 @@ void main() {
       id: added.id,
       title: 'Walk the dog',
       assigneeId: 'mom',
-      dueLabel: 'Tomorrow',
+      dueAt: dueTomorrow,
       recurring: true,
+      cadenceDays: 7,
     );
 
     final updated = (await tasks.watchAll().first)
         .firstWhere((t) => t.id == added.id);
     expect(updated.title, 'Walk the dog');
     expect(updated.assigneeId, 'mom');
-    expect(updated.dueLabel, 'Tomorrow');
+    expect(updated.dueAt?.year, 2026);
+    expect(updated.dueAt?.month, 8);
+    expect(updated.dueAt?.day, 9);
+    expect(updated.cadenceDays, 7);
     expect(updated.recurring, isTrue);
   });
 
-  test('recurring task rolls due label and stays open', () async {
+  test('recurring task advances dueAt by cadence and stays open', () async {
+    final dueToday = DateTime(2026, 8, 8);
     await tasks.addTask(
       title: 'Water plants',
-      dueLabel: 'Today',
+      dueAt: dueToday,
       recurring: true,
+      cadenceDays: 7,
     );
     final task = (await tasks.watchAll().first)
         .firstWhere((t) => t.title == 'Water plants');
+    expect(task.dueAt?.day, 8);
     await tasks.toggleDone(task);
     final after =
         (await tasks.watchAll().first).firstWhere((t) => t.id == task.id);
     expect(after.done, isFalse);
-    expect(after.dueLabel, 'Tomorrow');
+    expect(after.dueAt?.day, 15);
+    expect(after.dueAt?.month, 8);
+    expect(after.cadenceDays, 7);
+  });
+
+  test('non-recurring task completes when toggled done', () async {
+    await tasks.addTask(title: 'One-off chore', recurring: false);
+    final task = (await tasks.watchAll().first)
+        .firstWhere((t) => t.title == 'One-off chore');
+    await tasks.toggleDone(task);
+    final after =
+        (await tasks.watchAll().first).firstWhere((t) => t.id == task.id);
+    expect(after.done, isTrue);
   });
 
   test('toggle and add shopping item persist', () async {
@@ -99,6 +121,40 @@ void main() {
     await shopping.addItem(name: 'Yogurt', category: 'Dairy');
     final names = (await shopping.watchItems().first).map((i) => i.name);
     expect(names, contains('Yogurt'));
+  });
+
+  test('second shopping list isolates items', () async {
+    final second = await shopping.addList(name: 'Pharmacy');
+    await shopping.addItem(
+      name: 'Bandages',
+      category: 'Health',
+      listId: second.id,
+    );
+    await shopping.addItem(name: 'Soap', category: 'Home');
+
+    final defaultItems = await shopping.watchItems().first;
+    final pharmacyItems = await shopping.watchItems(listId: second.id).first;
+
+    expect(defaultItems.any((i) => i.name == 'Soap'), isTrue);
+    expect(defaultItems.any((i) => i.name == 'Bandages'), isFalse);
+    expect(pharmacyItems.any((i) => i.name == 'Bandages'), isTrue);
+    expect(pharmacyItems.any((i) => i.name == 'Soap'), isFalse);
+  });
+
+  test('soft-deleting a list hides it and its items', () async {
+    final temp = await shopping.addList(name: 'Costco');
+    await shopping.addItem(name: 'Bulk rice', listId: temp.id);
+    await shopping.softDeleteList(temp.id);
+
+    final lists = await shopping.watchLists().first;
+    expect(lists.any((l) => l.id == temp.id), isFalse);
+
+    final items = await shopping.watchItems(listId: temp.id).first;
+    expect(items, isEmpty);
+
+    await shopping.softDeleteList(ShoppingRepository.defaultListId);
+    final listsAfter = await shopping.watchLists().first;
+    expect(listsAfter.any((l) => l.id == ShoppingRepository.defaultListId), isTrue);
   });
 
   test('shopping items can be updated for qty and category', () async {
@@ -206,6 +262,47 @@ void main() {
         .where((i) => !i.done)
         .map((i) => i.name);
     expect(openNames, containsAll(['Tortillas', 'Avocado', 'Lime', 'Rice']));
+  });
+
+  test('recipe library apply fills slot and soft-delete hides', () async {
+    final recipe = await meals.addRecipe(
+      title: 'Chicken curry',
+      ingredients: 'Chicken, Curry paste, Rice',
+    );
+
+    await meals.applyRecipeToMealPlan(
+      recipeId: recipe.id,
+      weekday: 3,
+      mealType: 'Dinner',
+    );
+
+    final wedMeals = await meals.watchForWeekday(3).first;
+    final dinner = wedMeals.firstWhere((m) => m.mealType == 'Dinner');
+    expect(dinner.title, 'Chicken curry');
+    expect(dinner.ingredients, contains('Chicken'));
+
+    final added = await meals.addIngredientsToShopping(dinner);
+    expect(added, greaterThan(0));
+
+    await meals.deleteRecipe(recipe.id);
+    final recipes = await meals.watchRecipes().first;
+    expect(recipes.any((r) => r.id == recipe.id), isFalse);
+  });
+
+  test('saveMealAsRecipe copies slot to library', () async {
+    await meals.upsert(
+      weekday: 5,
+      title: 'Taco night',
+      ingredients: 'Tortillas, Beef, Salsa',
+    );
+    final slot = (await meals.watchForWeekday(5).first).first;
+
+    final saved = await meals.saveMealAsRecipe(slot);
+    expect(saved.title, 'Taco night');
+    expect(saved.ingredients, contains('Tortillas'));
+
+    final library = await meals.watchRecipes().first;
+    expect(library.any((r) => r.id == saved.id), isTrue);
   });
 
   test('vault expiry meta is listed as expiring soon', () async {
@@ -316,6 +413,28 @@ void main() {
     expect(remaining.any((e) => e.id == added.id), isFalse);
   });
 
+  test('weekly recurring event expands to expected count', () async {
+    final startsAt = DateTime(2026, 7, 6, 9); // Monday
+    await events.addEvent(
+      title: 'Pickup',
+      startsAt: startsAt,
+      memberId: 'dad',
+      recurrence: EventRecurrence.weekly,
+    );
+
+    final stored = (await events.watchAll().first)
+        .firstWhere((e) => e.title == 'Pickup');
+    expect(stored.recurrence, EventRecurrence.weekly.storage);
+
+    final expanded = events.expandInRange(
+      [stored],
+      DateTime(2026, 7, 1),
+      DateTime(2026, 7, 31),
+    );
+    expect(expanded, hasLength(4));
+    expect(expanded.map((e) => e.startsAt.day).toList(), [6, 13, 20, 27]);
+  });
+
   test('school activities can be updated with next date and notes', () async {
     final school = SchoolRepository(database);
     final nextAt = DateTime(2026, 7, 30);
@@ -396,6 +515,42 @@ void main() {
     await expenses.setTomorrowPreviewEnabled(true);
     expect(await expenses.getTomorrowPreviewEnabled(), isTrue);
     expect(await expenses.watchTomorrowPreviewEnabled().first, isTrue);
+  });
+
+  test('recurring bill advances due date when marked paid', () async {
+    final bills = BillRepository(database);
+    final due = DateTime(2026, 8, 1);
+
+    await bills.addBill(
+      title: 'Rent',
+      amount: 1000,
+      dueAt: due,
+      cadenceDays: 30,
+    );
+    final recurring =
+        (await bills.watchAll().first).firstWhere((b) => b.title == 'Rent');
+    expect(recurring.cadenceDays, 30);
+    expect(recurring.paid, isFalse);
+
+    await bills.togglePaid(recurring);
+    final afterRecurring =
+        (await bills.watchAll().first).firstWhere((b) => b.id == recurring.id);
+    expect(afterRecurring.paid, isFalse);
+    expect(afterRecurring.dueAt, DateTime(2026, 8, 31));
+
+    await bills.addBill(
+      title: 'One-off fee',
+      amount: 50,
+      dueAt: due,
+      cadenceDays: 0,
+    );
+    final oneOff =
+        (await bills.watchAll().first).firstWhere((b) => b.title == 'One-off fee');
+    await bills.togglePaid(oneOff);
+    final paidOneOff =
+        (await bills.watchAll().first).firstWhere((b) => b.id == oneOff.id);
+    expect(paidOneOff.paid, isTrue);
+    expect(paidOneOff.dueAt, due);
   });
 
   test('bills sort overdue unpaid before later dues and paid', () async {

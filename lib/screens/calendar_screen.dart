@@ -124,17 +124,39 @@ class CalendarScreen extends ConsumerWidget {
       });
     }
 
-    final periodLabel = ui.mode == CalendarBrowseMode.month
-        ? DateFormat('MMMM yyyy').format(selected)
-        : '${DateFormat('MMM d').format(startOfWeekSunday(selected))} – ${DateFormat('MMM d').format(endOfWeekSaturday(selected))}';
+    final periodLabel = switch (ui.mode) {
+      CalendarBrowseMode.month => DateFormat('MMMM yyyy').format(selected),
+      CalendarBrowseMode.week =>
+        '${DateFormat('MMM d').format(startOfWeekSunday(selected))} – ${DateFormat('MMM d').format(endOfWeekSaturday(selected))}',
+      CalendarBrowseMode.agenda =>
+        DateFormat('EEE, MMM d, yyyy').format(selected),
+    };
+
+    final eventRepo = ref.read(eventRepositoryProvider);
+    final monthStart = DateTime(selected.year, selected.month, 1);
+    final monthEnd = DateTime(selected.year, selected.month + 1, 0);
+    final weekStart = startOfWeekSunday(selected);
+    final weekEnd = endOfWeekSaturday(selected);
 
     final membersForFilter = membersAsync.valueOrNull ?? const <NestMember>[];
-    final filteredForGrid = events
+    final filteredMasters = events
         .where(
           (e) =>
               _matchesMemberFilter(e.memberId, membersForFilter, memberFilter),
         )
         .toList();
+
+    List<CalendarEvent> expandedForVisibleGrid() {
+      return switch (ui.mode) {
+        CalendarBrowseMode.month =>
+          eventRepo.expandInRange(filteredMasters, monthStart, monthEnd),
+        CalendarBrowseMode.week =>
+          eventRepo.expandInRange(filteredMasters, weekStart, weekEnd),
+        CalendarBrowseMode.agenda => const [],
+      };
+    }
+
+    final filteredForGrid = expandedForVisibleGrid();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -156,9 +178,11 @@ class CalendarScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    ui.mode == CalendarBrowseMode.month
-                        ? context.l10n.calendarTitleMonth
-                        : context.l10n.calendarTitle,
+                    switch (ui.mode) {
+                      CalendarBrowseMode.month => context.l10n.calendarTitleMonth,
+                      CalendarBrowseMode.week => context.l10n.calendarTitle,
+                      CalendarBrowseMode.agenda => context.l10n.calendarTitleAgenda,
+                    },
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.8,
@@ -221,33 +245,34 @@ class CalendarScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
-              child: KeyedSubtree(
-                // Keep month circles and week pills from sharing AnimatedContainer
-                // state (circle ↔ borderRadius tween asserts).
-                key: ValueKey(ui.mode),
-                child: ui.mode == CalendarBrowseMode.month
-                    ? Column(
-                        children: [
-                          _dowRow(context.l10n),
-                          const SizedBox(height: 6),
-                          ..._buildMonthRows(
-                            filteredForGrid,
-                            selected,
-                            controller,
-                          ),
-                        ],
-                      )
-                    : _buildWeekStrip(
-                        context,
-                        filteredForGrid,
-                        selected,
-                        controller,
-                      ),
+            if (ui.mode != CalendarBrowseMode.agenda)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+                child: KeyedSubtree(
+                  // Keep month circles and week pills from sharing AnimatedContainer
+                  // state (circle ↔ borderRadius tween asserts).
+                  key: ValueKey(ui.mode),
+                  child: ui.mode == CalendarBrowseMode.month
+                      ? Column(
+                          children: [
+                            _dowRow(context.l10n),
+                            const SizedBox(height: 6),
+                            ..._buildMonthRows(
+                              filteredForGrid,
+                              selected,
+                              controller,
+                            ),
+                          ],
+                        )
+                      : _buildWeekStrip(
+                          context,
+                          filteredForGrid,
+                          selected,
+                          controller,
+                        ),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
+            if (ui.mode != CalendarBrowseMode.agenda) const SizedBox(height: 6),
             Expanded(
               child: eventsAsync.when(
                 loading: () => const NestLoadingSkeleton(itemCount: 3),
@@ -261,100 +286,72 @@ class CalendarScreen extends ConsumerWidget {
                         (e.location ?? '').toLowerCase().contains(q);
                   }
 
-                  final dayEvents = allEvents.where((e) {
-                    return isSameCalendarDay(e.startsAt, selected) &&
-                        _matchesMemberFilter(
+                  final filtered = allEvents
+                      .where(
+                        (e) => _matchesMemberFilter(
                           e.memberId,
                           members,
                           memberFilter,
-                        ) &&
-                        matchesSearch(e);
-                  }).toList();
-                  final upcoming = allEvents
-                      .where(
-                        (e) =>
-                            !e.startsAt.isBefore(endOfDayExclusive(selected)) &&
-                            _matchesMemberFilter(
-                              e.memberId,
-                              members,
-                              memberFilter,
-                            ) &&
-                            matchesSearch(e),
+                        ),
                       )
+                      .toList();
+
+                  if (ui.mode == CalendarBrowseMode.agenda) {
+                    final agendaEnd = selected.add(const Duration(days: 7));
+                    final expanded = eventRepo.expandInRange(
+                      filtered,
+                      selected,
+                      agendaEnd,
+                    ).where(matchesSearch).toList();
+
+                    final dayEvents = expanded
+                        .where((e) => isSameCalendarDay(e.startsAt, selected))
+                        .toList();
+                    final upcoming = expanded
+                        .where(
+                          (e) => !isSameCalendarDay(e.startsAt, selected),
+                        )
+                        .toList();
+
+                    return _buildEventList(
+                      context: context,
+                      ref: ref,
+                      controller: controller,
+                      allEvents: allEvents,
+                      selected: selected,
+                      q: q,
+                      dayEvents: dayEvents,
+                      upcoming: upcoming,
+                      upcomingLabel: context.l10n.calendarAgendaUpcoming,
+                      showUpcomingDate: true,
+                    );
+                  }
+
+                  final dayEvents = eventRepo
+                      .expandInRange(filtered, selected, selected)
+                      .where(matchesSearch)
+                      .toList();
+                  final upcoming = eventRepo
+                      .expandInRange(
+                        filtered,
+                        endOfDayExclusive(selected),
+                        selected.add(const Duration(days: 60)),
+                      )
+                      .where(matchesSearch)
                       .take(4)
                       .toList();
 
-                  return ListView(
-                    padding: nestShellPageInsets(context),
-                    children: [
-                      if (dayEvents.isEmpty)
-                        FirstRunEmptyCard(
-                          icon: Icons.event_rounded,
-                          color: AppColors.accent,
-                          title: allEvents.isEmpty
-                              ? context.l10n.emptyCalendarTitle
-                              : (q.isNotEmpty
-                                    ? context.l10n.emptyCalendarNoMatch
-                                    : (_isToday(selected)
-                                          ? context.l10n.emptyCalendarNothingToday
-                                          : context.l10n.emptyCalendarNothingDay)),
-                          body: allEvents.isEmpty
-                              ? context.l10n.emptyCalendarBody
-                              : (q.isNotEmpty
-                                    ? context.l10n.emptyCalendarSearchHint
-                                    : context.l10n.emptyCalendarDayHint),
-                          actionLabel: q.isNotEmpty
-                              ? context.l10n.emptyCalendarClearSearch
-                              : context.l10n.addEvent,
-                          onAction: () {
-                            if (q.isNotEmpty) {
-                              controller.closeSearch();
-                            } else {
-                              _showAddEvent(context, ref);
-                            }
-                          },
-                        )
-                      else
-                        for (var i = 0; i < dayEvents.length; i++)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Appear(
-                              delay: AppMotion.stagger * i,
-                              replayKey: dayEvents[i].id,
-                              child: _PastelEventCard(
-                                event: dayEvents[i],
-                                member: _memberFor(
-                                  members,
-                                  dayEvents[i].memberId,
-                                ),
-                                color:
-                                    AppColors.softCardColors[i %
-                                        AppColors.softCardColors.length],
-                                onTap: () =>
-                                    _showEditEvent(context, ref, dayEvents[i]),
-                                onEdit: () =>
-                                    _showEditEvent(context, ref, dayEvents[i]),
-                              ),
-                            ),
-                          ),
-                      if (upcoming.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        const SectionLabel('Upcoming'),
-                        for (final event in upcoming)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: _PastelEventCard(
-                              event: event,
-                              member: _memberFor(members, event.memberId),
-                              color: AppColors.surfaceMuted,
-                              onTap: () => _showEditEvent(context, ref, event),
-                              onEdit: () => _showEditEvent(context, ref, event),
-                              showDate: true,
-                              bordered: true,
-                            ),
-                          ),
-                      ],
-                    ],
+                  return _buildEventList(
+                    context: context,
+                    ref: ref,
+                    controller: controller,
+                    allEvents: allEvents,
+                    selected: selected,
+                    q: q,
+                    dayEvents: dayEvents,
+                    upcoming: upcoming,
+                    upcomingLabel: 'Upcoming',
+                    showUpcomingDate: true,
                   );
                 },
               ),
@@ -585,16 +582,105 @@ class CalendarScreen extends ConsumerWidget {
     return rows;
   }
 
-  static Future<void> _showAddEvent(BuildContext context, WidgetRef ref) async {
-    await _showEventSheet(context, ref);
-  }
-
   static Future<void> _showEditEvent(
     BuildContext context,
     WidgetRef ref,
-    CalendarEvent event,
+    CalendarEvent displayEvent,
   ) async {
-    await _showEventSheet(context, ref, existing: event);
+    final masters = ref.read(eventsProvider).valueOrNull ?? const [];
+    CalendarEvent? master;
+    for (final e in masters) {
+      if (e.id == displayEvent.id) {
+        master = e;
+        break;
+      }
+    }
+    await _showEventSheet(context, ref, existing: master ?? displayEvent);
+  }
+
+  static Widget _buildEventList({
+    required BuildContext context,
+    required WidgetRef ref,
+    required CalendarUiController controller,
+    required List<CalendarEvent> allEvents,
+    required DateTime selected,
+    required String q,
+    required List<CalendarEvent> dayEvents,
+    required List<CalendarEvent> upcoming,
+    required String upcomingLabel,
+    required bool showUpcomingDate,
+  }) {
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+
+    return ListView(
+      padding: nestShellPageInsets(context),
+      children: [
+        if (dayEvents.isEmpty)
+          FirstRunEmptyCard(
+            icon: Icons.event_rounded,
+            color: AppColors.accent,
+            title: allEvents.isEmpty
+                ? context.l10n.emptyCalendarTitle
+                : (q.isNotEmpty
+                      ? context.l10n.emptyCalendarNoMatch
+                      : (_isToday(selected)
+                            ? context.l10n.emptyCalendarNothingToday
+                            : context.l10n.emptyCalendarNothingDay)),
+            body: allEvents.isEmpty
+                ? context.l10n.emptyCalendarBody
+                : (q.isNotEmpty
+                      ? context.l10n.emptyCalendarSearchHint
+                      : context.l10n.emptyCalendarDayHint),
+            actionLabel: q.isNotEmpty
+                ? context.l10n.emptyCalendarClearSearch
+                : context.l10n.addEvent,
+            onAction: () {
+              if (q.isNotEmpty) {
+                controller.closeSearch();
+              } else {
+                _showAddEvent(context, ref);
+              }
+            },
+          )
+        else
+          for (var i = 0; i < dayEvents.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Appear(
+                delay: AppMotion.stagger * i,
+                replayKey: '${dayEvents[i].id}-${dayEvents[i].startsAt.millisecondsSinceEpoch}',
+                child: _PastelEventCard(
+                  event: dayEvents[i],
+                  member: _memberFor(members, dayEvents[i].memberId),
+                  color: AppColors.softCardColors[i % AppColors.softCardColors.length],
+                  onTap: () => _showEditEvent(context, ref, dayEvents[i]),
+                  onEdit: () => _showEditEvent(context, ref, dayEvents[i]),
+                ),
+              ),
+            ),
+        if (upcoming.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          SectionLabel(upcomingLabel),
+          for (final event in upcoming)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _PastelEventCard(
+                event: event,
+                member: _memberFor(members, event.memberId),
+                color: AppColors.surfaceMuted,
+                onTap: () => _showEditEvent(context, ref, event),
+                onEdit: () => _showEditEvent(context, ref, event),
+                showDate: showUpcomingDate,
+                bordered: true,
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  static Future<void> _showAddEvent(BuildContext context, WidgetRef ref) async {
+    await _showEventSheet(context, ref);
   }
 
   static Future<void> _showEventSheet(
@@ -612,6 +698,8 @@ class CalendarScreen extends ConsumerWidget {
     var allDay = existing?.allDay ?? false;
     var startAt = existing?.startsAt ?? selected.add(const Duration(hours: 9));
     var endAt = existing?.endsAt ?? selected.add(const Duration(hours: 10));
+    var recurrence = EventRecurrence.parse(existing?.recurrence ?? 'none');
+    DateTime? recurrenceUntil = existing?.recurrenceUntil;
     var deleteEvent = false;
 
     await showModalBottomSheet<void>(
@@ -653,6 +741,8 @@ class CalendarScreen extends ConsumerWidget {
                       allDay: allDay,
                       memberId: selectedMemberId,
                       location: location.isEmpty ? null : location,
+                      recurrence: recurrence,
+                      recurrenceUntil: recurrenceUntil,
                     );
               } else {
                 await ref
@@ -666,6 +756,8 @@ class CalendarScreen extends ConsumerWidget {
                       memberId: selectedMemberId,
                       location: location.isEmpty ? null : location,
                       category: existing.category,
+                      recurrence: recurrence,
+                      recurrenceUntil: recurrenceUntil,
                     );
               }
 
@@ -803,6 +895,65 @@ class CalendarScreen extends ConsumerWidget {
                                   setModal(() => selectedMemberId = m.id),
                             ),
                         ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Text(
+                      context.l10n.eventRecurrence,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        for (final r in EventRecurrence.values)
+                          SoftPill(
+                            label: r.display(context.l10n),
+                            selected: recurrence == r,
+                            onTap: () => setModal(() {
+                              recurrence = r;
+                              if (r == EventRecurrence.none) {
+                                recurrenceUntil = null;
+                              }
+                            }),
+                          ),
+                      ],
+                    ),
+                    if (recurrence != EventRecurrence.none) ...[
+                      const SizedBox(height: 10),
+                      SoftPill(
+                        label: recurrenceUntil == null
+                            ? context.l10n.eventRecurrenceUntil
+                            : _dateLabel(recurrenceUntil!),
+                        selected: recurrenceUntil != null,
+                        onTap: () async {
+                          final picked = await _pickDateFor(
+                            context,
+                            recurrenceUntil ?? selectedDate,
+                          );
+                          if (picked == null) return;
+                          setModal(() => recurrenceUntil = _dateOnly(picked));
+                        },
+                      ),
+                      if (recurrenceUntil != null)
+                        TextButton(
+                          onPressed: () =>
+                              setModal(() => recurrenceUntil = null),
+                          child: Text(context.l10n.commonClear),
+                        ),
+                    ],
+                    if (existing != null &&
+                        EventRecurrence.parse(existing.recurrence) !=
+                            EventRecurrence.none) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        context.l10n.calendarEditSeriesHint,
+                        style: const TextStyle(
+                          color: AppColors.inkSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 14),
@@ -1026,17 +1177,24 @@ class _CalendarSearchHeader extends StatelessWidget {
                             const SizedBox(width: 46),
                             const Spacer(),
                             SoftPill(
-                              label: 'Month',
+                              label: l10n.calendarBrowseMonth,
                               selected: ui.mode == CalendarBrowseMode.month,
                               onTap: () => controller
                                   .setMode(CalendarBrowseMode.month),
                             ),
                             const SizedBox(width: 6),
                             SoftPill(
-                              label: 'Week',
+                              label: l10n.calendarBrowseWeek,
                               selected: ui.mode == CalendarBrowseMode.week,
                               onTap: () =>
                                   controller.setMode(CalendarBrowseMode.week),
+                            ),
+                            const SizedBox(width: 6),
+                            SoftPill(
+                              label: l10n.calendarBrowseAgenda,
+                              selected: ui.mode == CalendarBrowseMode.agenda,
+                              onTap: () =>
+                                  controller.setMode(CalendarBrowseMode.agenda),
                             ),
                           ],
                         ),
