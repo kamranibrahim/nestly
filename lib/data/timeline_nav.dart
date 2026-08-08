@@ -7,6 +7,9 @@ TimelineModule classifyTimeline({
   required String message,
 }) {
   final parsed = TimelineKind.parse(kind);
+  if (parsed == TimelineKind.comment) {
+    return TimelineModule.family;
+  }
   if (parsed == TimelineKind.post || parsed == TimelineKind.announcement) {
     return TimelineModule.family;
   }

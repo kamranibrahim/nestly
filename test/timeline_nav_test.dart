@@ -51,6 +51,13 @@ void main() {
     );
     expect(
       classifyTimeline(
+        kind: TimelineKind.comment.storage,
+        message: 'Sounds good!',
+      ),
+      TimelineModule.family,
+    );
+    expect(
+      classifyTimeline(
         kind: TimelineKind.activity.storage,
         message: 'Completed "Walk dog"',
       ),

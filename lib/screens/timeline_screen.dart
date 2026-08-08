@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
 import '../data/enums.dart';
+import '../data/repositories.dart';
 import '../data/timeline_nav.dart';
 import '../providers/providers.dart';
 import '../state/timeline_ui.dart';
@@ -103,73 +104,9 @@ class TimelineScreen extends ConsumerWidget {
                         separatorBuilder: (_, _) => const SizedBox(height: 6),
                         itemBuilder: (context, index) {
                           final event = filtered[index];
-                          final module = classifyTimeline(
-                            kind: event.kind,
-                            message: event.message,
-                          );
-                          final isPost = isTimelinePostKind(event.kind);
-                          return NestCard(
-                            onTap: isPost
-                                ? null
-                                : () =>
-                                    _openModule(context, module, onOpenTab),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _ModuleIcon(module: module, isPost: isPost),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (isPost)
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 4),
-                                          child: Text(
-                                            _kindLabel(event.kind, context.l10n),
-                                            style: const TextStyle(
-                                              color: AppColors.accent,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.4,
-                                            ),
-                                          ),
-                                        ),
-                                      Text(
-                                        event.message,
-                                        style: TextStyle(
-                                          fontWeight: isPost
-                                              ? FontWeight.w600
-                                              : FontWeight.w700,
-                                          fontSize: 14,
-                                          height: 1.35,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${event.memberName} · ${_relative(event.createdAt, context.l10n)} · ${isPost ? _kindLabel(event.kind, context.l10n) : module.display(context.l10n)}',
-                                        style: const TextStyle(
-                                          color: AppColors.inkMuted,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (!isPost)
-                                  const Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: AppColors.inkMuted,
-                                  ),
-                              ],
-                            ),
+                          return _TimelineEventCard(
+                            event: event,
+                            onOpenTab: onOpenTab,
                           );
                         },
                       ),
@@ -185,8 +122,300 @@ String _kindLabel(String kind, AppLocalizations l10n) {
   return switch (TimelineKind.parse(kind)) {
     TimelineKind.announcement => l10n.timelineAnnouncementLabel,
     TimelineKind.post => l10n.timelinePostLabel,
+    TimelineKind.comment => l10n.timelineCommentLabel,
     TimelineKind.activity => l10n.timelineActivityLabel,
   };
+}
+
+class _TimelineEventCard extends ConsumerStatefulWidget {
+  const _TimelineEventCard({required this.event, this.onOpenTab});
+
+  final TimelineEvent event;
+  final ValueChanged<int>? onOpenTab;
+
+  @override
+  ConsumerState<_TimelineEventCard> createState() => _TimelineEventCardState();
+}
+
+class _TimelineEventCardState extends ConsumerState<_TimelineEventCard> {
+  bool _commentsExpanded = false;
+  final _commentController = TextEditingController();
+  bool _commenting = false;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitComment() async {
+    final body = _commentController.text.trim();
+    if (body.isEmpty || _commenting) return;
+    final (memberId, memberName) = _resolveActor(ref);
+    setState(() => _commenting = true);
+    try {
+      await ref.read(timelineRepositoryProvider).addComment(
+            parentId: widget.event.id,
+            body: body,
+            memberId: memberId,
+            memberName: memberName,
+          );
+      _commentController.clear();
+      if (!_commentsExpanded && mounted) {
+        setState(() => _commentsExpanded = true);
+      }
+    } finally {
+      if (mounted) setState(() => _commenting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final event = widget.event;
+    final l10n = context.l10n;
+    final repo = ref.watch(timelineRepositoryProvider);
+    final (memberId, _) = _resolveActor(ref);
+    final module = classifyTimeline(kind: event.kind, message: event.message);
+    final isPost = isTimelinePostKind(event.kind);
+
+    return NestCard(
+      onTap: isPost
+          ? null
+          : () => _openModule(context, module, widget.onOpenTab),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ModuleIcon(module: module, isPost: isPost),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isPost)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          _kindLabel(event.kind, l10n),
+                          style: const TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      event.message,
+                      style: TextStyle(
+                        fontWeight: isPost ? FontWeight.w600 : FontWeight.w700,
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${event.memberName} · ${_relative(event.createdAt, l10n)} · ${isPost ? _kindLabel(event.kind, l10n) : module.display(l10n)}',
+                      style: const TextStyle(
+                        color: AppColors.inkMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!isPost)
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.inkMuted,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          StreamBuilder<List<TimelineReaction>>(
+            stream: repo.watchReactions(event.id),
+            builder: (context, snapshot) {
+              final reactions = snapshot.data ?? const <TimelineReaction>[];
+              final counts = <String, int>{};
+              TimelineReaction? myReaction;
+              for (final reaction in reactions) {
+                counts[reaction.emoji] = (counts[reaction.emoji] ?? 0) + 1;
+                if (reaction.memberId == memberId) {
+                  myReaction = reaction;
+                }
+              }
+              return Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final emoji in TimelineRepository.reactionEmojis)
+                    ActionChip(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      label: Text(
+                        counts.containsKey(emoji)
+                            ? '$emoji ${counts[emoji]}'
+                            : emoji,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      backgroundColor: myReaction?.emoji == emoji
+                          ? AppColors.accent.withValues(alpha: 0.18)
+                          : AppColors.background,
+                      side: BorderSide.none,
+                      onPressed: () => repo.toggleReaction(
+                        eventId: event.id,
+                        memberId: memberId,
+                        emoji: emoji,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          StreamBuilder<List<TimelineEvent>>(
+            stream: repo.watchComments(event.id),
+            builder: (context, snapshot) {
+              final comments = snapshot.data ?? const <TimelineEvent>[];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => setState(
+                        () => _commentsExpanded = !_commentsExpanded,
+                      ),
+                      child: Text(
+                        l10n.timelineCommentsToggle(comments.length),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_commentsExpanded) ...[
+                    for (final comment in comments)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                comment.memberName.isNotEmpty
+                                    ? comment.memberName[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    comment.memberName,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  Text(
+                                    comment.message,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                  Text(
+                                    _relative(comment.createdAt, l10n),
+                                    style: const TextStyle(
+                                      color: AppColors.inkMuted,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _commentController,
+                            minLines: 1,
+                            maxLines: 3,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              hintText: l10n.timelineCommentHint,
+                              filled: true,
+                              fillColor: AppColors.background,
+                              isDense: true,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            onSubmitted: (_) => _submitComment(),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        FilledButton(
+                          onPressed: _commenting ? null : _submitComment,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          child: _commenting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator.adaptive(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(l10n.timelineCommentButton),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _TimelineComposer extends ConsumerStatefulWidget {

@@ -521,6 +521,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String get timelinePostButton => 'نشر';
 
   @override
+  String get timelineCommentLabel => 'تعليق';
+
+  @override
+  String get timelineCommentHint => 'اكتب تعليقًا…';
+
+  @override
+  String get timelineCommentButton => 'رد';
+
+  @override
+  String timelineCommentsToggle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تعليقات',
+      one: 'تعليق واحد',
+      zero: 'التعليقات',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String needCareDue(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

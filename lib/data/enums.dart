@@ -395,7 +395,8 @@ enum CasaioDeepLink {
 enum TimelineKind {
   activity('activity'),
   post('post'),
-  announcement('announcement');
+  announcement('announcement'),
+  comment('comment');
 
   const TimelineKind(this.storage);
   final String storage;
