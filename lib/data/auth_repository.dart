@@ -1194,7 +1194,11 @@ class SyncService {
           'message': item.message,
           'memberId': item.memberId,
           'memberName': item.memberName,
+          'kind': item.kind,
+          if (item.parentId != null) 'parentId': item.parentId,
+          'pinned': item.pinned,
           'createdAt': Timestamp.fromDate(item.createdAt),
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
         });
       }
       await (_db.update(_db.timelineEvents)..where((t) => t.id.equals(item.id)))
@@ -1214,6 +1218,8 @@ class SyncService {
       final data = doc.data();
       final created =
           (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final updated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? created;
       final local = await (_db.select(
         _db.timelineEvents,
       )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
@@ -1228,8 +1234,12 @@ class SyncService {
                   data['message'] as String? ?? data['text'] as String? ?? '',
               memberId: Value(data['memberId'] as String? ?? ''),
               memberName: Value(data['memberName'] as String? ?? 'Family'),
+              kind: Value(data['kind'] as String? ?? TimelineKind.activity.storage),
+              parentId: Value(data['parentId'] as String?),
+              pinned: Value(data['pinned'] as bool? ?? false),
               dirty: const Value(false),
               createdAt: Value(created),
+              updatedAt: Value(updated),
             ),
           );
     }

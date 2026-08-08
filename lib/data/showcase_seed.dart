@@ -258,6 +258,13 @@ class ShowcaseSeedService {
             today.subtract(const Duration(days: 1)).add(const Duration(hours: 18))),
         _timeline('Water bill marked as paid', dad, 'Kamran',
             today.subtract(const Duration(days: 1)).add(const Duration(hours: 10))),
+        _timeline(
+          'Who can pick up Ayaan from soccer on Thursday?',
+          memberMom,
+          'Sara',
+          now.subtract(const Duration(minutes: 45)),
+          kind: 'post',
+        ),
       ]);
 
       b.insertAll(_db.mealPlans, [
@@ -588,15 +595,18 @@ class ShowcaseSeedService {
     String message,
     String memberId,
     String memberName,
-    DateTime createdAt,
-  ) {
+    DateTime createdAt, {
+    String kind = 'activity',
+  }) {
     return TimelineEventsCompanion.insert(
       id: 'tl-${_uuid.v4().substring(0, 8)}',
       message: message,
       memberId: Value(memberId),
       memberName: Value(memberName),
+      kind: Value(kind),
       dirty: const Value(true),
       createdAt: Value(createdAt),
+      updatedAt: Value(createdAt),
     );
   }
 

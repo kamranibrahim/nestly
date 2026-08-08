@@ -1088,7 +1088,9 @@ class TimelineRepository {
     required String message,
     String memberId = '',
     String memberName = 'Family',
+    TimelineKind kind = TimelineKind.activity,
   }) async {
+    final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
     await _db
         .into(_db.timelineEvents)
@@ -1099,10 +1101,25 @@ class TimelineRepository {
             message: message,
             memberId: Value(memberId),
             memberName: Value(memberName),
+            kind: Value(kind.storage),
             dirty: const Value(true),
-            createdAt: Value(DateTime.now()),
+            createdAt: Value(now),
+            updatedAt: Value(now),
           ),
         );
+  }
+
+  Future<void> addPost({
+    required String body,
+    required String memberId,
+    required String memberName,
+  }) {
+    return add(
+      message: body,
+      memberId: memberId,
+      memberName: memberName,
+      kind: TimelineKind.post,
+    );
   }
 }
 

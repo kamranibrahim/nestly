@@ -636,4 +636,18 @@ void main() {
         (await bills.watchAll().first).where((b) => b.id == bill.id);
     expect(billsLeft, isEmpty);
   });
+
+  test('addPost persists kind post', () async {
+    final timeline = TimelineRepository(database);
+    await timeline.addPost(
+      body: 'Pizza night Friday?',
+      memberId: 'dad',
+      memberName: 'Kamran',
+    );
+    final events = await timeline.watchRecent().first;
+    final post = events.firstWhere((e) => e.message == 'Pizza night Friday?');
+    expect(post.kind, TimelineKind.post.storage);
+    expect(post.memberId, 'dad');
+    expect(post.memberName, 'Kamran');
+  });
 }
