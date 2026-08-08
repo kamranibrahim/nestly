@@ -22,7 +22,7 @@ Execute Wave 1 in order unless dependencies say otherwise.
 | 012 | Timeline: kinds + freeform posts | P1 | L | 011 | DONE — [012-timeline-kinds-posts.md](./012-timeline-kinds-posts.md) (`advisor/012-timeline-kinds-posts` @ `7591f02`) |
 | 013 | Timeline: reactions + comments | P1 | L | 012 | DONE — [013-timeline-reactions-comments.md](./013-timeline-reactions-comments.md) (`advisor/013-timeline-reactions-comments` @ `38b2191`) |
 | 014 | Timeline: pins, announcements, mentions | P2 | M–L | 012, 013 | DONE — [014-timeline-pins-announcements-mentions.md](./014-timeline-pins-announcements-mentions.md) (`advisor/014-timeline-pins-announcements-mentions` @ `4d901f5`) |
-| 015 | Shared Notes module | P1 | L | 011 | TODO — [015-shared-notes.md](./015-shared-notes.md) |
+| 015 | Shared Notes module | P1 | L | 011 | IN PROGRESS — [015-shared-notes.md](./015-shared-notes.md) |
 | 016 | Family polls | P1 | M | 011 | TODO — [016-family-polls.md](./016-family-polls.md) |
 | 017 | Nest presence (active / last seen) | P2 | M | 011 | TODO — [017-nest-presence.md](./017-nest-presence.md) |
 
