@@ -526,6 +526,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timelinePostButton => 'Post';
 
   @override
+  String get timelineCommentLabel => 'Comment';
+
+  @override
+  String get timelineCommentHint => 'Write a comment…';
+
+  @override
+  String get timelineCommentButton => 'Reply';
+
+  @override
+  String timelineCommentsToggle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count comments',
+      one: '1 comment',
+      zero: 'Comments',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String needCareDue(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

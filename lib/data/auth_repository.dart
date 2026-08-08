@@ -429,6 +429,8 @@ class SyncService {
       await step(() => _pullVault(nestId));
       await step(() => _pushTimeline(nestId));
       await step(() => _pullTimeline(nestId));
+      await step(() => _pushTimelineReactions(nestId));
+      await step(() => _pullTimelineReactions(nestId));
       await step(() => _pushMeals(nestId));
       await step(() => _pullMeals(nestId));
       await step(() => _pushRecipes(nestId));
@@ -1237,6 +1239,66 @@ class SyncService {
               kind: Value(data['kind'] as String? ?? TimelineKind.activity.storage),
               parentId: Value(data['parentId'] as String?),
               pinned: Value(data['pinned'] as bool? ?? false),
+              dirty: const Value(false),
+              createdAt: Value(created),
+              updatedAt: Value(updated),
+            ),
+          );
+    }
+  }
+
+  Future<void> _pushTimelineReactions(String nestId) async {
+    final dirty = await (_db.select(
+      _db.timelineReactions,
+    )..where((t) => t.dirty.equals(true))).get();
+    for (final item in dirty) {
+      final ref = _firestore
+          .collection('nests')
+          .doc(nestId)
+          .collection('timelineReactions')
+          .doc(item.id);
+      if (item.deleted) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'eventId': item.eventId,
+          'memberId': item.memberId,
+          'emoji': item.emoji,
+          'createdAt': Timestamp.fromDate(item.createdAt),
+          'updatedAt': Timestamp.fromDate(item.updatedAt),
+        });
+      }
+      await (_db.update(_db.timelineReactions)
+            ..where((t) => t.id.equals(item.id)))
+          .write(const TimelineReactionsCompanion(dirty: Value(false)));
+    }
+  }
+
+  Future<void> _pullTimelineReactions(String nestId) async {
+    final snap = await _firestore
+        .collection('nests')
+        .doc(nestId)
+        .collection('timelineReactions')
+        .get();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final created =
+          (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final updated =
+          (data['updatedAt'] as Timestamp?)?.toDate() ?? created;
+      final local = await (_db.select(
+        _db.timelineReactions,
+      )..where((t) => t.id.equals(doc.id))).getSingleOrNull();
+      if (local != null && local.dirty) continue;
+      await _db
+          .into(_db.timelineReactions)
+          .insertOnConflictUpdate(
+            TimelineReactionsCompanion.insert(
+              id: doc.id,
+              nestId: Value(nestId),
+              eventId: data['eventId'] as String? ?? '',
+              memberId: data['memberId'] as String? ?? '',
+              emoji: data['emoji'] as String? ?? '',
               dirty: const Value(false),
               createdAt: Value(created),
               updatedAt: Value(updated),

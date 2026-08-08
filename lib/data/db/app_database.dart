@@ -196,6 +196,22 @@ class TimelineEvents extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// One emoji reaction per member per timeline event (upsert by eventId + memberId).
+class TimelineReactions extends Table {
+  TextColumn get id => text()();
+  TextColumn get nestId => text().nullable()();
+  TextColumn get eventId => text()();
+  TextColumn get memberId => text()();
+  TextColumn get emoji => text()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// Reusable recipe in the nest library (ingredients as comma/newline text).
 class Recipes extends Table {
   TextColumn get id => text()();
@@ -341,6 +357,7 @@ class NestSettings extends Table {
     EmergencyEntries,
     VaultDocuments,
     TimelineEvents,
+    TimelineReactions,
     MealPlans,
     Recipes,
     CareItems,
@@ -354,7 +371,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -479,6 +496,9 @@ class AppDatabase extends _$AppDatabase {
           'UPDATE timeline_events SET updated_at = created_at',
         );
       }
+      if (from < 20) {
+        await _createTableIfMissing(m, timelineReactions);
+      }
     },
   );
 
@@ -582,6 +602,7 @@ class AppDatabase extends _$AppDatabase {
       b.deleteAll(emergencyEntries);
       b.deleteAll(vaultDocuments);
       b.deleteAll(timelineEvents);
+      b.deleteAll(timelineReactions);
       b.deleteAll(mealPlans);
       b.deleteAll(recipes);
       b.deleteAll(careItems);

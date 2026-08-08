@@ -1075,14 +1075,51 @@ class TimelineRepository {
 
   final AppDatabase _db;
   static const _uuid = Uuid();
+  static const reactionEmojis = ['👍', '❤️', '😂', '🎉'];
 
   Stream<List<TimelineEvent>> watchRecent({int limit = 40}) {
     return (_db.select(_db.timelineEvents)
-          ..where((t) => t.deleted.equals(false))
+          ..where(
+            (t) =>
+                t.deleted.equals(false) &
+                t.kind.isNotIn([TimelineKind.comment.storage]),
+          )
           ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
           ..limit(limit))
         .watch();
   }
+
+  Stream<List<TimelineEvent>> watchComments(String parentId) {
+    return (_db.select(_db.timelineEvents)
+          ..where(
+            (t) =>
+                t.deleted.equals(false) &
+                t.parentId.equals(parentId) &
+                t.kind.equals(TimelineKind.comment.storage),
+          )
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .watch();
+  }
+
+  Stream<List<TimelineReaction>> watchReactions(String eventId) {
+    return (_db.select(_db.timelineReactions)
+          ..where(
+            (r) => r.deleted.equals(false) & r.eventId.equals(eventId),
+          ))
+        .watch();
+  }
+
+  Stream<Map<String, int>> watchReactionCounts(String eventId) {
+    return watchReactions(eventId).map((reactions) {
+      final counts = <String, int>{};
+      for (final reaction in reactions) {
+        counts[reaction.emoji] = (counts[reaction.emoji] ?? 0) + 1;
+      }
+      return counts;
+    });
+  }
+
+  String reactionId(String eventId, String memberId) => '${eventId}__$memberId';
 
   Future<void> add({
     required String message,
@@ -1119,6 +1156,97 @@ class TimelineRepository {
       memberId: memberId,
       memberName: memberName,
       kind: TimelineKind.post,
+    );
+  }
+
+  Future<void> addComment({
+    required String parentId,
+    required String body,
+    required String memberId,
+    required String memberName,
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    await _db.into(_db.timelineEvents).insert(
+          TimelineEventsCompanion.insert(
+            id: _uuid.v4(),
+            nestId: Value(nestId),
+            message: body,
+            memberId: Value(memberId),
+            memberName: Value(memberName),
+            kind: Value(TimelineKind.comment.storage),
+            parentId: Value(parentId),
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  Future<void> toggleReaction({
+    required String eventId,
+    required String memberId,
+    required String emoji,
+  }) async {
+    final now = DateTime.now();
+    final nestId = await _db.getMeta('nestId');
+    final id = reactionId(eventId, memberId);
+    final existing = await (_db.select(_db.timelineReactions)
+          ..where((r) => r.id.equals(id)))
+        .getSingleOrNull();
+
+    if (existing != null && !existing.deleted && existing.emoji == emoji) {
+      await (_db.update(_db.timelineReactions)..where((r) => r.id.equals(id)))
+          .write(
+        TimelineReactionsCompanion(
+          deleted: const Value(true),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+      return;
+    }
+
+    if (existing != null) {
+      await (_db.update(_db.timelineReactions)..where((r) => r.id.equals(id)))
+          .write(
+        TimelineReactionsCompanion(
+          emoji: Value(emoji),
+          deleted: const Value(false),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+      return;
+    }
+
+    await _db.into(_db.timelineReactions).insert(
+          TimelineReactionsCompanion.insert(
+            id: id,
+            nestId: Value(nestId),
+            eventId: eventId,
+            memberId: memberId,
+            emoji: emoji,
+            dirty: const Value(true),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  Future<void> removeReaction({
+    required String eventId,
+    required String memberId,
+  }) async {
+    final now = DateTime.now();
+    final id = reactionId(eventId, memberId);
+    await (_db.update(_db.timelineReactions)..where((r) => r.id.equals(id)))
+        .write(
+      TimelineReactionsCompanion(
+        deleted: const Value(true),
+        dirty: const Value(true),
+        updatedAt: Value(now),
+      ),
     );
   }
 }

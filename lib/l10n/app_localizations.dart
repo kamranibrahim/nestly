@@ -1088,6 +1088,30 @@ abstract class AppLocalizations {
   /// **'Post'**
   String get timelinePostButton;
 
+  /// No description provided for @timelineCommentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get timelineCommentLabel;
+
+  /// No description provided for @timelineCommentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a comment…'**
+  String get timelineCommentHint;
+
+  /// No description provided for @timelineCommentButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get timelineCommentButton;
+
+  /// No description provided for @timelineCommentsToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Comments} =1{1 comment} other{{count} comments}}'**
+  String timelineCommentsToggle(int count);
+
   /// No description provided for @needCareDue.
   ///
   /// In en, this message translates to:

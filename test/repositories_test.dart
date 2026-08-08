@@ -650,4 +650,72 @@ void main() {
     expect(post.memberId, 'dad');
     expect(post.memberName, 'Kamran');
   });
+
+  test('addComment persists under parent and stays out of top-level feed', () async {
+    final timeline = TimelineRepository(database);
+    await timeline.addPost(
+      body: 'Movie night?',
+      memberId: 'dad',
+      memberName: 'Kamran',
+    );
+    final post = (await timeline.watchRecent().first)
+        .firstWhere((e) => e.message == 'Movie night?');
+
+    await timeline.addComment(
+      parentId: post.id,
+      body: 'Count me in!',
+      memberId: 'mom',
+      memberName: 'Sara',
+    );
+
+    final topLevel = await timeline.watchRecent().first;
+    expect(topLevel.any((e) => e.kind == TimelineKind.comment.storage), isFalse);
+
+    final comments = await timeline.watchComments(post.id).first;
+    expect(comments, hasLength(1));
+    expect(comments.first.message, 'Count me in!');
+    expect(comments.first.parentId, post.id);
+    expect(comments.first.kind, TimelineKind.comment.storage);
+  });
+
+  test('toggleReaction upserts one reaction per member', () async {
+    final timeline = TimelineRepository(database);
+    await timeline.addPost(
+      body: 'Great week everyone',
+      memberId: 'dad',
+      memberName: 'Kamran',
+    );
+    final post = (await timeline.watchRecent().first)
+        .firstWhere((e) => e.message == 'Great week everyone');
+
+    await timeline.toggleReaction(
+      eventId: post.id,
+      memberId: 'dad',
+      emoji: '👍',
+    );
+    var reactions = await timeline.watchReactions(post.id).first;
+    expect(reactions, hasLength(1));
+    expect(reactions.first.emoji, '👍');
+    expect(reactions.first.memberId, 'dad');
+
+    await timeline.toggleReaction(
+      eventId: post.id,
+      memberId: 'dad',
+      emoji: '❤️',
+    );
+    reactions = await timeline.watchReactions(post.id).first;
+    expect(reactions, hasLength(1));
+    expect(reactions.first.emoji, '❤️');
+
+    await timeline.toggleReaction(
+      eventId: post.id,
+      memberId: 'dad',
+      emoji: '❤️',
+    );
+    reactions = await timeline.watchReactions(post.id).first;
+    expect(reactions, isEmpty);
+
+    final counts = await timeline.watchReactionCounts(post.id).first;
+    expect(counts, isEmpty);
+  });
 }

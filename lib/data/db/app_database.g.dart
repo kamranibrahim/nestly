@@ -6867,6 +6867,560 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
   }
 }
 
+class $TimelineReactionsTable extends TimelineReactions
+    with TableInfo<$TimelineReactionsTable, TimelineReaction> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TimelineReactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nestIdMeta = const VerificationMeta('nestId');
+  @override
+  late final GeneratedColumn<String> nestId = GeneratedColumn<String>(
+    'nest_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventIdMeta = const VerificationMeta(
+    'eventId',
+  );
+  @override
+  late final GeneratedColumn<String> eventId = GeneratedColumn<String>(
+    'event_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<String> memberId = GeneratedColumn<String>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emojiMeta = const VerificationMeta('emoji');
+  @override
+  late final GeneratedColumn<String> emoji = GeneratedColumn<String>(
+    'emoji',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nestId,
+    eventId,
+    memberId,
+    emoji,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'timeline_reactions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TimelineReaction> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nest_id')) {
+      context.handle(
+        _nestIdMeta,
+        nestId.isAcceptableOrUnknown(data['nest_id']!, _nestIdMeta),
+      );
+    }
+    if (data.containsKey('event_id')) {
+      context.handle(
+        _eventIdMeta,
+        eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventIdMeta);
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('emoji')) {
+      context.handle(
+        _emojiMeta,
+        emoji.isAcceptableOrUnknown(data['emoji']!, _emojiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emojiMeta);
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TimelineReaction map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TimelineReaction(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nest_id'],
+      ),
+      eventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}member_id'],
+      )!,
+      emoji: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}emoji'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TimelineReactionsTable createAlias(String alias) {
+    return $TimelineReactionsTable(attachedDatabase, alias);
+  }
+}
+
+class TimelineReaction extends DataClass
+    implements Insertable<TimelineReaction> {
+  final String id;
+  final String? nestId;
+  final String eventId;
+  final String memberId;
+  final String emoji;
+  final bool dirty;
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const TimelineReaction({
+    required this.id,
+    this.nestId,
+    required this.eventId,
+    required this.memberId,
+    required this.emoji,
+    required this.dirty,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || nestId != null) {
+      map['nest_id'] = Variable<String>(nestId);
+    }
+    map['event_id'] = Variable<String>(eventId);
+    map['member_id'] = Variable<String>(memberId);
+    map['emoji'] = Variable<String>(emoji);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  TimelineReactionsCompanion toCompanion(bool nullToAbsent) {
+    return TimelineReactionsCompanion(
+      id: Value(id),
+      nestId: nestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nestId),
+      eventId: Value(eventId),
+      memberId: Value(memberId),
+      emoji: Value(emoji),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory TimelineReaction.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TimelineReaction(
+      id: serializer.fromJson<String>(json['id']),
+      nestId: serializer.fromJson<String?>(json['nestId']),
+      eventId: serializer.fromJson<String>(json['eventId']),
+      memberId: serializer.fromJson<String>(json['memberId']),
+      emoji: serializer.fromJson<String>(json['emoji']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nestId': serializer.toJson<String?>(nestId),
+      'eventId': serializer.toJson<String>(eventId),
+      'memberId': serializer.toJson<String>(memberId),
+      'emoji': serializer.toJson<String>(emoji),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  TimelineReaction copyWith({
+    String? id,
+    Value<String?> nestId = const Value.absent(),
+    String? eventId,
+    String? memberId,
+    String? emoji,
+    bool? dirty,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => TimelineReaction(
+    id: id ?? this.id,
+    nestId: nestId.present ? nestId.value : this.nestId,
+    eventId: eventId ?? this.eventId,
+    memberId: memberId ?? this.memberId,
+    emoji: emoji ?? this.emoji,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  TimelineReaction copyWithCompanion(TimelineReactionsCompanion data) {
+    return TimelineReaction(
+      id: data.id.present ? data.id.value : this.id,
+      nestId: data.nestId.present ? data.nestId.value : this.nestId,
+      eventId: data.eventId.present ? data.eventId.value : this.eventId,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      emoji: data.emoji.present ? data.emoji.value : this.emoji,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TimelineReaction(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('eventId: $eventId, ')
+          ..write('memberId: $memberId, ')
+          ..write('emoji: $emoji, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    nestId,
+    eventId,
+    memberId,
+    emoji,
+    dirty,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TimelineReaction &&
+          other.id == this.id &&
+          other.nestId == this.nestId &&
+          other.eventId == this.eventId &&
+          other.memberId == this.memberId &&
+          other.emoji == this.emoji &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TimelineReactionsCompanion extends UpdateCompanion<TimelineReaction> {
+  final Value<String> id;
+  final Value<String?> nestId;
+  final Value<String> eventId;
+  final Value<String> memberId;
+  final Value<String> emoji;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const TimelineReactionsCompanion({
+    this.id = const Value.absent(),
+    this.nestId = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.emoji = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TimelineReactionsCompanion.insert({
+    required String id,
+    this.nestId = const Value.absent(),
+    required String eventId,
+    required String memberId,
+    required String emoji,
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       eventId = Value(eventId),
+       memberId = Value(memberId),
+       emoji = Value(emoji);
+  static Insertable<TimelineReaction> custom({
+    Expression<String>? id,
+    Expression<String>? nestId,
+    Expression<String>? eventId,
+    Expression<String>? memberId,
+    Expression<String>? emoji,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nestId != null) 'nest_id': nestId,
+      if (eventId != null) 'event_id': eventId,
+      if (memberId != null) 'member_id': memberId,
+      if (emoji != null) 'emoji': emoji,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TimelineReactionsCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? nestId,
+    Value<String>? eventId,
+    Value<String>? memberId,
+    Value<String>? emoji,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return TimelineReactionsCompanion(
+      id: id ?? this.id,
+      nestId: nestId ?? this.nestId,
+      eventId: eventId ?? this.eventId,
+      memberId: memberId ?? this.memberId,
+      emoji: emoji ?? this.emoji,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nestId.present) {
+      map['nest_id'] = Variable<String>(nestId.value);
+    }
+    if (eventId.present) {
+      map['event_id'] = Variable<String>(eventId.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<String>(memberId.value);
+    }
+    if (emoji.present) {
+      map['emoji'] = Variable<String>(emoji.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TimelineReactionsCompanion(')
+          ..write('id: $id, ')
+          ..write('nestId: $nestId, ')
+          ..write('eventId: $eventId, ')
+          ..write('memberId: $memberId, ')
+          ..write('emoji: $emoji, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $MealPlansTable extends MealPlans
     with TableInfo<$MealPlansTable, MealPlan> {
   @override
@@ -11264,6 +11818,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $VaultDocumentsTable vaultDocuments = $VaultDocumentsTable(this);
   late final $TimelineEventsTable timelineEvents = $TimelineEventsTable(this);
+  late final $TimelineReactionsTable timelineReactions =
+      $TimelineReactionsTable(this);
   late final $MealPlansTable mealPlans = $MealPlansTable(this);
   late final $RecipesTable recipes = $RecipesTable(this);
   late final $CareItemsTable careItems = $CareItemsTable(this);
@@ -11289,6 +11845,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     emergencyEntries,
     vaultDocuments,
     timelineEvents,
+    timelineReactions,
     mealPlans,
     recipes,
     careItems,
@@ -14892,6 +15449,295 @@ typedef $$TimelineEventsTableProcessedTableManager =
       TimelineEvent,
       PrefetchHooks Function()
     >;
+typedef $$TimelineReactionsTableCreateCompanionBuilder =
+    TimelineReactionsCompanion Function({
+      required String id,
+      Value<String?> nestId,
+      required String eventId,
+      required String memberId,
+      required String emoji,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$TimelineReactionsTableUpdateCompanionBuilder =
+    TimelineReactionsCompanion Function({
+      Value<String> id,
+      Value<String?> nestId,
+      Value<String> eventId,
+      Value<String> memberId,
+      Value<String> emoji,
+      Value<bool> dirty,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$TimelineReactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $TimelineReactionsTable> {
+  $$TimelineReactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TimelineReactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TimelineReactionsTable> {
+  $$TimelineReactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nestId => $composableBuilder(
+    column: $table.nestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get memberId => $composableBuilder(
+    column: $table.memberId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TimelineReactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TimelineReactionsTable> {
+  $$TimelineReactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nestId =>
+      $composableBuilder(column: $table.nestId, builder: (column) => column);
+
+  GeneratedColumn<String> get eventId =>
+      $composableBuilder(column: $table.eventId, builder: (column) => column);
+
+  GeneratedColumn<String> get memberId =>
+      $composableBuilder(column: $table.memberId, builder: (column) => column);
+
+  GeneratedColumn<String> get emoji =>
+      $composableBuilder(column: $table.emoji, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TimelineReactionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TimelineReactionsTable,
+          TimelineReaction,
+          $$TimelineReactionsTableFilterComposer,
+          $$TimelineReactionsTableOrderingComposer,
+          $$TimelineReactionsTableAnnotationComposer,
+          $$TimelineReactionsTableCreateCompanionBuilder,
+          $$TimelineReactionsTableUpdateCompanionBuilder,
+          (
+            TimelineReaction,
+            BaseReferences<
+              _$AppDatabase,
+              $TimelineReactionsTable,
+              TimelineReaction
+            >,
+          ),
+          TimelineReaction,
+          PrefetchHooks Function()
+        > {
+  $$TimelineReactionsTableTableManager(
+    _$AppDatabase db,
+    $TimelineReactionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TimelineReactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TimelineReactionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TimelineReactionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> nestId = const Value.absent(),
+                Value<String> eventId = const Value.absent(),
+                Value<String> memberId = const Value.absent(),
+                Value<String> emoji = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TimelineReactionsCompanion(
+                id: id,
+                nestId: nestId,
+                eventId: eventId,
+                memberId: memberId,
+                emoji: emoji,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> nestId = const Value.absent(),
+                required String eventId,
+                required String memberId,
+                required String emoji,
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TimelineReactionsCompanion.insert(
+                id: id,
+                nestId: nestId,
+                eventId: eventId,
+                memberId: memberId,
+                emoji: emoji,
+                dirty: dirty,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TimelineReactionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TimelineReactionsTable,
+      TimelineReaction,
+      $$TimelineReactionsTableFilterComposer,
+      $$TimelineReactionsTableOrderingComposer,
+      $$TimelineReactionsTableAnnotationComposer,
+      $$TimelineReactionsTableCreateCompanionBuilder,
+      $$TimelineReactionsTableUpdateCompanionBuilder,
+      (
+        TimelineReaction,
+        BaseReferences<
+          _$AppDatabase,
+          $TimelineReactionsTable,
+          TimelineReaction
+        >,
+      ),
+      TimelineReaction,
+      PrefetchHooks Function()
+    >;
 typedef $$MealPlansTableCreateCompanionBuilder =
     MealPlansCompanion Function({
       required String id,
@@ -17054,6 +17900,8 @@ class $AppDatabaseManager {
       $$VaultDocumentsTableTableManager(_db, _db.vaultDocuments);
   $$TimelineEventsTableTableManager get timelineEvents =>
       $$TimelineEventsTableTableManager(_db, _db.timelineEvents);
+  $$TimelineReactionsTableTableManager get timelineReactions =>
+      $$TimelineReactionsTableTableManager(_db, _db.timelineReactions);
   $$MealPlansTableTableManager get mealPlans =>
       $$MealPlansTableTableManager(_db, _db.mealPlans);
   $$RecipesTableTableManager get recipes =>
