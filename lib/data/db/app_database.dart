@@ -187,6 +187,10 @@ class TimelineEvents extends Table {
   TextColumn get kind => text().withDefault(const Constant('activity'))();
   TextColumn get parentId => text().nullable()();
   BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+
+  /// Comma-separated member ids mentioned via `@Name` in [message].
+  TextColumn get mentionIds => text().nullable()();
+
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -371,7 +375,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -498,6 +502,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 20) {
         await _createTableIfMissing(m, timelineReactions);
+      }
+      if (from < 21) {
+        await _addColumnIfMissing(m, timelineEvents, timelineEvents.mentionIds);
       }
     },
   );

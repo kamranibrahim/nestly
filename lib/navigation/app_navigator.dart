@@ -6,6 +6,7 @@ import '../screens/care_screen.dart';
 import '../screens/expenses_screen.dart';
 import '../screens/meals_screen.dart';
 import '../screens/school_screen.dart';
+import '../screens/timeline_screen.dart';
 
 export '../data/enums.dart' show NotificationDestination, CasaioDeepLink;
 
@@ -47,6 +48,9 @@ void openNotificationIntent(NotificationIntent intent) {
     case NotificationDestination.tasks:
       nestlyShellTabRequest.value = CasaioShellTab.tasks;
       return;
+    case NotificationDestination.timeline:
+      _pushWhenReady((_) => const TimelineScreen(), attempt: 0);
+      return;
     case NotificationDestination.bills:
     case NotificationDestination.care:
     case NotificationDestination.school:
@@ -56,7 +60,8 @@ void openNotificationIntent(NotificationIntent intent) {
           NotificationDestination.care => const CareScreen(),
           NotificationDestination.school => const SchoolScreen(),
           NotificationDestination.calendar ||
-          NotificationDestination.tasks =>
+          NotificationDestination.tasks ||
+          NotificationDestination.timeline =>
             throw StateError('unreachable'),
         },
         attempt: 0,

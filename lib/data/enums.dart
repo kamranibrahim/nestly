@@ -339,7 +339,8 @@ enum NotificationDestination {
   care('care'),
   school('school'),
   calendar('calendar'),
-  tasks('tasks');
+  tasks('tasks'),
+  timeline('timeline');
 
   const NotificationDestination(this.payload);
   final String payload;
@@ -360,6 +361,8 @@ enum NotificationDestination {
       case 'tasks':
       case 'task':
         return tasks;
+      case 'timeline':
+        return timeline;
       default:
         return null;
     }

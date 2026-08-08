@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -100,6 +101,22 @@ class SyncController extends StateNotifier<SyncUiState> {
         debugPrint('Vault retry skipped: $e');
       }
       final keptLocal = await _ref.read(syncServiceProvider).syncAll();
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+        await _ref.read(timelineRepositoryProvider).deliverLocalMentionNotifications(
+              currentMemberId: uid,
+              showMention: ({
+                required authorName,
+                required preview,
+              }) =>
+                  _ref.read(notificationServiceProvider).showTimelineMention(
+                        authorName: authorName,
+                        preview: preview,
+                      ),
+            );
+      } catch (e) {
+        debugPrint('Mention notify skipped: $e');
+      }
       try {
         await _ref.read(notificationServiceProvider).rescheduleReminders();
       } catch (e) {

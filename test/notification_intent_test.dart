@@ -38,6 +38,10 @@ void main() {
         NotificationIntent.fromPayload('tasks')?.destination,
         NotificationDestination.tasks,
       );
+      expect(
+        NotificationIntent.fromPayload('timeline')?.destination,
+        NotificationDestination.timeline,
+      );
     });
 
     test('ignores blank and unknown', () {

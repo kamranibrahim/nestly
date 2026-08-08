@@ -547,6 +547,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get timelinePinnedLabel => 'Pinned';
+
+  @override
+  String get timelinePinAction => 'Pin to top';
+
+  @override
+  String get timelineUnpinAction => 'Unpin';
+
+  @override
+  String get timelineAnnouncementHint =>
+      'Share an announcement with the family…';
+
+  @override
+  String get timelineAnnounceButton => 'Announce';
+
+  @override
   String needCareDue(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -925,6 +941,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifTaskDue => 'Task due';
+
+  @override
+  String get notifChannelTimeline => 'Timeline';
+
+  @override
+  String get notifChannelTimelineDesc =>
+      'When someone mentions you on the family timeline';
+
+  @override
+  String notifTimelineMentionTitle(String author) {
+    return '$author mentioned you';
+  }
 
   @override
   String get widgetAllClear => 'All clear';

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../data/db/app_database.dart';
 import '../data/enums.dart';
+import '../data/member_roles.dart';
 import '../data/repositories.dart';
 import '../data/timeline_nav.dart';
 import '../providers/providers.dart';
@@ -152,6 +153,7 @@ class _TimelineEventCardState extends ConsumerState<_TimelineEventCard> {
     final body = _commentController.text.trim();
     if (body.isEmpty || _commenting) return;
     final (memberId, memberName) = _resolveActor(ref);
+    final members = ref.read(membersProvider).valueOrNull ?? const [];
     setState(() => _commenting = true);
     try {
       await ref.read(timelineRepositoryProvider).addComment(
@@ -159,6 +161,7 @@ class _TimelineEventCardState extends ConsumerState<_TimelineEventCard> {
             body: body,
             memberId: memberId,
             memberName: memberName,
+            members: members,
           );
       _commentController.clear();
       if (!_commentsExpanded && mounted) {
@@ -177,19 +180,40 @@ class _TimelineEventCardState extends ConsumerState<_TimelineEventCard> {
     final (memberId, _) = _resolveActor(ref);
     final module = classifyTimeline(kind: event.kind, message: event.message);
     final isPost = isTimelinePostKind(event.kind);
+    final isAnnouncement =
+        TimelineKind.parse(event.kind) == TimelineKind.announcement;
+    final isTopLevel = event.parentId == null;
 
     return NestCard(
       onTap: isPost
           ? null
           : () => _openModule(context, module, widget.onOpenTab),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Column(
+      child: DecoratedBox(
+        decoration: isAnnouncement
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.accent.withValues(alpha: 0.45),
+                  width: 1.5,
+                ),
+              )
+            : const BoxDecoration(),
+        child: Padding(
+          padding: isAnnouncement
+              ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+              : EdgeInsets.zero,
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ModuleIcon(module: module, isPost: isPost),
+              _ModuleIcon(
+                module: module,
+                isPost: isPost,
+                isAnnouncement: isAnnouncement,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -198,14 +222,53 @@ class _TimelineEventCardState extends ConsumerState<_TimelineEventCard> {
                     if (isPost)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          _kindLabel(event.kind, l10n),
-                          style: const TextStyle(
-                            color: AppColors.accent,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.4,
-                          ),
+                        child: Row(
+                          children: [
+                            if (event.pinned)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Icon(
+                                  Icons.push_pin_rounded,
+                                  size: 14,
+                                  color: AppColors.accentDeep.withValues(
+                                    alpha: 0.85,
+                                  ),
+                                ),
+                              ),
+                            Text(
+                              _kindLabel(event.kind, l10n),
+                              style: TextStyle(
+                                color: isAnnouncement
+                                    ? AppColors.accentDeep
+                                    : AppColors.accent,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (!isPost && event.pinned)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.push_pin_rounded,
+                              size: 14,
+                              color: AppColors.accentDeep.withValues(alpha: 0.85),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              l10n.timelinePinnedLabel,
+                              style: TextStyle(
+                                color: AppColors.accentDeep.withValues(alpha: 0.85),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     Text(
@@ -228,7 +291,34 @@ class _TimelineEventCardState extends ConsumerState<_TimelineEventCard> {
                   ],
                 ),
               ),
-              if (!isPost)
+              if (isTopLevel)
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: AppColors.inkMuted,
+                    size: 20,
+                  ),
+                  onSelected: (value) async {
+                    if (value == 'pin') {
+                      await repo.setPinned(event.id, true);
+                    } else if (value == 'unpin') {
+                      await repo.setPinned(event.id, false);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (!event.pinned)
+                      PopupMenuItem(
+                        value: 'pin',
+                        child: Text(l10n.timelinePinAction),
+                      ),
+                    if (event.pinned)
+                      PopupMenuItem(
+                        value: 'unpin',
+                        child: Text(l10n.timelineUnpinAction),
+                      ),
+                  ],
+                )
+              else if (!isPost)
                 const Icon(
                   Icons.chevron_right_rounded,
                   color: AppColors.inkMuted,
@@ -413,6 +503,8 @@ class _TimelineEventCardState extends ConsumerState<_TimelineEventCard> {
             },
           ),
         ],
+          ),
+        ),
       ),
     );
   }
@@ -428,6 +520,7 @@ class _TimelineComposer extends ConsumerStatefulWidget {
 class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
   final _controller = TextEditingController();
   bool _posting = false;
+  bool _announcementMode = false;
 
   @override
   void dispose() {
@@ -439,13 +532,25 @@ class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
     final body = _controller.text.trim();
     if (body.isEmpty || _posting) return;
     final (memberId, memberName) = _resolveActor(ref);
+    final members = ref.read(membersProvider).valueOrNull ?? const [];
+    final repo = ref.read(timelineRepositoryProvider);
     setState(() => _posting = true);
     try {
-      await ref.read(timelineRepositoryProvider).addPost(
-            body: body,
-            memberId: memberId,
-            memberName: memberName,
-          );
+      if (_announcementMode) {
+        await repo.addAnnouncement(
+          body: body,
+          memberId: memberId,
+          memberName: memberName,
+          members: members,
+        );
+      } else {
+        await repo.addPost(
+          body: body,
+          memberId: memberId,
+          memberName: memberName,
+          members: members,
+        );
+      }
       _controller.clear();
     } finally {
       if (mounted) setState(() => _posting = false);
@@ -455,6 +560,10 @@ class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final members = ref.watch(membersProvider).valueOrNull ?? const [];
+    final actorRole = _resolveActorRole(ref, members);
+    final canAnnounce = MemberRoles.isAdultLike(actorRole);
+
     return Material(
       color: AppColors.surface,
       elevation: 8,
@@ -463,7 +572,36 @@ class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (canAnnounce)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      FilterChip(
+                        label: Text(l10n.timelinePostLabel),
+                        selected: !_announcementMode,
+                        showCheckmark: false,
+                        onSelected: (_) =>
+                            setState(() => _announcementMode = false),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      const SizedBox(width: 8),
+                      FilterChip(
+                        label: Text(l10n.timelineAnnouncementLabel),
+                        selected: _announcementMode,
+                        showCheckmark: false,
+                        onSelected: (_) =>
+                            setState(() => _announcementMode = true),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                ),
+              Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
@@ -473,7 +611,9 @@ class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
                   maxLines: 4,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    hintText: l10n.timelinePostHint,
+                    hintText: _announcementMode
+                        ? l10n.timelineAnnouncementHint
+                        : l10n.timelinePostHint,
                     filled: true,
                     fillColor: AppColors.background,
                     border: OutlineInputBorder(
@@ -497,8 +637,14 @@ class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
                         height: 18,
                         child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                       )
-                    : Text(l10n.timelinePostButton),
+                    : Text(
+                        _announcementMode
+                            ? l10n.timelineAnnounceButton
+                            : l10n.timelinePostButton,
+                      ),
               ),
+            ],
+          ),
             ],
           ),
         ),
@@ -525,6 +671,21 @@ class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
     return (members.first.id, members.first.name);
   }
   return ('', 'Family');
+}
+
+String _resolveActorRole(WidgetRef ref, List<NestMember> members) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    for (final member in members) {
+      if (member.id == user.uid) {
+        return member.role;
+      }
+    }
+  }
+  if (members.isNotEmpty) {
+    return members.first.role;
+  }
+  return MemberRoles.member;
 }
 
 void _openModule(
@@ -580,13 +741,33 @@ String _relative(DateTime dt, AppLocalizations l10n) {
 }
 
 class _ModuleIcon extends StatelessWidget {
-  const _ModuleIcon({required this.module, this.isPost = false});
+  const _ModuleIcon({
+    required this.module,
+    this.isPost = false,
+    this.isAnnouncement = false,
+  });
 
   final TimelineModule module;
   final bool isPost;
+  final bool isAnnouncement;
 
   @override
   Widget build(BuildContext context) {
+    if (isAnnouncement) {
+      return Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.accentDeep.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.campaign_rounded,
+          size: 18,
+          color: AppColors.accentDeep,
+        ),
+      );
+    }
     final (icon, tone) = switch (module) {
       TimelineModule.tasks => (Icons.checklist_rounded, AppColors.mint),
       TimelineModule.shopping =>

@@ -101,6 +101,33 @@ class NotificationService {
     }, SetOptions(merge: true));
   }
 
+  /// Immediate local alert when the signed-in member is @mentioned.
+  Future<void> showTimelineMention({
+    required String authorName,
+    required String preview,
+  }) async {
+    if (!_ready) return;
+    final l10n = await resolvedAppLocalizations(_db);
+    final body = preview.length > 120 ? '${preview.substring(0, 117)}…' : preview;
+    await _local.show(
+      id: preview.hashCode,
+      title: l10n.notifTimelineMentionTitle(authorName),
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          'nestly_timeline',
+          l10n.notifChannelTimeline,
+          channelDescription: l10n.notifChannelTimelineDesc,
+          importance: Importance.defaultImportance,
+        ),
+        iOS: const DarwinNotificationDetails(),
+      ),
+      payload: const NotificationIntent(
+        NotificationDestination.timeline,
+      ).payload,
+    );
+  }
+
   /// Bills + care + school + events + tasks — prefer this after any schedule change.
   Future<void> rescheduleReminders() async {
     if (!_ready) return;
