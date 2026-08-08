@@ -19,7 +19,7 @@ Execute Wave 1 in order unless dependencies say otherwise.
 | 009 | Meals: recipe library + templates | P1 | L | 008 | DONE — [009-meals-recipe-library-templates.md](./009-meals-recipe-library-templates.md) (`advisor/009-meals-recipe-library-templates` @ `e0119fc`) |
 | 010 | Expenses: recurring bills + charts | P1 | M | 009 | DONE — [010-expenses-recurring-bills-charts.md](./010-expenses-recurring-bills-charts.md) (`advisor/010-expenses-recurring-bills-charts` @ `30bce61`) |
 | 011 | Phase 1 — Pillar 2 Family Collaboration (roadmap) | P1 | multi-Q | 005 / Wave 1 | DOC — [011-phase1-pillar2-family-collaboration.md](./011-phase1-pillar2-family-collaboration.md) |
-| 012 | Timeline: kinds + freeform posts | P1 | L | 011 | IN PROGRESS — [012-timeline-kinds-posts.md](./012-timeline-kinds-posts.md) |
+| 012 | Timeline: kinds + freeform posts | P1 | L | 011 | DONE — [012-timeline-kinds-posts.md](./012-timeline-kinds-posts.md) (`advisor/012-timeline-kinds-posts` @ `7591f02`) |
 | 013 | Timeline: reactions + comments | P1 | L | 012 | TODO — [013-timeline-reactions-comments.md](./013-timeline-reactions-comments.md) |
 | 014 | Timeline: pins, announcements, mentions | P2 | M–L | 012, 013 | TODO — [014-timeline-pins-announcements-mentions.md](./014-timeline-pins-announcements-mentions.md) |
 | 015 | Shared Notes module | P1 | L | 011 | TODO — [015-shared-notes.md](./015-shared-notes.md) |
