@@ -1562,6 +1562,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addBillShort => 'فاتورة';
 
   @override
+  String get billRepeats => 'تتكرر';
+
+  @override
+  String get billCadenceNone => 'مرة واحدة';
+
+  @override
+  String billRepeatsCadence(String cadence) {
+    return 'تتكرر · $cadence';
+  }
+
+  @override
   String get saveBudget => 'حفظ الميزانية';
 
   @override

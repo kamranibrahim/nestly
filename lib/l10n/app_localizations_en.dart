@@ -1573,6 +1573,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addBillShort => 'Add bill';
 
   @override
+  String get billRepeats => 'Repeats';
+
+  @override
+  String get billCadenceNone => 'One-time';
+
+  @override
+  String billRepeatsCadence(String cadence) {
+    return 'Repeats · $cadence';
+  }
+
+  @override
   String get saveBudget => 'Save budget';
 
   @override

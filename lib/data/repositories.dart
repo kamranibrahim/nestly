@@ -946,11 +946,31 @@ class BillRepository {
   }
 
   Future<void> togglePaid(Bill bill) {
+    final now = DateTime.now();
+    if (!bill.paid) {
+      if (bill.cadenceDays >= 1) {
+        return (_db.update(_db.bills)..where((b) => b.id.equals(bill.id))).write(
+          BillsCompanion(
+            dueAt: Value(advanceDueAt(bill.dueAt, bill.cadenceDays)),
+            paid: const Value(false),
+            dirty: const Value(true),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+      return (_db.update(_db.bills)..where((b) => b.id.equals(bill.id))).write(
+        BillsCompanion(
+          paid: const Value(true),
+          dirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+    }
     return (_db.update(_db.bills)..where((b) => b.id.equals(bill.id))).write(
       BillsCompanion(
-        paid: Value(!bill.paid),
+        paid: const Value(false),
         dirty: const Value(true),
-        updatedAt: Value(DateTime.now()),
+        updatedAt: Value(now),
       ),
     );
   }
@@ -959,6 +979,7 @@ class BillRepository {
     required String title,
     required double amount,
     required DateTime dueAt,
+    int cadenceDays = 0,
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
@@ -971,6 +992,7 @@ class BillRepository {
             title: title.trim(),
             amount: amount,
             dueAt: dueAt,
+            cadenceDays: Value(cadenceDays.clamp(0, 365)),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -983,6 +1005,7 @@ class BillRepository {
     required String title,
     required double amount,
     required DateTime dueAt,
+    int cadenceDays = 0,
   }) {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return Future.value();
@@ -991,6 +1014,7 @@ class BillRepository {
         title: Value(trimmed),
         amount: Value(amount),
         dueAt: Value(dueAt),
+        cadenceDays: Value(cadenceDays.clamp(0, 365)),
         dirty: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),

@@ -517,6 +517,42 @@ void main() {
     expect(await expenses.watchTomorrowPreviewEnabled().first, isTrue);
   });
 
+  test('recurring bill advances due date when marked paid', () async {
+    final bills = BillRepository(database);
+    final due = DateTime(2026, 8, 1);
+
+    await bills.addBill(
+      title: 'Rent',
+      amount: 1000,
+      dueAt: due,
+      cadenceDays: 30,
+    );
+    final recurring =
+        (await bills.watchAll().first).firstWhere((b) => b.title == 'Rent');
+    expect(recurring.cadenceDays, 30);
+    expect(recurring.paid, isFalse);
+
+    await bills.togglePaid(recurring);
+    final afterRecurring =
+        (await bills.watchAll().first).firstWhere((b) => b.id == recurring.id);
+    expect(afterRecurring.paid, isFalse);
+    expect(afterRecurring.dueAt, DateTime(2026, 8, 31));
+
+    await bills.addBill(
+      title: 'One-off fee',
+      amount: 50,
+      dueAt: due,
+      cadenceDays: 0,
+    );
+    final oneOff =
+        (await bills.watchAll().first).firstWhere((b) => b.title == 'One-off fee');
+    await bills.togglePaid(oneOff);
+    final paidOneOff =
+        (await bills.watchAll().first).firstWhere((b) => b.id == oneOff.id);
+    expect(paidOneOff.paid, isTrue);
+    expect(paidOneOff.dueAt, due);
+  });
+
   test('bills sort overdue unpaid before later dues and paid', () async {
     final bills = BillRepository(database);
     final now = DateTime.now();

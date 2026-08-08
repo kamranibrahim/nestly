@@ -124,6 +124,7 @@ class Bills extends Table {
   TextColumn get title => text()();
   RealColumn get amount => real()();
   DateTimeColumn get dueAt => dateTime()();
+  IntColumn get cadenceDays => integer().withDefault(const Constant(0))();
   BoolColumn get paid => boolean().withDefault(const Constant(false))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -349,7 +350,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -457,6 +458,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 17) {
         await _createTableIfMissing(m, recipes);
+      }
+      if (from < 18) {
+        await _addColumnIfMissing(m, bills, bills.cadenceDays);
       }
     },
   );

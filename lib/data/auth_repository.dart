@@ -924,6 +924,7 @@ class SyncService {
           'title': item.title,
           'amount': item.amount,
           'dueAt': Timestamp.fromDate(item.dueAt),
+          'cadenceDays': item.cadenceDays,
           'paid': item.paid,
           'updatedAt': Timestamp.fromDate(item.updatedAt),
           'createdAt': Timestamp.fromDate(item.createdAt),
@@ -965,6 +966,7 @@ class SyncService {
               title: data['title'] as String? ?? '',
               amount: (data['amount'] as num?)?.toDouble() ?? 0,
               dueAt: (data['dueAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              cadenceDays: Value(data['cadenceDays'] as int? ?? 0),
               paid: Value(data['paid'] as bool? ?? false),
               dirty: const Value(false),
               createdAt: Value(

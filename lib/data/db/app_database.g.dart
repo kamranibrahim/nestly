@@ -4130,6 +4130,18 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _cadenceDaysMeta = const VerificationMeta(
+    'cadenceDays',
+  );
+  @override
+  late final GeneratedColumn<int> cadenceDays = GeneratedColumn<int>(
+    'cadence_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _paidMeta = const VerificationMeta('paid');
   @override
   late final GeneratedColumn<bool> paid = GeneratedColumn<bool>(
@@ -4202,6 +4214,7 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
     title,
     amount,
     dueAt,
+    cadenceDays,
     paid,
     dirty,
     deleted,
@@ -4254,6 +4267,15 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
       );
     } else if (isInserting) {
       context.missing(_dueAtMeta);
+    }
+    if (data.containsKey('cadence_days')) {
+      context.handle(
+        _cadenceDaysMeta,
+        cadenceDays.isAcceptableOrUnknown(
+          data['cadence_days']!,
+          _cadenceDaysMeta,
+        ),
+      );
     }
     if (data.containsKey('paid')) {
       context.handle(
@@ -4314,6 +4336,10 @@ class $BillsTable extends Bills with TableInfo<$BillsTable, Bill> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}due_at'],
       )!,
+      cadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cadence_days'],
+      )!,
       paid: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}paid'],
@@ -4349,6 +4375,7 @@ class Bill extends DataClass implements Insertable<Bill> {
   final String title;
   final double amount;
   final DateTime dueAt;
+  final int cadenceDays;
   final bool paid;
   final bool dirty;
   final bool deleted;
@@ -4360,6 +4387,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     required this.title,
     required this.amount,
     required this.dueAt,
+    required this.cadenceDays,
     required this.paid,
     required this.dirty,
     required this.deleted,
@@ -4376,6 +4404,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     map['title'] = Variable<String>(title);
     map['amount'] = Variable<double>(amount);
     map['due_at'] = Variable<DateTime>(dueAt);
+    map['cadence_days'] = Variable<int>(cadenceDays);
     map['paid'] = Variable<bool>(paid);
     map['dirty'] = Variable<bool>(dirty);
     map['deleted'] = Variable<bool>(deleted);
@@ -4393,6 +4422,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       title: Value(title),
       amount: Value(amount),
       dueAt: Value(dueAt),
+      cadenceDays: Value(cadenceDays),
       paid: Value(paid),
       dirty: Value(dirty),
       deleted: Value(deleted),
@@ -4412,6 +4442,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       title: serializer.fromJson<String>(json['title']),
       amount: serializer.fromJson<double>(json['amount']),
       dueAt: serializer.fromJson<DateTime>(json['dueAt']),
+      cadenceDays: serializer.fromJson<int>(json['cadenceDays']),
       paid: serializer.fromJson<bool>(json['paid']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deleted: serializer.fromJson<bool>(json['deleted']),
@@ -4428,6 +4459,7 @@ class Bill extends DataClass implements Insertable<Bill> {
       'title': serializer.toJson<String>(title),
       'amount': serializer.toJson<double>(amount),
       'dueAt': serializer.toJson<DateTime>(dueAt),
+      'cadenceDays': serializer.toJson<int>(cadenceDays),
       'paid': serializer.toJson<bool>(paid),
       'dirty': serializer.toJson<bool>(dirty),
       'deleted': serializer.toJson<bool>(deleted),
@@ -4442,6 +4474,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     String? title,
     double? amount,
     DateTime? dueAt,
+    int? cadenceDays,
     bool? paid,
     bool? dirty,
     bool? deleted,
@@ -4453,6 +4486,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     title: title ?? this.title,
     amount: amount ?? this.amount,
     dueAt: dueAt ?? this.dueAt,
+    cadenceDays: cadenceDays ?? this.cadenceDays,
     paid: paid ?? this.paid,
     dirty: dirty ?? this.dirty,
     deleted: deleted ?? this.deleted,
@@ -4466,6 +4500,9 @@ class Bill extends DataClass implements Insertable<Bill> {
       title: data.title.present ? data.title.value : this.title,
       amount: data.amount.present ? data.amount.value : this.amount,
       dueAt: data.dueAt.present ? data.dueAt.value : this.dueAt,
+      cadenceDays: data.cadenceDays.present
+          ? data.cadenceDays.value
+          : this.cadenceDays,
       paid: data.paid.present ? data.paid.value : this.paid,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
@@ -4482,6 +4519,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           ..write('title: $title, ')
           ..write('amount: $amount, ')
           ..write('dueAt: $dueAt, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('paid: $paid, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
@@ -4498,6 +4536,7 @@ class Bill extends DataClass implements Insertable<Bill> {
     title,
     amount,
     dueAt,
+    cadenceDays,
     paid,
     dirty,
     deleted,
@@ -4513,6 +4552,7 @@ class Bill extends DataClass implements Insertable<Bill> {
           other.title == this.title &&
           other.amount == this.amount &&
           other.dueAt == this.dueAt &&
+          other.cadenceDays == this.cadenceDays &&
           other.paid == this.paid &&
           other.dirty == this.dirty &&
           other.deleted == this.deleted &&
@@ -4526,6 +4566,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
   final Value<String> title;
   final Value<double> amount;
   final Value<DateTime> dueAt;
+  final Value<int> cadenceDays;
   final Value<bool> paid;
   final Value<bool> dirty;
   final Value<bool> deleted;
@@ -4538,6 +4579,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     this.title = const Value.absent(),
     this.amount = const Value.absent(),
     this.dueAt = const Value.absent(),
+    this.cadenceDays = const Value.absent(),
     this.paid = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
@@ -4551,6 +4593,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     required String title,
     required double amount,
     required DateTime dueAt,
+    this.cadenceDays = const Value.absent(),
     this.paid = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
@@ -4567,6 +4610,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Expression<String>? title,
     Expression<double>? amount,
     Expression<DateTime>? dueAt,
+    Expression<int>? cadenceDays,
     Expression<bool>? paid,
     Expression<bool>? dirty,
     Expression<bool>? deleted,
@@ -4580,6 +4624,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       if (title != null) 'title': title,
       if (amount != null) 'amount': amount,
       if (dueAt != null) 'due_at': dueAt,
+      if (cadenceDays != null) 'cadence_days': cadenceDays,
       if (paid != null) 'paid': paid,
       if (dirty != null) 'dirty': dirty,
       if (deleted != null) 'deleted': deleted,
@@ -4595,6 +4640,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     Value<String>? title,
     Value<double>? amount,
     Value<DateTime>? dueAt,
+    Value<int>? cadenceDays,
     Value<bool>? paid,
     Value<bool>? dirty,
     Value<bool>? deleted,
@@ -4608,6 +4654,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
       title: title ?? this.title,
       amount: amount ?? this.amount,
       dueAt: dueAt ?? this.dueAt,
+      cadenceDays: cadenceDays ?? this.cadenceDays,
       paid: paid ?? this.paid,
       dirty: dirty ?? this.dirty,
       deleted: deleted ?? this.deleted,
@@ -4634,6 +4681,9 @@ class BillsCompanion extends UpdateCompanion<Bill> {
     }
     if (dueAt.present) {
       map['due_at'] = Variable<DateTime>(dueAt.value);
+    }
+    if (cadenceDays.present) {
+      map['cadence_days'] = Variable<int>(cadenceDays.value);
     }
     if (paid.present) {
       map['paid'] = Variable<bool>(paid.value);
@@ -4664,6 +4714,7 @@ class BillsCompanion extends UpdateCompanion<Bill> {
           ..write('title: $title, ')
           ..write('amount: $amount, ')
           ..write('dueAt: $dueAt, ')
+          ..write('cadenceDays: $cadenceDays, ')
           ..write('paid: $paid, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
@@ -13319,6 +13370,7 @@ typedef $$BillsTableCreateCompanionBuilder =
       required String title,
       required double amount,
       required DateTime dueAt,
+      Value<int> cadenceDays,
       Value<bool> paid,
       Value<bool> dirty,
       Value<bool> deleted,
@@ -13333,6 +13385,7 @@ typedef $$BillsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<double> amount,
       Value<DateTime> dueAt,
+      Value<int> cadenceDays,
       Value<bool> paid,
       Value<bool> dirty,
       Value<bool> deleted,
@@ -13371,6 +13424,11 @@ class $$BillsTableFilterComposer extends Composer<_$AppDatabase, $BillsTable> {
 
   ColumnFilters<DateTime> get dueAt => $composableBuilder(
     column: $table.dueAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13434,6 +13492,11 @@ class $$BillsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get paid => $composableBuilder(
     column: $table.paid,
     builder: (column) => ColumnOrderings(column),
@@ -13484,6 +13547,11 @@ class $$BillsTableAnnotationComposer
   GeneratedColumn<DateTime> get dueAt =>
       $composableBuilder(column: $table.dueAt, builder: (column) => column);
 
+  GeneratedColumn<int> get cadenceDays => $composableBuilder(
+    column: $table.cadenceDays,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get paid =>
       $composableBuilder(column: $table.paid, builder: (column) => column);
 
@@ -13533,6 +13601,7 @@ class $$BillsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<double> amount = const Value.absent(),
                 Value<DateTime> dueAt = const Value.absent(),
+                Value<int> cadenceDays = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
@@ -13545,6 +13614,7 @@ class $$BillsTableTableManager
                 title: title,
                 amount: amount,
                 dueAt: dueAt,
+                cadenceDays: cadenceDays,
                 paid: paid,
                 dirty: dirty,
                 deleted: deleted,
@@ -13559,6 +13629,7 @@ class $$BillsTableTableManager
                 required String title,
                 required double amount,
                 required DateTime dueAt,
+                Value<int> cadenceDays = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
@@ -13571,6 +13642,7 @@ class $$BillsTableTableManager
                 title: title,
                 amount: amount,
                 dueAt: dueAt,
+                cadenceDays: cadenceDays,
                 paid: paid,
                 dirty: dirty,
                 deleted: deleted,

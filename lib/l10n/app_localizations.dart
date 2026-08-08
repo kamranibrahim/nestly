@@ -2744,6 +2744,24 @@ abstract class AppLocalizations {
   /// **'Add bill'**
   String get addBillShort;
 
+  /// No description provided for @billRepeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats'**
+  String get billRepeats;
+
+  /// No description provided for @billCadenceNone.
+  ///
+  /// In en, this message translates to:
+  /// **'One-time'**
+  String get billCadenceNone;
+
+  /// No description provided for @billRepeatsCadence.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats · {cadence}'**
+  String billRepeatsCadence(String cadence);
+
   /// No description provided for @saveBudget.
   ///
   /// In en, this message translates to:
