@@ -1046,11 +1046,47 @@ abstract class AppLocalizations {
   /// **'School'**
   String get timelineSchool;
 
+  /// No description provided for @timelineFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get timelineFamily;
+
   /// No description provided for @timelineOther.
   ///
   /// In en, this message translates to:
   /// **'Other'**
   String get timelineOther;
+
+  /// No description provided for @timelinePostLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get timelinePostLabel;
+
+  /// No description provided for @timelineAnnouncementLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcement'**
+  String get timelineAnnouncementLabel;
+
+  /// No description provided for @timelineActivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get timelineActivityLabel;
+
+  /// No description provided for @timelinePostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share something with the family…'**
+  String get timelinePostHint;
+
+  /// No description provided for @timelinePostButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get timelinePostButton;
 
   /// No description provided for @needCareDue.
   ///

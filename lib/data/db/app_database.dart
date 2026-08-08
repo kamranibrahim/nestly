@@ -184,9 +184,13 @@ class TimelineEvents extends Table {
   TextColumn get message => text()();
   TextColumn get memberId => text().withDefault(const Constant(''))();
   TextColumn get memberName => text().withDefault(const Constant('Family'))();
+  TextColumn get kind => text().withDefault(const Constant('activity'))();
+  TextColumn get parentId => text().nullable()();
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -350,7 +354,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -461,6 +465,19 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 18) {
         await _addColumnIfMissing(m, bills, bills.cadenceDays);
+      }
+      if (from < 19) {
+        await _addColumnIfMissing(m, timelineEvents, timelineEvents.kind);
+        await _addColumnIfMissing(m, timelineEvents, timelineEvents.parentId);
+        await _addColumnIfMissing(m, timelineEvents, timelineEvents.pinned);
+        await _addUpdatedAtIfMissing('timeline_events');
+        await customStatement(
+          "UPDATE timeline_events SET kind = 'activity' "
+          "WHERE kind IS NULL OR kind = ''",
+        );
+        await customStatement(
+          'UPDATE timeline_events SET updated_at = created_at',
+        );
       }
     },
   );

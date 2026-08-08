@@ -392,6 +392,23 @@ enum CasaioDeepLink {
   }
 }
 
+enum TimelineKind {
+  activity('activity'),
+  post('post'),
+  announcement('announcement');
+
+  const TimelineKind(this.storage);
+  final String storage;
+
+  static TimelineKind parse(String raw) {
+    final value = raw.trim().toLowerCase();
+    for (final kind in values) {
+      if (kind.storage == value || kind.name == value) return kind;
+    }
+    return activity;
+  }
+}
+
 enum TimelineModule {
   all('All'),
   tasks('Tasks'),
@@ -400,6 +417,7 @@ enum TimelineModule {
   meals('Meals'),
   vault('Vault'),
   school('School'),
+  family('Family'),
   other('Other');
 
   const TimelineModule(this.label);

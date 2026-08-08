@@ -126,6 +126,7 @@ extension TimelineModuleL10n on TimelineModule {
         TimelineModule.meals => l10n.timelineMeals,
         TimelineModule.vault => l10n.timelineVault,
         TimelineModule.school => l10n.timelineSchool,
+        TimelineModule.family => l10n.timelineFamily,
         TimelineModule.other => l10n.timelineOther,
       };
 }

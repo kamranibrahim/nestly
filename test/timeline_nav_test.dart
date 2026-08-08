@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nestly/data/enums.dart';
 import 'package:nestly/data/timeline_nav.dart';
 
 void main() {
@@ -30,6 +31,30 @@ void main() {
     expect(
       classifyTimelineMessage('Done: Soccer practice'),
       TimelineModule.school,
+    );
+  });
+
+  test('classifies posts and announcements by kind', () {
+    expect(
+      classifyTimeline(
+        kind: TimelineKind.post.storage,
+        message: 'Anyone free Saturday?',
+      ),
+      TimelineModule.family,
+    );
+    expect(
+      classifyTimeline(
+        kind: TimelineKind.announcement.storage,
+        message: 'School starts Monday',
+      ),
+      TimelineModule.family,
+    );
+    expect(
+      classifyTimeline(
+        kind: TimelineKind.activity.storage,
+        message: 'Completed "Walk dog"',
+      ),
+      TimelineModule.tasks,
     );
   });
 }

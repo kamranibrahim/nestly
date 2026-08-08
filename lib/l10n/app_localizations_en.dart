@@ -505,7 +505,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timelineSchool => 'School';
 
   @override
+  String get timelineFamily => 'Family';
+
+  @override
   String get timelineOther => 'Other';
+
+  @override
+  String get timelinePostLabel => 'Post';
+
+  @override
+  String get timelineAnnouncementLabel => 'Announcement';
+
+  @override
+  String get timelineActivityLabel => 'Activity';
+
+  @override
+  String get timelinePostHint => 'Share something with the family…';
+
+  @override
+  String get timelinePostButton => 'Post';
 
   @override
   String needCareDue(int count) {

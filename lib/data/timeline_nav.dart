@@ -1,6 +1,17 @@
 import 'enums.dart';
 
-export 'enums.dart' show TimelineModule;
+export 'enums.dart' show TimelineKind, TimelineModule;
+
+TimelineModule classifyTimeline({
+  required String kind,
+  required String message,
+}) {
+  final parsed = TimelineKind.parse(kind);
+  if (parsed == TimelineKind.post || parsed == TimelineKind.announcement) {
+    return TimelineModule.family;
+  }
+  return classifyTimelineMessage(message);
+}
 
 TimelineModule classifyTimelineMessage(String message) {
   final m = message.toLowerCase();
@@ -22,4 +33,9 @@ TimelineModule classifyTimelineMessage(String message) {
     return TimelineModule.other;
   }
   return TimelineModule.other;
+}
+
+bool isTimelinePostKind(String kind) {
+  final parsed = TimelineKind.parse(kind);
+  return parsed == TimelineKind.post || parsed == TimelineKind.announcement;
 }

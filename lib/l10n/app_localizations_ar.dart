@@ -500,7 +500,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get timelineSchool => 'المدرسة';
 
   @override
+  String get timelineFamily => 'العائلة';
+
+  @override
   String get timelineOther => 'أخرى';
+
+  @override
+  String get timelinePostLabel => 'منشور';
+
+  @override
+  String get timelineAnnouncementLabel => 'إعلان';
+
+  @override
+  String get timelineActivityLabel => 'نشاط';
+
+  @override
+  String get timelinePostHint => 'شارك شيئًا مع العائلة…';
+
+  @override
+  String get timelinePostButton => 'نشر';
 
   @override
   String needCareDue(int count) {
