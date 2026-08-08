@@ -584,6 +584,7 @@ class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
                       FilterChip(
                         label: Text(l10n.timelinePostLabel),
                         selected: !_announcementMode,
+                        showCheckmark: false,
                         onSelected: (_) =>
                             setState(() => _announcementMode = false),
                         visualDensity: VisualDensity.compact,
@@ -592,6 +593,7 @@ class _TimelineComposerState extends ConsumerState<_TimelineComposer> {
                       FilterChip(
                         label: Text(l10n.timelineAnnouncementLabel),
                         selected: _announcementMode,
+                        showCheckmark: false,
                         onSelected: (_) =>
                             setState(() => _announcementMode = true),
                         visualDensity: VisualDensity.compact,
