@@ -17,7 +17,7 @@ Execute Wave 1 in order unless dependencies say otherwise.
 | 007 | Calendar: agenda + recurring events | P1 | L | 006 | DONE — [007-calendar-agenda-recurrence.md](./007-calendar-agenda-recurrence.md) (`advisor/007-calendar-agenda-recurrence` @ `338a187`) |
 | 008 | Shopping: multi-list + sync habits | P1 | M | 007 | DONE — [008-shopping-multi-list-habits-sync.md](./008-shopping-multi-list-habits-sync.md) (`advisor/008-shopping-multi-list-habits-sync` @ `4aa40bb`) |
 | 009 | Meals: recipe library + templates | P1 | L | 008 | DONE — [009-meals-recipe-library-templates.md](./009-meals-recipe-library-templates.md) (`advisor/009-meals-recipe-library-templates` @ `e0119fc`) |
-| 010 | Expenses: recurring bills + charts | P1 | M | — | TODO — [010-expenses-recurring-bills-charts.md](./010-expenses-recurring-bills-charts.md) |
+| 010 | Expenses: recurring bills + charts | P1 | M | 009 | IN PROGRESS — [010-expenses-recurring-bills-charts.md](./010-expenses-recurring-bills-charts.md) |
 
 ## Deferred by request
 
