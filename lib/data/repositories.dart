@@ -7,6 +7,7 @@ import 'enums.dart';
 import 'home_tips.dart';
 import 'member_roles.dart';
 import 'task_due.dart';
+import 'timeline_mentions.dart';
 
 class TaskRepository {
   TaskRepository(this._db);
@@ -1084,7 +1085,10 @@ class TimelineRepository {
                 t.deleted.equals(false) &
                 t.kind.isNotIn([TimelineKind.comment.storage]),
           )
-          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.pinned, mode: OrderingMode.desc),
+            (t) => OrderingTerm.desc(t.createdAt),
+          ])
           ..limit(limit))
         .watch();
   }
@@ -1121,14 +1125,27 @@ class TimelineRepository {
 
   String reactionId(String eventId, String memberId) => '${eventId}__$memberId';
 
+  Future<void> setPinned(String id, bool pinned) async {
+    final now = DateTime.now();
+    await (_db.update(_db.timelineEvents)..where((t) => t.id.equals(id))).write(
+      TimelineEventsCompanion(
+        pinned: Value(pinned),
+        dirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
   Future<void> add({
     required String message,
     String memberId = '',
     String memberName = 'Family',
     TimelineKind kind = TimelineKind.activity,
+    List<NestMember> members = const [],
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
+    final mentionIds = encodeMentionIds(parseTimelineMentions(message, members));
     await _db
         .into(_db.timelineEvents)
         .insert(
@@ -1139,6 +1156,7 @@ class TimelineRepository {
             memberId: Value(memberId),
             memberName: Value(memberName),
             kind: Value(kind.storage),
+            mentionIds: Value(mentionIds),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
@@ -1150,12 +1168,29 @@ class TimelineRepository {
     required String body,
     required String memberId,
     required String memberName,
+    List<NestMember> members = const [],
   }) {
     return add(
       message: body,
       memberId: memberId,
       memberName: memberName,
       kind: TimelineKind.post,
+      members: members,
+    );
+  }
+
+  Future<void> addAnnouncement({
+    required String body,
+    required String memberId,
+    required String memberName,
+    List<NestMember> members = const [],
+  }) {
+    return add(
+      message: body,
+      memberId: memberId,
+      memberName: memberName,
+      kind: TimelineKind.announcement,
+      members: members,
     );
   }
 
@@ -1164,9 +1199,11 @@ class TimelineRepository {
     required String body,
     required String memberId,
     required String memberName,
+    List<NestMember> members = const [],
   }) async {
     final now = DateTime.now();
     final nestId = await _db.getMeta('nestId');
+    final mentionIds = encodeMentionIds(parseTimelineMentions(body, members));
     await _db.into(_db.timelineEvents).insert(
           TimelineEventsCompanion.insert(
             id: _uuid.v4(),
@@ -1176,11 +1213,52 @@ class TimelineRepository {
             memberName: Value(memberName),
             kind: Value(TimelineKind.comment.storage),
             parentId: Value(parentId),
+            mentionIds: Value(mentionIds),
             dirty: const Value(true),
             createdAt: Value(now),
             updatedAt: Value(now),
           ),
         );
+  }
+
+  /// Shows a local notification for timeline rows that mention [currentMemberId].
+  Future<void> deliverLocalMentionNotifications({
+    required String currentMemberId,
+    required Future<void> Function({
+      required String authorName,
+      required String preview,
+    }) showMention,
+  }) async {
+    if (currentMemberId.isEmpty) return;
+    final seenRaw = await _db.getMeta('mentionNotifiedIds') ?? '';
+    final seen = seenRaw.split(',').where((s) => s.isNotEmpty).toSet();
+
+    final rows = await (_db.select(_db.timelineEvents)
+          ..where(
+            (t) => t.deleted.equals(false) & t.mentionIds.isNotNull(),
+          ))
+        .get();
+
+    final newlyNotified = <String>[];
+    for (final event in rows) {
+      if (seen.contains(event.id)) continue;
+      final ids = decodeMentionIds(event.mentionIds);
+      if (!ids.contains(currentMemberId)) continue;
+      if (event.memberId == currentMemberId) continue;
+      await showMention(
+        authorName: event.memberName,
+        preview: event.message,
+      );
+      newlyNotified.add(event.id);
+    }
+
+    if (newlyNotified.isEmpty) return;
+    seen.addAll(newlyNotified);
+    final merged = seen.toList();
+    if (merged.length > 200) {
+      merged.removeRange(0, merged.length - 200);
+    }
+    await _db.setMeta('mentionNotifiedIds', merged.join(','));
   }
 
   Future<void> toggleReaction({

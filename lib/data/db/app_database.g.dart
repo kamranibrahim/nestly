@@ -6267,6 +6267,17 @@ class $TimelineEventsTable extends TimelineEvents
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _mentionIdsMeta = const VerificationMeta(
+    'mentionIds',
+  );
+  @override
+  late final GeneratedColumn<String> mentionIds = GeneratedColumn<String>(
+    'mention_ids',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
   @override
   late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
@@ -6329,6 +6340,7 @@ class $TimelineEventsTable extends TimelineEvents
     kind,
     parentId,
     pinned,
+    mentionIds,
     dirty,
     deleted,
     createdAt,
@@ -6393,6 +6405,12 @@ class $TimelineEventsTable extends TimelineEvents
       context.handle(
         _pinnedMeta,
         pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta),
+      );
+    }
+    if (data.containsKey('mention_ids')) {
+      context.handle(
+        _mentionIdsMeta,
+        mentionIds.isAcceptableOrUnknown(data['mention_ids']!, _mentionIdsMeta),
       );
     }
     if (data.containsKey('dirty')) {
@@ -6460,6 +6478,10 @@ class $TimelineEventsTable extends TimelineEvents
         DriftSqlType.bool,
         data['${effectivePrefix}pinned'],
       )!,
+      mentionIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mention_ids'],
+      ),
       dirty: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}dirty'],
@@ -6494,6 +6516,9 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
   final String kind;
   final String? parentId;
   final bool pinned;
+
+  /// Comma-separated member ids mentioned via `@Name` in [message].
+  final String? mentionIds;
   final bool dirty;
   final bool deleted;
   final DateTime createdAt;
@@ -6507,6 +6532,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
     required this.kind,
     this.parentId,
     required this.pinned,
+    this.mentionIds,
     required this.dirty,
     required this.deleted,
     required this.createdAt,
@@ -6527,6 +6553,9 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       map['parent_id'] = Variable<String>(parentId);
     }
     map['pinned'] = Variable<bool>(pinned);
+    if (!nullToAbsent || mentionIds != null) {
+      map['mention_ids'] = Variable<String>(mentionIds);
+    }
     map['dirty'] = Variable<bool>(dirty);
     map['deleted'] = Variable<bool>(deleted);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -6548,6 +6577,9 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           ? const Value.absent()
           : Value(parentId),
       pinned: Value(pinned),
+      mentionIds: mentionIds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mentionIds),
       dirty: Value(dirty),
       deleted: Value(deleted),
       createdAt: Value(createdAt),
@@ -6569,6 +6601,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       kind: serializer.fromJson<String>(json['kind']),
       parentId: serializer.fromJson<String?>(json['parentId']),
       pinned: serializer.fromJson<bool>(json['pinned']),
+      mentionIds: serializer.fromJson<String?>(json['mentionIds']),
       dirty: serializer.fromJson<bool>(json['dirty']),
       deleted: serializer.fromJson<bool>(json['deleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -6587,6 +6620,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       'kind': serializer.toJson<String>(kind),
       'parentId': serializer.toJson<String?>(parentId),
       'pinned': serializer.toJson<bool>(pinned),
+      'mentionIds': serializer.toJson<String?>(mentionIds),
       'dirty': serializer.toJson<bool>(dirty),
       'deleted': serializer.toJson<bool>(deleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -6603,6 +6637,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
     String? kind,
     Value<String?> parentId = const Value.absent(),
     bool? pinned,
+    Value<String?> mentionIds = const Value.absent(),
     bool? dirty,
     bool? deleted,
     DateTime? createdAt,
@@ -6616,6 +6651,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
     kind: kind ?? this.kind,
     parentId: parentId.present ? parentId.value : this.parentId,
     pinned: pinned ?? this.pinned,
+    mentionIds: mentionIds.present ? mentionIds.value : this.mentionIds,
     dirty: dirty ?? this.dirty,
     deleted: deleted ?? this.deleted,
     createdAt: createdAt ?? this.createdAt,
@@ -6633,6 +6669,9 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
       kind: data.kind.present ? data.kind.value : this.kind,
       parentId: data.parentId.present ? data.parentId.value : this.parentId,
       pinned: data.pinned.present ? data.pinned.value : this.pinned,
+      mentionIds: data.mentionIds.present
+          ? data.mentionIds.value
+          : this.mentionIds,
       dirty: data.dirty.present ? data.dirty.value : this.dirty,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -6651,6 +6690,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           ..write('kind: $kind, ')
           ..write('parentId: $parentId, ')
           ..write('pinned: $pinned, ')
+          ..write('mentionIds: $mentionIds, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -6669,6 +6709,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
     kind,
     parentId,
     pinned,
+    mentionIds,
     dirty,
     deleted,
     createdAt,
@@ -6686,6 +6727,7 @@ class TimelineEvent extends DataClass implements Insertable<TimelineEvent> {
           other.kind == this.kind &&
           other.parentId == this.parentId &&
           other.pinned == this.pinned &&
+          other.mentionIds == this.mentionIds &&
           other.dirty == this.dirty &&
           other.deleted == this.deleted &&
           other.createdAt == this.createdAt &&
@@ -6701,6 +6743,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
   final Value<String> kind;
   final Value<String?> parentId;
   final Value<bool> pinned;
+  final Value<String?> mentionIds;
   final Value<bool> dirty;
   final Value<bool> deleted;
   final Value<DateTime> createdAt;
@@ -6715,6 +6758,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.kind = const Value.absent(),
     this.parentId = const Value.absent(),
     this.pinned = const Value.absent(),
+    this.mentionIds = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -6730,6 +6774,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     this.kind = const Value.absent(),
     this.parentId = const Value.absent(),
     this.pinned = const Value.absent(),
+    this.mentionIds = const Value.absent(),
     this.dirty = const Value.absent(),
     this.deleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -6746,6 +6791,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     Expression<String>? kind,
     Expression<String>? parentId,
     Expression<bool>? pinned,
+    Expression<String>? mentionIds,
     Expression<bool>? dirty,
     Expression<bool>? deleted,
     Expression<DateTime>? createdAt,
@@ -6761,6 +6807,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       if (kind != null) 'kind': kind,
       if (parentId != null) 'parent_id': parentId,
       if (pinned != null) 'pinned': pinned,
+      if (mentionIds != null) 'mention_ids': mentionIds,
       if (dirty != null) 'dirty': dirty,
       if (deleted != null) 'deleted': deleted,
       if (createdAt != null) 'created_at': createdAt,
@@ -6778,6 +6825,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     Value<String>? kind,
     Value<String?>? parentId,
     Value<bool>? pinned,
+    Value<String?>? mentionIds,
     Value<bool>? dirty,
     Value<bool>? deleted,
     Value<DateTime>? createdAt,
@@ -6793,6 +6841,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
       kind: kind ?? this.kind,
       parentId: parentId ?? this.parentId,
       pinned: pinned ?? this.pinned,
+      mentionIds: mentionIds ?? this.mentionIds,
       dirty: dirty ?? this.dirty,
       deleted: deleted ?? this.deleted,
       createdAt: createdAt ?? this.createdAt,
@@ -6828,6 +6877,9 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
     if (pinned.present) {
       map['pinned'] = Variable<bool>(pinned.value);
     }
+    if (mentionIds.present) {
+      map['mention_ids'] = Variable<String>(mentionIds.value);
+    }
     if (dirty.present) {
       map['dirty'] = Variable<bool>(dirty.value);
     }
@@ -6857,6 +6909,7 @@ class TimelineEventsCompanion extends UpdateCompanion<TimelineEvent> {
           ..write('kind: $kind, ')
           ..write('parentId: $parentId, ')
           ..write('pinned: $pinned, ')
+          ..write('mentionIds: $mentionIds, ')
           ..write('dirty: $dirty, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
@@ -15122,6 +15175,7 @@ typedef $$TimelineEventsTableCreateCompanionBuilder =
       Value<String> kind,
       Value<String?> parentId,
       Value<bool> pinned,
+      Value<String?> mentionIds,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -15138,6 +15192,7 @@ typedef $$TimelineEventsTableUpdateCompanionBuilder =
       Value<String> kind,
       Value<String?> parentId,
       Value<bool> pinned,
+      Value<String?> mentionIds,
       Value<bool> dirty,
       Value<bool> deleted,
       Value<DateTime> createdAt,
@@ -15191,6 +15246,11 @@ class $$TimelineEventsTableFilterComposer
 
   ColumnFilters<bool> get pinned => $composableBuilder(
     column: $table.pinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mentionIds => $composableBuilder(
+    column: $table.mentionIds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15264,6 +15324,11 @@ class $$TimelineEventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get mentionIds => $composableBuilder(
+    column: $table.mentionIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get dirty => $composableBuilder(
     column: $table.dirty,
     builder: (column) => ColumnOrderings(column),
@@ -15320,6 +15385,11 @@ class $$TimelineEventsTableAnnotationComposer
   GeneratedColumn<bool> get pinned =>
       $composableBuilder(column: $table.pinned, builder: (column) => column);
 
+  GeneratedColumn<String> get mentionIds => $composableBuilder(
+    column: $table.mentionIds,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get dirty =>
       $composableBuilder(column: $table.dirty, builder: (column) => column);
 
@@ -15374,6 +15444,7 @@ class $$TimelineEventsTableTableManager
                 Value<String> kind = const Value.absent(),
                 Value<String?> parentId = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
+                Value<String?> mentionIds = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -15388,6 +15459,7 @@ class $$TimelineEventsTableTableManager
                 kind: kind,
                 parentId: parentId,
                 pinned: pinned,
+                mentionIds: mentionIds,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,
@@ -15404,6 +15476,7 @@ class $$TimelineEventsTableTableManager
                 Value<String> kind = const Value.absent(),
                 Value<String?> parentId = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
+                Value<String?> mentionIds = const Value.absent(),
                 Value<bool> dirty = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -15418,6 +15491,7 @@ class $$TimelineEventsTableTableManager
                 kind: kind,
                 parentId: parentId,
                 pinned: pinned,
+                mentionIds: mentionIds,
                 dirty: dirty,
                 deleted: deleted,
                 createdAt: createdAt,

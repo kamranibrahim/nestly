@@ -542,6 +542,21 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get timelinePinnedLabel => 'مثبّت';
+
+  @override
+  String get timelinePinAction => 'تثبيت في الأعلى';
+
+  @override
+  String get timelineUnpinAction => 'إلغاء التثبيت';
+
+  @override
+  String get timelineAnnouncementHint => 'شارك إعلانًا مع العائلة…';
+
+  @override
+  String get timelineAnnounceButton => 'إعلان';
+
+  @override
   String needCareDue(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -917,6 +932,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notifTaskDue => 'مهمة مستحقة';
+
+  @override
+  String get notifChannelTimeline => 'الجدول الزمني';
+
+  @override
+  String get notifChannelTimelineDesc =>
+      'عندما يذكرك أحد في الجدول الزمني للعائلة';
+
+  @override
+  String notifTimelineMentionTitle(String author) {
+    return '$author ذكرك';
+  }
 
   @override
   String get widgetAllClear => 'لا مهام';

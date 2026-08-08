@@ -1199,6 +1199,8 @@ class SyncService {
           'kind': item.kind,
           if (item.parentId != null) 'parentId': item.parentId,
           'pinned': item.pinned,
+          if (item.mentionIds != null && item.mentionIds!.isNotEmpty)
+            'mentionIds': item.mentionIds,
           'createdAt': Timestamp.fromDate(item.createdAt),
           'updatedAt': Timestamp.fromDate(item.updatedAt),
         });
@@ -1239,6 +1241,7 @@ class SyncService {
               kind: Value(data['kind'] as String? ?? TimelineKind.activity.storage),
               parentId: Value(data['parentId'] as String?),
               pinned: Value(data['pinned'] as bool? ?? false),
+              mentionIds: Value(data['mentionIds'] as String?),
               dirty: const Value(false),
               createdAt: Value(created),
               updatedAt: Value(updated),

@@ -1112,6 +1112,36 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Comments} =1{1 comment} other{{count} comments}}'**
   String timelineCommentsToggle(int count);
 
+  /// No description provided for @timelinePinnedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get timelinePinnedLabel;
+
+  /// No description provided for @timelinePinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to top'**
+  String get timelinePinAction;
+
+  /// No description provided for @timelineUnpinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get timelineUnpinAction;
+
+  /// No description provided for @timelineAnnouncementHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share an announcement with the family…'**
+  String get timelineAnnouncementHint;
+
+  /// No description provided for @timelineAnnounceButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Announce'**
+  String get timelineAnnounceButton;
+
   /// No description provided for @needCareDue.
   ///
   /// In en, this message translates to:
@@ -1633,6 +1663,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Task due'**
   String get notifTaskDue;
+
+  /// No description provided for @notifChannelTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeline'**
+  String get notifChannelTimeline;
+
+  /// No description provided for @notifChannelTimelineDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When someone mentions you on the family timeline'**
+  String get notifChannelTimelineDesc;
+
+  /// No description provided for @notifTimelineMentionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{author} mentioned you'**
+  String notifTimelineMentionTitle(String author);
 
   /// No description provided for @widgetAllClear.
   ///

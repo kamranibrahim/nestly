@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nestly/data/db/app_database.dart';
 import 'package:nestly/data/enums.dart';
 import 'package:nestly/data/repositories.dart';
+import 'package:nestly/data/timeline_mentions.dart';
 import 'package:nestly/data/vault_upload_status.dart';
 
 void main() {
@@ -717,5 +718,57 @@ void main() {
 
     final counts = await timeline.watchReactionCounts(post.id).first;
     expect(counts, isEmpty);
+  });
+
+  test('setPinned sorts pinned events before newer unpinned', () async {
+    final timeline = TimelineRepository(database);
+    await timeline.addPost(
+      body: 'Older post',
+      memberId: 'dad',
+      memberName: 'Kamran',
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    await timeline.addPost(
+      body: 'Newer post',
+      memberId: 'mom',
+      memberName: 'Sara',
+    );
+    final newer = (await timeline.watchRecent().first)
+        .firstWhere((e) => e.message == 'Newer post');
+    await timeline.setPinned(newer.id, true);
+
+    final ordered = await timeline.watchRecent().first;
+    expect(ordered.first.message, 'Newer post');
+    expect(ordered.first.pinned, isTrue);
+  });
+
+  test('addAnnouncement persists kind announcement', () async {
+    final timeline = TimelineRepository(database);
+    await timeline.addAnnouncement(
+      body: 'School starts Monday',
+      memberId: 'mom',
+      memberName: 'Sara',
+    );
+    final event = (await timeline.watchRecent().first)
+        .firstWhere((e) => e.message == 'School starts Monday');
+    expect(event.kind, TimelineKind.announcement.storage);
+  });
+
+  test('parseTimelineMentions stores mention ids on post', () async {
+    final timeline = TimelineRepository(database);
+    final members = await database.select(database.nestMembers).get();
+    await timeline.addPost(
+      body: 'Hey @Sara can you pick up milk?',
+      memberId: 'dad',
+      memberName: 'Kamran',
+      members: members,
+    );
+    final post = (await timeline.watchRecent().first)
+        .firstWhere((e) => e.message.contains('@Sara'));
+    expect(decodeMentionIds(post.mentionIds), contains('mom'));
+    expect(
+      parseTimelineMentions('Hey @Sara can you pick up milk?', members),
+      contains('mom'),
+    );
   });
 }
